@@ -1,13 +1,12 @@
 // Watch 4.1: Initial Gen 4 watch, uses blinks to communicate. Chip is an ATTiny 84a.
 
-#include <avr/sleep.h>
-#include <avr/power.h>
-#include <avr/interrupt.h>
-
 #define KEEPON_THRESHOLD 10
 
-const byte onPin = 0;
-const byte offPin = 0;
+int blinkOn;
+int blinkOff;
+
+const byte onPin = 2;
+const byte offPin = 3;
 const byte outputs = 0;
 
 volatile bool wakeup = false;

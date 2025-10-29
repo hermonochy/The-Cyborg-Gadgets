@@ -27,15 +27,15 @@ OneWire oneWire(TEMP_PIN);
 DallasTemperature tempSensor(&oneWire);
 
 unsigned long lastActivityTime = 0;
-const unsigned long inactivityPeriod = 30000;
+const unsigned long inactivityPeriod = 60000;
 
 int selectedFunction = 1;
 int selectedSensor = 1;
 
-const byte btn1 = 2;
-const byte btn2 = 3;
-const byte btn3 = 4;
-const byte btn4 = 5;
+const byte btn1 = 3;
+const byte btn2 = 4;
+const byte btn3 = 5;
+const byte btn4 = 2;
 
 const byte TRIG_PIN = 9;
 const byte ECHO_PIN = 8;
@@ -46,7 +46,7 @@ const byte LED = 7;
 
 volatile bool wakeup = false;
 
-const char *Functions[] = {"Torch", "Sensors", "Random Int", "Sleep Mode"};
+const char *Functions[] = {"Torch", "Sensors", "Random", "Sleep"};
 const char *Sensors[] = {"Temp", "Light", "Sonar"};
 
 void setup(){
@@ -67,19 +67,16 @@ void setup(){
     }
   }
 
-  if (!tempSensor.begin()){
-    while (true){
-      digitalWrite(LED_BUILTIN, HIGH); delay(200);
-      digitalWrite(LED_BUILTIN, LOW); delay(200);
-    }
-  }
+  tempSensor.begin();
+
   display.clearDisplay();
-  display.setTextSize(1);
+  display.setTextSize(2);
   display.setTextColor(SSD1306_WHITE);
-  display.setCursor(5, 0);
-  display.print("Watch 5,");
-  display.setCursor(30, 20);
-  display.print("Gen 3");
+  display.setCursor(15, 0);
+  display.print("Watch 5");
+  display.setCursor(10, 20);
+  display.setTextSize(1);
+  display.print("of Generation 3");
   display.display();
 
   delay(100);
@@ -135,20 +132,19 @@ void goToSleep(){
     sleep_bod_disable();
 
     wakeup = false;
-    attachInterrupt(digitalPinToInterrupt(btn3), wakeUp, FALLING);
+    attachInterrupt(digitalPinToInterrupt(btn4), wakeUp, FALLING);
 
     set_sleep_mode(SLEEP_MODE_PWR_DOWN);
     sleep_enable();
     sleep_mode();
 
     sleep_disable();
-    detachInterrupt(digitalPinToInterrupt(btn3));
+    detachInterrupt(digitalPinToInterrupt(btn4));
  
     ADCSRA |= (1 << ADEN);
     display.ssd1306_command(SSD1306_DISPLAYON);
 
 }
-
 void torch(){
   bool blink = false;
   bool keepOn = false;
@@ -159,18 +155,12 @@ void torch(){
     display.setTextSize(1);
     display.setTextColor(SSD1306_WHITE);
     
-    display.setTextSize(2);
+    display.setTextSize(3);
     display.setCursor(10, 15);
     display.print("State: ");
     display.print(digitalRead(LED));
-    }
-  }
-  display.clearDisplay();
-  display.setTextSize(1);
-  display.setTextColor(SSD1306_WHITE);
-…    }
     display.display();
-    
+      
     if (!blink) delay(50);
     if (keepOn){
       digitalWrite(LED, HIGH);
@@ -224,6 +214,7 @@ void temp(){
 
 void light(){
   int lightVal;
+  display.clearDisplay();
   while (!button_is_pressed(btn4)){
 
     lightVal = analogRead(lightPin);;
@@ -238,10 +229,11 @@ void light(){
 void ultraSound(){
   long duration;
   float distance;
+  display.clearDisplay();
   while (!button_is_pressed(btn4)){
 
     digitalWrite(TRIG_PIN, HIGH);
-    delayMicroseconds(10);
+    delay(10);
     digitalWrite(TRIG_PIN, LOW);
 
     duration = pulseIn(ECHO_PIN, HIGH);
@@ -263,6 +255,7 @@ void ultraSound(){
 
 void sensors(void){
   delay(50);
+  display.clearDisplay();
   while (true){
     display.setTextSize(2);
     display.setCursor(10, 5);
@@ -336,26 +329,26 @@ void randomInt(){
 
 void loop(){
   display.clearDisplay();
-  display.setTextSize(2);
+  display.setTextSize(3);
   display.setCursor(0, 5);
 
   display.print(Functions[selectedFunction-1]);
 
   display.display();
 
-  delay(10000);
+  delay(1000);
 
-  if (button_is_pressed(btn2)){
+  //if (button_is_pressed(btn2)){
     selectedFunction++;
     if (selectedFunction > totalFunctions) selectedFunction = 1;
-  } 
+  //} 
   else if (button_is_pressed(btn1)){
     selectedFunction--;
     if (selectedFunction < 1){
       selectedFunction = totalFunctions;
     }
   } 
-  else if (button_is_pressed(btn3)){
+  else if (button_is_pressed(btn4)){
     switch (selectedFunction){
       case 1:
         torch();
@@ -369,12 +362,12 @@ void loop(){
         display.clearDisplay();
         display.display();
         // Ensure interrupt does not trigger immediately
-        while (button_is_pressed(btn3));
+        while (button_is_pressed(btn4));
         goToSleep();
         break;
     }
   }
-  else if (button_is_pressed(btn4)){
+  else if (button_is_pressed(btn3)){
     reset();
   }
 }

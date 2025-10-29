@@ -8,7 +8,7 @@
 #include <avr/interrupt.h>
 #include <Ds1302.h>
 
-#define PIN_ENA 9
+#define PIN_ENA 8
 #define PIN_CLK 12
 #define PIN_DAT 11
 
@@ -20,17 +20,17 @@ Ds1302 rtc(PIN_ENA, PIN_CLK, PIN_DAT);
 
 Adafruit_SSD1306 display(SCREEN_WIDTH, SCREEN_HEIGHT, &Wire, OLED_RESET);
 
-const byte btn1 = 5;
-const byte btn2 = 4;
+const byte btn1 = 4;
+const byte btn2 = 5;
 const byte btn3 = 3;
 const byte btn4 = 6;
 const byte btn5 = 7;
 
 const byte Func1 = A2;
-const byte Func2 = 8;
+const byte Func2 = 10;
 
 unsigned long lastActivityTime = 0;
-const unsigned long inactivityPeriod = 30000;
+const unsigned long inactivityPeriod = 60000;
 
 volatile bool wakeup = false;
 
@@ -144,6 +144,7 @@ void timer(){
     }
   } else {
     if (millis() - timerLast >= 1000 && timerLeft > 0) {
+      lastActivityTime = millis(); // ensure watch does not go to sleep during timer
       timerLeft--;
       timerLast += 1000;
     }
@@ -486,6 +487,7 @@ void showFunc(const char *name, const byte func, int idx) {
   display.display();
 
   if (state.blink) {
+    lastActivityTime = millis(); // ensure watch does not go to sleep during blink
     unsigned long now = millis();
     if (now - state.lastBlink >= state.blinkTime) {
       state.outputState = !state.outputState;
@@ -579,19 +581,6 @@ void setup() {
     digitalWrite(LED_BUILTIN, LOW); delay(200);
     }
   }
-  display.clearDisplay();
-  display.setTextSize(2);
-  display.setTextColor(SSD1306_WHITE);
-  display.setCursor(7, 0);
-  display.print("Wecome to");
-  display.setCursor(20, 20);
-  display.print("Watch 3");
-  display.setCursor(30, 50);
-  display.print("Gen 3");
-  display.setTextSize(1);
-  display.setCursor(55, 40);
-  display.print("of");
-  display.display();
 }
 
 void loop() {
