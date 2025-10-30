@@ -1,4 +1,4 @@
-// Watch 3.2: Initial OLED display watch
+// Watch 3.8: Computation focused watch
 
 #include <Adafruit_GFX.h>
 #include <Adafruit_SSD1306.h>
@@ -14,26 +14,21 @@
 #define OLED_RESET -1
 
 #define totalFunctions 8
-#define totalParts 4
 
 Adafruit_SSD1306 display(SCREEN_WIDTH, SCREEN_HEIGHT, &Wire, OLED_RESET);
 
 bool button_is_pressed(const byte btn, bool onlyOnce = false);
 
 int selectedFunction = 1;
-int selectedPart = 1;
 
 const byte btn1 = 2;
-const byte btn2 = 6;
+const byte btn2 = 4;
 const byte btn3 = 5;
-const byte btn4 = 3;
-byte btnInterrupt1 = btn1;
-byte btnInterrupt2 = btn4;
+const byte btn4 = 6;
+const byte btn5 = 7;
+const byte btn6 = 3;
 
-const byte Func1 = 10;
-const byte Func2 = 12;
-const byte Func3 = 11;
-const byte Func4 = 13;
+const byte Torch = A0;
 
 volatile bool wakeup = false;
 
@@ -42,10 +37,10 @@ void setup(){
   pinMode(btn2, INPUT_PULLUP);
   pinMode(btn3, INPUT_PULLUP);
   pinMode(btn4, INPUT_PULLUP);
-  pinMode(Func1, OUTPUT);
-  pinMode(Func2, OUTPUT);
-  pinMode(Func3, OUTPUT);
-  pinMode(Func4, OUTPUT);
+  pinMode(btn5, INPUT_PULLUP);
+  pinMode(btn6, INPUT_PULLUP);
+  pinMode(Torch, OUTPUT);
+  
   randomSeed(analogRead(1));
 
   if (!display.begin(SSD1306_SWITCHCAPVCC, 0x3C)){
@@ -60,7 +55,7 @@ void setup(){
   display.setCursor(0,0);
   display.print("Welcome to");
   display.setCursor(20, 20);
-  display.print("Watch 2");
+  display.print("Watch 8");
   display.setCursor(30, 50);
   display.print("Gen 3");
   display.setTextSize(1);
@@ -75,19 +70,7 @@ void setup(){
     digitalWrite(LED_BUILTIN, !digitalRead(LED_BUILTIN));
     
     if (button_is_pressed(btn1)){
-      digitalWrite(Func1, HIGH);
-    } 
-    else if (button_is_pressed(btn2)){
-      digitalWrite(Func2, HIGH);
-    }
-    else if (button_is_pressed(btn3, true)){
-      digitalWrite(LED_BUILTIN, LOW);
-      calculator();
-      break;
-    }
-    if (button_is_pressed(btn4, true)){
-      digitalWrite(LED_BUILTIN, LOW);
-      break;
+      digitalWrite(Torch, HIGH);
     }
   }
 }
@@ -116,58 +99,63 @@ void goToSleep(){
     sleep_bod_disable();
 
     wakeup = false;
-    attachInterrupt(digitalPinToInterrupt(btnInterrupt1), wakeUp, FALLING);
-    attachInterrupt(digitalPinToInterrupt(btnInterrupt2), wakeUp, FALLING);
+    attachInterrupt(digitalPinToInterrupt(btn6), wakeUp, FALLING);
 
     set_sleep_mode(SLEEP_MODE_PWR_DOWN);
     sleep_enable();
     sleep_mode();
 
     sleep_disable();
-    
-    detachInterrupt(digitalPinToInterrupt(btnInterrupt1));
-    detachInterrupt(digitalPinToInterrupt(btnInterrupt2));
-
+    detachInterrupt(digitalPinToInterrupt(btn6));
+ 
     ADCSRA |= (1 << ADEN);
     display.ssd1306_command(SSD1306_DISPLAYON);
 
-    if (button_is_pressed(btnInterrupt1, true)){}
-    if (button_is_pressed(btnInterrupt2, true)){}
 }
 
-void activateFunc(const byte func, int blinkTime = 500){
+void torch(void){
   bool blink = false;
   bool keepOn = false;
+  int blinkTime = 500;
+  int power = 1023;
 
   while (true){
     display.clearDisplay();
     display.setTextSize(1);
-    display.setCursor(0, 20);
-    display.println("1. Quick Flash");
-    display.setCursor(0, 30);
-    display.println("2. Always On");
+    display.setCursor(0, 16);
+    display.print("1. Quick Flash");
+    display.setCursor(0, 24);
+    display.print("2. Always On");
+    display.setCursor(0, 32);
+    display.print("3. Blink");
     display.setCursor(0, 40);
-    display.println("3. Blink");
-    display.setCursor(0, 50);
-    display.println("4. Return");
+    display.print("4. Decrease");
+    display.setCursor(0, 48);
+    display.print("5. Increase");
+    display.setCursor(0, 56);
+    display.print("6. Return");
     
     display.setTextSize(2);
-    display.setCursor(10, 0);
-    display.print("State: ");
-    display.print(digitalRead(func));
+    display.setCursor(100, 0);
+    display.print(" S: ");
+    display.print(digitalRead(Torch));
+    display.print(" P: ");
+    display.print(power);
+    display.print(" B: ");
+    display.print(blinkTime);
     display.display();
     
     if (!blink) delay(50);
     if (keepOn){
-      digitalWrite(func, HIGH);
+      analogWrite(Torch, HIGH);
     } 
     else if (blink){
-      digitalWrite(func, !digitalRead(func));
+      analogWrite(Torch, !digitalRead(Torch));
       delay(blinkTime / 2);
     } 
     else{
-      if (button_is_pressed(btn1)) digitalWrite(func, HIGH);
-      else digitalWrite(func, LOW);
+      if (button_is_pressed(btn1)) digitalWrite(Torch, HIGH);
+      else analogWrite(Torch, LOW);
     }
 
     if (button_is_pressed(btn2, true)){
@@ -179,57 +167,16 @@ void activateFunc(const byte func, int blinkTime = 500){
       if (blink) keepOn = false;
     }
     else if (button_is_pressed(btn4)){
+      if (blink) blinkTime--;
+      else power--;
+    }
+    else if (button_is_pressed(btn5)){
+      if (blink) blinkTime++;
+      else power++;
+    }
+    else if (button_is_pressed(btn6)){
       return;
     delay(250);
-    }
-  }
-}
-
-void watchFuncs(void){
-  delay(50);
-  while (true){
-    display.clearDisplay();
-    display.setTextSize(1);
-    display.setCursor(0, 20);
-    display.println("1. White LED");
-    display.setCursor(0, 30);
-    display.println("2. Laser");
-    display.setCursor(0, 40);
-    display.println("3. UV LED");
-    display.setCursor(0, 50);
-    display.println("4. BuiltIn LED");
-    display.setTextSize(2);
-    display.setCursor(10, 0);
-    display.print("Sel: ");
-    display.print(selectedPart);
-    display.display();
-
-    delay(100);
-
-    if (button_is_pressed(btn2)){
-      selectedPart++;
-      if (selectedPart > totalParts) selectedPart = 1;
-    } 
-    else if (button_is_pressed(btn1)){
-      selectedPart--;
-      if (selectedPart < 1) selectedPart = totalParts;
-    } 
-    else if (button_is_pressed(btn4, true)) return;
-    else if (button_is_pressed(btn3, true)){
-      switch (selectedPart){
-        case 1:
-          activateFunc(Func1);
-          continue;
-        case 2:
-          activateFunc(Func2, 1000);
-          continue;
-        case 3:
-          activateFunc(Func3);
-          continue;
-        case 4:
-          activateFunc(LED_BUILTIN, 100);
-          continue;
-      }
     }
   }
 }
@@ -301,8 +248,7 @@ void calculator(void){
             delay(250);
         }
         else if (button_is_pressed(btn3)){
-            expr[exprLen-1] = '\0';
-            exprLen = strlen(expr);
+            
         }
         else if (button_is_pressed(btn4, true)){
           if (!showResult){
@@ -482,7 +428,7 @@ void metronome(void){
   const unsigned long PULSE_MS = 10;
   unsigned long lastBeat = millis();
   unsigned long ledOffAt = 0;
-  volatile byte Func = Func1;
+  volatile byte Func = Torch;
   
   const unsigned long HOLD_INITIAL_MS = 400; 
   const unsigned long HOLD_MIN_MS = 1;      
@@ -499,7 +445,7 @@ void metronome(void){
   unsigned long btn1RepeatDelay = HOLD_INITIAL_MS;
   unsigned long btn2RepeatDelay = HOLD_INITIAL_MS;
 
-  digitalWrite(Func1, LOW);
+  digitalWrite(Torch, LOW);
 
   while (true){
     now = millis();
@@ -573,7 +519,6 @@ void metronome(void){
       
       btn2Held = false;
     }
-    if (button_is_pressed(btn3)) Func = Func2;
     if (button_is_pressed(btn4)){
       digitalWrite(Func, LOW);
       return;
@@ -588,7 +533,7 @@ void randomInt(){
     display.clearDisplay();
     display.setTextSize(2);
     display.setCursor(0, 0);
-    display.println("Random Int");
+    display.print("Random Int");
     display.setCursor(30, 25);
     display.print("Range:");
     display.setCursor(30, 45);
@@ -662,7 +607,7 @@ void loop(){
 
   display.setTextSize(1);
   display.setCursor(0, 20);
-  display.print("1. Output  5. Counter");
+  display.print("1. Torch   5. Counter");
   display.setCursor(0, 32);
   display.print("2. Maths   6. Metron");
   display.setCursor(0, 44);
@@ -687,7 +632,7 @@ void loop(){
   else if (button_is_pressed(btn4, true)){
     switch (selectedFunction){
       case 1:
-        watchFuncs();
+        torch();
         break;
       case 2:
         calculator();
