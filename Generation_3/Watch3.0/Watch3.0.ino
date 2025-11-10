@@ -4,7 +4,7 @@
 #include <avr/power.h>
 #include <avr/interrupt.h>
 
-#define LONG_PRESS_MS 5000UL
+#define LONG_PRESS_MS 3000UL
 
 const byte btn1 = 5;
 const byte btn2 = 6;
@@ -208,7 +208,7 @@ void counter() {
     else if (button_is_pressed(btn4)) {
       Serial.println(count);
       blinkNumber(count, 500, 500);
-      break;
+      return;
     }
   }
 
@@ -221,6 +221,97 @@ void counter() {
   }
   delay(500);
 
+}
+
+void metronome(void){
+  int bpm = 100;
+  const int MIN_BPM = 10;
+  const unsigned long PULSE_MS = 10;
+  unsigned long lastBeat = millis();
+  unsigned long ledOffAt = 0;
+  volatile byte Func = Func1;
+  
+  const unsigned long HOLD_INITIAL_MS = 400; 
+  const unsigned long HOLD_MIN_MS = 1;      
+  const float HOLD_ACCEL_FACTOR = 0.75f;     
+
+  unsigned long now = 0;
+  unsigned long interval = 60000UL / (unsigned long)max(1, bpm);
+
+  
+  bool btn1Held = false;
+  bool btn2Held = false;
+  unsigned long btn1NextRepeat = 0;
+  unsigned long btn2NextRepeat = 0;
+  unsigned long btn1RepeatDelay = HOLD_INITIAL_MS;
+  unsigned long btn2RepeatDelay = HOLD_INITIAL_MS;
+
+  digitalWrite(Func1, LOW);
+
+  while (true){
+    now = millis();
+    interval = 60000UL / (unsigned long)max(1, bpm);
+    
+    if ((unsigned long)(now - lastBeat) >= interval){
+      digitalWrite(Func, HIGH);
+      ledOffAt = now + PULSE_MS;
+      lastBeat = now;
+    }
+
+    if (ledOffAt && now >= ledOffAt){
+      digitalWrite(Func, LOW);
+      ledOffAt = 0;
+    }
+    
+    if (button_is_pressed(btn1, false)){
+      if (!btn1Held){
+        
+        btn1Held = true;
+        btn1RepeatDelay = HOLD_INITIAL_MS;
+        btn1NextRepeat = now + btn1RepeatDelay;
+        if (bpm > MIN_BPM) bpm--;
+      } else {
+        
+        if (now >= btn1NextRepeat){
+          if (bpm > MIN_BPM) bpm--;
+          
+          unsigned long newDelay = (unsigned long)max((float)HOLD_MIN_MS, btn1RepeatDelay * HOLD_ACCEL_FACTOR);
+          btn1RepeatDelay = newDelay;
+          btn1NextRepeat = now + btn1RepeatDelay;
+        }
+      }
+    } else {
+      
+      btn1Held = false;
+    }
+
+    if (button_is_pressed(btn2, false)){
+      if (!btn2Held){
+        
+        btn2Held = true;
+        btn2RepeatDelay = HOLD_INITIAL_MS;
+        btn2NextRepeat = now + btn2RepeatDelay;
+        bpm++;
+      } else {
+        
+        if (now >= btn2NextRepeat){
+          bpm++;
+          unsigned long newDelay = (unsigned long)max((float)HOLD_MIN_MS, btn2RepeatDelay * HOLD_ACCEL_FACTOR);
+          btn2RepeatDelay = newDelay;
+          btn2NextRepeat = now + btn2RepeatDelay;
+        }
+      }
+    } else {
+      
+      btn2Held = false;
+    }
+    if (button_is_pressed(btn3)) Func = Func2;
+    if (button_is_pressed(btn4)){
+      digitalWrite(Func, LOW);
+      return;
+    }  
+    yield();
+  }
 }
 
 void timer() {
@@ -255,6 +346,7 @@ void timer() {
       if (button_is_pressed(btn4)) return;
   }
 }
+
 void loop() {
   digitalWrite(LED_BUILTIN, HIGH);
   delay(5);
@@ -287,10 +379,30 @@ void loop() {
     }
   }
 
-  if (button_is_pressed(btn1)) {
-    watchFuncs();
-  } 
-  else if (button_is_pressed(btn2)) {
+  if (digitalRead(btn1) == LOW) {
+    delay(50);
+    if (digitalRead(btn1) == LOW) {
+      unsigned long start = millis();
+      bool longDetected = false;
+
+      while (digitalRead(btn1) == LOW) {
+        if (millis() - start >= LONG_PRESS_MS) {
+          longDetected = true;
+          break;
+        }
+        delay(10);
+      }
+
+      if (longDetected) {
+        metronome();
+      } 
+      else {
+        watchFuncs();
+      }
+    }
+  }
+
+  if (button_is_pressed(btn2)) {
     randomInt();
   }
   else if (button_is_pressed(btn3)) {

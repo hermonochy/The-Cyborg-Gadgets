@@ -16,20 +16,32 @@
 #define totalFunctions 8
 #define totalParts 4
 
+bool button_is_pressed(const byte btn, bool onlyOnce = false);
+
 Adafruit_SSD1306 display(SCREEN_WIDTH, SCREEN_HEIGHT, &Wire, OLED_RESET);
+
+unsigned long lastActivityTime = 0;
+unsigned long inactivityPeriod = 30000;
 
 int selectedFunction = 1;
 int selectedPart = 1;
+
+const char *settingFuncs[] = {"Inactivity Period", "Func1 Settings", "Func1 Settings", "Func2 Settings", "Func3 Settings", "Func4 Settings"};
+
+int blinkTime1 = 1000;
+int blinkTime2 = 2;
+int blinkTime3 = 100;
+int blinkTime4 = 100;
 
 const byte btn1 = 7;
 const byte btn2 = 4;
 const byte btn3 = 5;
 const byte btn4 = 2; // needs to be pin2 for interrupts
 
-const byte Func1 = 9;
-const byte Func2 = 8;
-const byte Func3 = 10;
-const byte Func4 = 13;
+byte Func1 = 9;
+byte Func2 = 8;
+byte Func3 = 10;
+byte Func4 = 13;
 
 volatile bool wakeup = false;
 
@@ -80,11 +92,23 @@ void setup(){
   }
 }
 
-bool button_is_pressed(const byte btn){
-    if (digitalRead(btn) == LOW) {
-        return true;
-    }
+bool button_is_pressed(const byte btn, bool onlyOnce = false) {
+  unsigned long now = millis();
+
+  if (now - lastActivityTime > inactivityPeriod) {
+    goToSleep();
+    lastActivityTime = millis();
+    // Ensure buttons do not have immediate effect
     return false;
+  }
+  if (digitalRead(btn) == LOW) {
+    if (onlyOnce){
+      while (digitalRead(btn) == LOW){}
+    }
+    lastActivityTime = millis();
+    return true;
+  }
+  return false;
 }
 
 void(* reset)(void) = 0;
@@ -115,7 +139,7 @@ void goToSleep(){
 
 }
 
-void activateFunc(const byte func, int blinkTime = 500){
+void activateFunc(const byte func, int blinkTime){
   bool blink = false;
   bool keepOn = false;
 
@@ -196,16 +220,16 @@ void watchFuncs(void){
     else if (button_is_pressed(btn3)){
       switch (selectedPart){
         case 1:
-          activateFunc(Func1);
+          activateFunc(Func1, blinkTime1);
           continue;
         case 2:
-          activateFunc(Func2, 1);
+          activateFunc(Func2, blinkTime2);
           continue;
         case 3:
-          activateFunc(Func3);
+          activateFunc(Func3, blinkTime3);
           continue;
         case 4:
-          activateFunc(LED_BUILTIN, 100);
+          activateFunc(LED_BUILTIN, blinkTime4);
           continue;
       }
     }
@@ -590,6 +614,92 @@ void metronome(void){
   }
 }
 
+void settings() {
+  const byte numSettings = 5;
+  int settingIndex = 0;
+  while(!button_is_pressed(btn4, true)){
+    display.clearDisplay();
+    display.setTextSize(1);
+    display.setCursor(0,0);
+    display.print(settingFuncs[settingIndex]);
+
+    display.setCursor(0, 12);
+
+    switch(settingIndex) {
+      case 0:
+        display.print(inactivityPeriod/1000);
+        display.print(" s");
+        if(button_is_pressed(btn2)) {
+          inactivityPeriod += 5000;
+          if(inactivityPeriod > 600000) inactivityPeriod = 10000;
+        }
+        if(button_is_pressed(btn1)) {
+          inactivityPeriod -= 50000;
+          if(inactivityPeriod < 10000) inactivityPeriod = 120000;
+        }
+        break;
+      case 1:
+        display.print(blinkTime1);
+        display.setCursor(0, 24);
+        display.print(Func2);
+        if(button_is_pressed(btn1)) {
+          blinkTime1 += 5;
+          if(blinkTime1 > 5000) blinkTime1 = 1;
+        }
+        if(button_is_pressed(btn2)) {
+          Func1++;
+          if(Func1 >= 12) Func1 = 1;
+        }
+        break;
+      case 2:
+        display.print(blinkTime2);
+        display.setCursor(0, 24);
+        display.print(Func2);
+        if(button_is_pressed(btn1)) {
+          blinkTime2 += 5;
+          if(blinkTime2 > 5000) blinkTime2 = 1;
+        }
+        if(button_is_pressed(btn2)) {
+          Func2++;
+          if(Func2 >= 12) Func2 = 2;
+        }
+        break;
+      case 3:
+        display.print(blinkTime3);
+        display.setCursor(0, 24);
+        display.print(Func3);
+        if(button_is_pressed(btn1)) {
+          blinkTime3 += 5;
+          if(blinkTime3 > 5000) blinkTime3 = 1;
+        }
+        if(button_is_pressed(btn2)) {
+          Func3++;
+          if(Func3 >= 12) Func3 = 2;
+        }
+        break;
+      case 4:
+        display.print(blinkTime4);
+        display.setCursor(0, 24);
+        display.print(Func4);
+        if(button_is_pressed(btn1)) {
+          blinkTime4 += 5;
+          if(blinkTime4 > 5000) blinkTime4 = 1;
+        }
+        if(button_is_pressed(btn2)) {
+          Func4++;
+          if(Func4 >= 12) Func4 = 2;
+        }
+        break;
+    }
+    
+    display.display();
+    
+    if(button_is_pressed(btn3, true)) {
+      settingIndex = (settingIndex + 1) % numSettings;
+    }
+  }
+}
+
 void loop(){
   display.clearDisplay();
   display.setTextSize(1);
@@ -600,7 +710,7 @@ void loop(){
   display.setCursor(0, 14);
   display.print("1.Out 2Mth 3.Cnv 4Rnd");
   display.setCursor(0, 24);
-  display.print("5.Cnt 6.Blk 7.- 8.Pwr");
+  display.print("5.Cnt 6Blk 7.Set 8Pwr");
 
   display.display();
 
@@ -638,6 +748,7 @@ void loop(){
         metronome();
         break;
       case 7:
+        settings();
         break;
       case 8:
         while (button_is_pressed(btn4));
