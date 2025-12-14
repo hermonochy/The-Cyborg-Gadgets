@@ -15,7 +15,7 @@ Adafruit_NeoPixel pixel(NUM_NEOPIXEL, NEOPIXEL_PIN, NEO_GRB + NEO_KHZ800);
 int brightness = 255;
 
 const byte btn1 = 3;
-const byte btn2 = A1;
+const byte btn2 = 11;
 const byte btn3 = A0;
 const byte btn4 = 6;
 
@@ -77,7 +77,7 @@ void reset(){
   digitalWrite(resetPin, HIGH);
   delayMicroseconds(10);
   digitalWrite(resetPin, LOW);
-  }
+}
 
 void wakeUp(){
     wakeup = true;

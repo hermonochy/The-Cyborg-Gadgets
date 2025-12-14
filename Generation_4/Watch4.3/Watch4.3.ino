@@ -1,4 +1,4 @@
-// Watch 3.3: Uses a DS1302 chip to become an actual watch, rather than a mere extension.
+// Watch 4.3: Uses a DS1302 chip to become an actual watch, rather than a mere extension.
 // Requires 3D printed parts.
 
 #include <Adafruit_GFX.h>
@@ -95,17 +95,8 @@ void clock() {
   display.setCursor(105, 45);
   sprintf(buf, "%02d", now.second);
   display.print(buf);
-
-
-
   display.setCursor(5, 5);
-
-  const char* daysOfWeek[] = {"Sun", "Mon", "Tue", "Wed", "Thu", "Fri", "Sat"};
-  display.print(daysOfWeek[now.dow % 7]);
-
-  sprintf(buf, "   %02d / %02d / %04d", now.day, now.month, 2000 + now.year);
-  display.print(buf);
-
+  display.print(now.dow);
 
   display.display();
 }

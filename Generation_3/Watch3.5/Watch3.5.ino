@@ -17,17 +17,16 @@
 
 #define TEMP_PIN 10
 
-#define totalFunctions 4
+#define totalFunctions 6
 #define totalSensors 3
 
 Adafruit_SSD1306 display(SCREEN_WIDTH, SCREEN_HEIGHT, &Wire, OLED_RESET);
 
+bool button_is_pressed(const byte btn, bool onlyOnce = false);
+
 OneWire oneWire(TEMP_PIN);
 
 DallasTemperature tempSensor(&oneWire);
-
-unsigned long lastActivityTime = 0;
-const unsigned long inactivityPeriod = 60000;
 
 int selectedFunction = 1;
 int selectedSensor = 1;
@@ -37,16 +36,20 @@ const byte btn2 = 5;
 const byte btn3 = 4;
 const byte btn4 = 3;
 
-const byte TRIG_PIN = 6;
-const byte ECHO_PIN = 7;
+const byte TRIG_PIN = 7;
+const byte ECHO_PIN = 6;
 
 const byte lightPin = A7;
 
 const byte LED = A1;
+int power = 1023;
+
+const char *settingFuncs[] = {"Display Settings", "LED Power"};
 
 volatile bool wakeup = false;
+int rotation = 0;
 
-const char *Functions[] = {"Torch", "Sensors", "Random", "Sleep"};
+const char *Functions[] = {"Torch", "Sensors", "Random", "Counter", "Settings", "Sleep"};
 const char *Sensors[] = {"Temp", "Light", "Sonar"};
 
 void setup(){
@@ -84,11 +87,11 @@ void setup(){
   for (int i = 0; i < 200; i++){
     delay(20);
     digitalWrite(LED_BUILTIN, !digitalRead(LED_BUILTIN));
-    if (button_is_pressed(btn1)){
+    if (button_is_pressed(btn4)){
       digitalWrite(LED_BUILTIN, LOW);
       break;
     }
-    if (button_is_pressed(btn4)){
+    if (button_is_pressed(btn1)){
       digitalWrite(LED, HIGH);
     } 
     else if (button_is_pressed(btn3)){
@@ -97,24 +100,14 @@ void setup(){
   }
 }
 
-bool button_is_pressed(const byte btn){
-    unsigned long now = millis();
-
-    if (now - lastActivityTime > inactivityPeriod) {
-        display.clearDisplay();
-        display.display();
-        goToSleep();
-        lastActivityTime = millis();
-        // Ensure interrupt does not trigger immediately
-        while (button_is_pressed(btn3));
-        return false;
+bool button_is_pressed(const byte btn, bool onlyOnce = false) {
+  if (digitalRead(btn) == LOW){
+    if (onlyOnce){
+      while (digitalRead(btn) == LOW){}
     }
-
-    if (digitalRead(btn) == LOW) {
-        lastActivityTime = millis();
-        return true;
-    }
-    return false;
+    return true;
+  }
+  return false;
 }
 
 void(* reset) (void) = 0;
@@ -156,20 +149,20 @@ void torch(){
     
     display.setCursor(10, 15);
     display.print("State: ");
-    display.print(digitalRead(LED));
+    display.print(analogRead(LED));
     display.display();
       
     if (!blink) delay(50);
     if (keepOn){
-      digitalWrite(LED, HIGH);
+      analogWrite(LED, power);
     } 
     else if (blink){
       digitalWrite(LED, !digitalRead(LED));
       delay(blinkTime / 2);
     } 
     else{
-      if (button_is_pressed(btn1)) digitalWrite(LED, HIGH);
-      else digitalWrite(LED, LOW);
+      if (button_is_pressed(btn1)) analogWrite(LED, power);
+      else digitalWrite(LED, 0);
     }
 
     if (button_is_pressed(btn2)){
@@ -193,15 +186,14 @@ void tempAndLight(){
   float tempValF;
   int lightVal;
   while (!button_is_pressed(btn4)){
-    display.clearDisplay();
-
     tempSensor.requestTemperatures();
-    lightVal = analogRead(lightPin) / 6;
+    lightVal = analogRead(lightPin);
 
     tempValC = tempSensor.getTempCByIndex(0);
-    tempValK = tempSensor.getTempCByIndex(0) - 273.15;
-    tempValF = tempSensor.getTempCByIndex(0) * 9 / 5 + 32;
+    tempValK = tempValC + 273.15;
+    tempValF = tempSensor.getTempFByIndex(0);
 
+    display.clearDisplay();
     display.setTextSize(1);
     display.setCursor(0, 4);
     display.print(("%.2f°C", tempValC));
@@ -231,7 +223,7 @@ void ultraSound(){
 
     display.setTextSize(1);
     display.setCursor(0,15);
-    display.print((duration));
+    display.print((distance));
 
     int barWidth = 128;
     float maxDistance = 500.0;
@@ -242,16 +234,14 @@ void ultraSound(){
   }
 }
 
-
 void sensors(void){
-  delay(50);
-  display.clearDisplay();
   while (true){
+    display.clearDisplay();
     display.setTextSize(1);
     display.setCursor(10, 0);
     display.print("Sensors");
     display.setCursor(10, 14);
-    display.print("1. Light and Temperature");
+    display.print("1. Light and Temp");
     display.setCursor(10, 24);
     display.print("2. Ultrasound");
     display.display();
@@ -259,9 +249,8 @@ void sensors(void){
     delay(50);
 
     if (button_is_pressed(btn1)) tempAndLight();
-      
     else if (button_is_pressed(btn2)) ultraSound();
-    else if (button_is_pressed(btn4)) return;
+    else if (button_is_pressed(btn4, true)) return;
   }
 }
 
@@ -269,13 +258,13 @@ void randomInt(){
   int range = 1;
   while (true){
     display.clearDisplay();
-    display.setTextSize(2);
+    display.setTextSize(1);
     display.setCursor(0, 0);
     display.println("Random Int");
-    display.setCursor(30, 25);
+    display.setCursor(0, 10);
     display.print("Range:");
-    display.setCursor(30, 45);
-    display.print(("0 - "));
+    display.setCursor(0, 24);
+    display.print("0 - ");
     display.print(range);
     display.display();
     delay(100);
@@ -290,8 +279,8 @@ void randomInt(){
     else if (button_is_pressed(btn3)){
       int randNumber = random(0, range + 1);
       display.clearDisplay();
-      display.setTextSize(4);
-      display.setCursor(10, 25);
+      display.setTextSize(2);
+      display.setCursor(10, 15);
       display.print(randNumber);
       display.display();
       delay(2000);
@@ -302,16 +291,88 @@ void randomInt(){
   }
 }
 
+
+int score1 = 0;
+int score2 = 0;
+void counter(void){
+  while (true){
+    display.clearDisplay();
+
+    display.setTextSize(1);
+    display.setCursor(10, 5);
+    display.print("Score Counter");
+
+    display.setCursor(15, 24);
+    display.print(score1);
+    display.print(" : ");
+    display.print(score2);
+    display.display();
+
+    if (button_is_pressed(btn1)){
+      ++score1;
+      delay(150);
+    }
+    else if (button_is_pressed(btn2)){
+      ++score2;
+      delay(150);
+    }
+    else if (button_is_pressed(btn4)){
+      return;
+    }
+    delay(50);
+  }
+}
+
+
+void settings() {
+  const byte numSettings = 2;
+  int settingIndex = 0;
+  while(!button_is_pressed(btn4, true)){
+    delay(50);
+    display.clearDisplay();
+    display.setTextSize(1);
+    display.setCursor(0,5);
+    display.print(settingFuncs[settingIndex]);
+    display.setCursor(0,24);
+
+    switch(settingIndex) {
+      case 0:
+        display.print(rotation%4);
+        if(button_is_pressed(btn1)) {
+          rotation++;
+        }
+        if(button_is_pressed(btn2, true)) {
+          display.ssd1306_command(SSD1306_DISPLAYOFF);
+        }
+        display.setRotation(rotation%4);
+        break;
+      case 1:
+        display.print(power);
+        if(button_is_pressed(btn2)) {
+          power+=5;
+          if (power>1023) power = 0;
+        }
+        if(button_is_pressed(btn1)) {
+          power-=5;
+          if (power<0) power = 1023;
+        }
+        break;
+    }
+    display.display();
+    
+    if(button_is_pressed(btn3, true)) {
+      settingIndex = (settingIndex + 1) % numSettings;
+    }
+  }
+}
+
 void loop(){
   display.clearDisplay();
   display.setTextSize(3);
   display.setCursor(0, 5);
-
   display.print(Functions[selectedFunction-1]);
-
   display.display();
-
-  delay(100);
+  delay(200);
 
   if (button_is_pressed(btn2)){
     selectedFunction++;
@@ -323,7 +384,7 @@ void loop(){
       selectedFunction = totalFunctions;
     }
   } 
-  else if (button_is_pressed(btn4)){
+  else if (button_is_pressed(btn4, true)){
     switch (selectedFunction){
       case 1:
         torch();
@@ -333,11 +394,14 @@ void loop(){
         break;
       case 3:
         randomInt();
+        break;
       case 4:
-        display.clearDisplay();
-        display.display();
-        // Ensure interrupt does not trigger immediately
-        while (button_is_pressed(btn4));
+        counter();
+        break;
+      case 5:
+        settings();
+        break;
+      case 6:
         goToSleep();
         break;
     }

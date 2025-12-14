@@ -1,4 +1,4 @@
-// Watch 4.1: Initial Gen 4 watch, uses blinks to communicate. Chip is an ATTiny 84a.
+// Watch 4.1: Gen 4 watch, uses blinks to communicate. Chip is an ATTiny 402.
 
 #define KEEPON_THRESHOLD 10
 

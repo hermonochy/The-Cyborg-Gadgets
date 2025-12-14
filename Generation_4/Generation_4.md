@@ -1,12 +1,16 @@
+*SPDX-License-Identifier: CC-BY-NC-SA-4.0*
+
 # Generation 4
 
-Fourth generation could be considered to be a step down from its prior generation, transitioning from AT-Mega boards to AT-Tiny chips. While this generation sacrifices some flexibility in terms of available pins and memory, it drastically reduces the size, weight, and cost, resulting in lighter, more affordable, and more comfortable devices. This generation is the first generation to be split into two sub-generations: designs similar to Second generation or designs similar to the Third. Although a microchip is used, some weaker variants are more like 2nd generation watches with blink functionality. More advanced models are more like the third generation, prioritising other features onboard the chip.
+Fourth generation devices are electronically identical to the Third Generation: they use the same hardware design and have the same firmware capabilities. The distinguishing feature of Generation 4 is the use of customised PCBs and mechanical design refinements that drastically improve aesthetics and reliability. They adopt both the Arduino Pro Minis from the previous generation and introduce some new ATTiny chips to shrink size and cost.
 
 ## Devices
 
 - [Watch 4.0](./Watch4.0/Watch4.0.ino) is the first gadget of the 4th generation, using an almost identical program and components to [Watch 3.0](../Generation_3/Watch3.0/Watch3.0.ino).
-
 - [Watch 4.1](./Watch4.1/Watch4.1.ino) uses some buttons and a potentiometer to give a second generation like extension the capability to blink at different speeds.
+- [Watch 4.2](./Watch4.2/Watch4.2.ino) is almost identical to Watch 3.2, however uses a PCB to improve stability.
+- [Watch 4.3](./Watch4.3/Watch4.3.ino) is the first fully independent gadget, featuring an RTC chip to become a fully functional watch.
+- [Watch 4.5](./Watch4.5/Watch4.5.ino) is designed for expeditions, equipped many useful navigation features, most notably a GPS module.
 
 ## Installation
 

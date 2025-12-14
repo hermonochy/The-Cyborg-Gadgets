@@ -1,4 +1,4 @@
-// Watch 3.7: Designed for expeditions. Includes sensors and GPS.
+// Watch 4.5: Designed for expeditions. Includes sensors and GPS.
 
 #include <Adafruit_GFX.h>
 #include <Adafruit_SSD1306.h>
@@ -7,10 +7,16 @@
 #include <DallasTemperature.h>
 #include <SoftwareSerial.h>
 #include <TinyGPSPlus.h>
+#include <avr/sleep.h>
+#include <avr/power.h>
+#include <avr/interrupt.h>
 
 #define SCREEN_WIDTH 128
 #define SCREEN_HEIGHT 64
 #define OLED_RESET -1
+
+#define TEMP_PIN 7
+
 Adafruit_SSD1306 display(SCREEN_WIDTH, SCREEN_HEIGHT, &Wire, OLED_RESET);
 
 const byte WhiteLED = A1;
@@ -22,7 +28,6 @@ const byte btn2 = 3;
 const byte btn3 = 4;
 const byte btn4 = 5;
 
-const byte tempSensor = 7;
 const byte lightSensor = A0;
 
 const byte GPS_RX = 11;
@@ -30,7 +35,7 @@ const byte GPS_TX = 12;
 SoftwareSerial gpsSerial(GPS_RX, GPS_TX);
 TinyGPSPlus gps;
 
-OneWire oneWire(tempSensor);
+OneWire oneWire(TEMP_PIN);
 DallasTemperature tempSensor(&oneWire);
 
 int selectedFunction = 1;
@@ -38,6 +43,8 @@ const int totalFunctions = 9;
 
 int selectedPart = 1;
 const int totalParts = 3;
+
+volatile bool wakeup = false;
 
 struct FuncState {
   bool blink = false;
@@ -78,9 +85,9 @@ void setup() {
   display.setCursor(7, 0);
   display.print("Wecome to");
   display.setCursor(20, 20);
-  display.print("Watch 7");
+  display.print("Watch 5");
   display.setCursor(30, 50);
-  display.print("Gen 3");
+  display.print("Gen 4");
   display.setTextSize(1);
   display.setCursor(55, 40);
   display.print("of");

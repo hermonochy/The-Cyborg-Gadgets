@@ -56,7 +56,7 @@ void setup(){
   pinMode(Func4, OUTPUT);
   randomSeed(analogRead(1));
 
-  if (!display.begin(SSD1306_SWITCHCAPVCC, 0x3C)){
+  if (!display.begin(SSD1306_SWITCHCAPVCC, 0x3Cx)){
     while (true){
       digitalWrite(LED_BUILTIN, HIGH); delay(50);
       digitalWrite(LED_BUILTIN, LOW); delay(200);
