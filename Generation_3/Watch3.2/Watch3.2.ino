@@ -32,15 +32,15 @@ int blinkTime2 = 2;
 int blinkTime3 = 100;
 
 const byte btn1 = 2;
-const byte btn2 = 6;
-const byte btn3 = 5;
-const byte btn4 = 3; // needs to be an interrupt pin 
+const byte btn2 = 5;
+const byte btn3 = 4;
+const byte btn4 = 3; // needs to be an interrupt pin
 const byte btnInterrupt1 = btn1;
 const byte btnInterrupt2 = btn4;
 
 byte Func1 = 10;
-byte Func2 = 12;
-byte Func3 = 11;
+byte Func2 = 11;
+byte Func3 = 12;
 
 volatile bool wakeup = false;
 int rotation = 0;

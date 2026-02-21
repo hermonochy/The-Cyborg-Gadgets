@@ -14,20 +14,20 @@
 
 #define totalFunctions 8
 
+#define btn1 2
+#define btn2 4
+#define btn3 5
+#define btn4 6
+#define btn5 7
+#define btn6 3
+
+#define Torch 8
+
 Adafruit_SSD1306 display(SCREEN_WIDTH, SCREEN_HEIGHT, &Wire, OLED_RESET);
 
 bool button_is_pressed(const byte btn, bool onlyOnce = false);
 
 int selectedFunction = 1;
-
-const byte btn1 = 2;
-const byte btn2 = 4;
-const byte btn3 = 5;
-const byte btn4 = 6;
-const byte btn5 = 7;
-const byte btn6 = 3;
-
-const byte Torch = A0;
 
 volatile bool wakeup = false;
 
@@ -38,8 +38,11 @@ void setup(){
   pinMode(btn4, INPUT_PULLUP);
   pinMode(btn5, INPUT_PULLUP);
   pinMode(btn6, INPUT_PULLUP);
+
   pinMode(Torch, OUTPUT);
+
   randomSeed(analogRead(1));
+
   if (!display.begin(SSD1306_SWITCHCAPVCC, 0x3C)){
     while (true){
       digitalWrite(LED_BUILTIN, HIGH); delay(50);
@@ -59,13 +62,10 @@ void setup(){
   display.setCursor(55, 40);
   display.print("of");
   display.display();
-  delay(100);
+
   for (int i = 0; i < 200; i++){
-    delay(20);
+    delay(10);
     digitalWrite(LED_BUILTIN, !digitalRead(LED_BUILTIN));
-    if (button_is_pressed(btn1)){
-      digitalWrite(Torch, HIGH);
-    }
   }
 }
 
@@ -100,11 +100,10 @@ void goToSleep(){
     display.ssd1306_command(SSD1306_DISPLAYON);
 }
 
-void torch(void){
+void torch(){
   bool blink = false;
   bool keepOn = false;
   int blinkTime = 500;
-  int power = 255;
   while (true){
     display.clearDisplay();
     display.setTextSize(1);
@@ -124,23 +123,23 @@ void torch(void){
     display.setCursor(0, 0);
     display.print("S:");
     display.print(digitalRead(Torch) ? "On" : "Off");
-    display.print(" P:");
-    display.print(power);
     display.print(" B:");
     display.print(blinkTime);
     display.display();
+
     if (!blink) delay(50);
     if (keepOn){
-      analogWrite(Torch, power);
+      digitalWrite(torch, HIGH);
     } 
     else if (blink){
-      digitalWrite(Torch, !digitalRead(Torch));
+      digitalWrite(torch, !digitalRead(torch));
       delay(blinkTime);
     } 
     else{
-      if (button_is_pressed(btn1)) digitalWrite(Torch, HIGH);
-      else analogWrite(Torch, LOW);
+      if (button_is_pressed(btn1)) digitalWrite(torch, HIGH);
+      else digitalWrite(torch, LOW);
     }
+
     if (button_is_pressed(btn2, true)){
       keepOn = !keepOn;
       if (keepOn) blink = false;
@@ -149,24 +148,17 @@ void torch(void){
       blink = !blink;
       if (blink) keepOn = false;
     }
-    else if (button_is_pressed(btn5)){
-      if (blink) blinkTime = max(1, blinkTime - 25);
-      else power = max(0, power - 16);
-    }
-    else if (button_is_pressed(btn4)){
-      if (blink) blinkTime = blinkTime + 25;
-      else power = min(255, power + 16);
-    }
+    else if (button_is_pressed(btn4)) blinkTime--;
+    else if (button_is_pressed(btn5)) blinkTime++;
     else if (button_is_pressed(btn6)){
       return;
-    delay(250);
     }
   }
 }
 
 
 void calculator(void){
-    const char* options[] ={"1","2","3","4","5","6","7","8","9","0",".","+","-","*","/","^","r","%","(",")"};
+    const char* options[] ={"1","2","3","4","5","6","7","8","9","0",".","+","-","*","/","^","%","(",")"};
     const int numOptions = sizeof(options)/sizeof(options[0]);
     int currentOption = 0;
     char expr[25] = "";
@@ -244,88 +236,7 @@ void calculator(void){
     }
 }
 
-double parsePrimary(const char* &s, bool &error);
 
-double parseNumber(const char* &s, bool &error){
-    double value = 0.0;
-    bool hasDecimal = false;
-    double frac = 0.1;
-    while (isdigit(*s) || *s == '.'){
-        if (*s == '.'){
-            if (hasDecimal){ error = true; return 0; }
-            hasDecimal = true;
-        } 
-        else if (hasDecimal){
-            value += (*s - '0') * frac;
-            frac *= 0.1;
-        } 
-        else{
-            value = value * 10 + (*s - '0');
-        }
-        s++;
-    }
-    return value;
-}
-
-double parseFactor(const char* &s, bool &error){
-    while (*s == ' ') s++;
-    if (*s == '+'){ s++; return parseFactor(s, error); }
-    if (*s == '-'){ s++; return -parseFactor(s, error); }
-    if (*s == 'r'){ s++; double val = parseFactor(s, error); return val<0?(error=true,0):sqrt(val); }
-    if (*s == '('){
-        s++;
-        double val = parsePrimary(s, error);
-        if (*s == ')') s++;
-        else error = true;
-        return val;
-    }
-    return parseNumber(s, error);
-}
-
-double parseExponent(const char* &s, bool &error){
-    double left = parseFactor(s, error);
-    while (*s == '^'){
-        s++;
-        double right = parseFactor(s, error);
-        left = pow(left, right);
-    }
-    return left;
-}
-
-double parseTerm(const char* &s, bool &error){
-    double left = parseExponent(s, error);
-    while (*s == '*' || *s == '/' || *s == '%'){
-        char op = *s++;
-        double right = parseExponent(s, error);
-        if (op == '*') left *= right;
-        else if (op == '/'){ if (right == 0){ error = true; return 0; } left /= right; }
-        else if (op == '%'){ if (right == 0){ error = true; return 0; } left = fmod(left, right); }
-    }
-    return left;
-}
-
-double parsePrimary(const char* &s, bool &error){
-    double left = parseTerm(s, error);
-    while (*s == '+' || *s == '-'){
-        char op = *s++;
-        double right = parseTerm(s, error);
-        if (op == '+') left += right;
-        else left -= right;
-    }
-    return left;
-}
-
-double evaluateExpression(const char* expr, bool &error){
-    const char* s = expr;
-    error = false;
-    double result = parsePrimary(s, error);
-    while (*s && !error){
-        if (!isspace(*s)) error = true;
-        s++;
-    }
-    return result;
-}
-/*
 
 void unitConverter(void){
     const char* types[] ={
@@ -669,7 +580,7 @@ void counter(void){
     delay(50);
   }
 }
-*/
+
 void loop(){
   display.clearDisplay();
   display.setTextSize(2);
@@ -706,16 +617,16 @@ void loop(){
         calculator();
         break;
       case 3:
-        //unitConverter();
+        unitConverter();
         break;
       case 4:
-        //randomNum();
+        randomNum();
         break;
       case 5:
-        //counter();
+        counter();
         break;
       case 6:
-        //metronome();
+        metronome();
         break;
       case 8:
         goToSleep();

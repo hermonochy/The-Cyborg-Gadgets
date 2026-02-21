@@ -33,7 +33,7 @@ int blinkTime2 = 2;
 int blinkTime3 = 100;
 int blinkTime4 = 100;
 
-const byte btn1 = 7;
+const byte btn1 = 3;
 const byte btn2 = 4;
 const byte btn3 = 5;
 const byte btn4 = 2; // needs to be pin2 for interrupts
@@ -56,7 +56,7 @@ void setup(){
   pinMode(Func4, OUTPUT);
   randomSeed(analogRead(1));
 
-  if (!display.begin(SSD1306_SWITCHCAPVCC, 0x3Cx)){
+  if (!display.begin(SSD1306_SWITCHCAPVCC, 0x3C)){
     while (true){
       digitalWrite(LED_BUILTIN, HIGH); delay(50);
       digitalWrite(LED_BUILTIN, LOW); delay(200);

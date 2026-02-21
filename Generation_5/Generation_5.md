@@ -2,7 +2,7 @@
 
 # Generation 5
 
-Fifth generation watches have a similar layout to the third generation but switch from AVR microcontrollers to ESP32 based boards, primarily the ESP32-C3 Super Mini. Some later 5th generation boards requiring more GPIO pins may use an ESP32-S3 Tiny instead. This change takes advantage of the built-in Wi-Fi and Bluetooth, better processing power and an even smaller board, however drastically increases costs.
+Fifth generation watches have a similar layout to the third generation but switch from AVR microcontrollers to ESP32 based boards, primarily the ESP32-C3 Super Mini. Some later 5th generation boards requiring more GPIO pins may use an ESP32-S3 Tiny instead. This change takes advantage of the built-in Wi-Fi and Bluetooth, better processing power and an even smaller board, however drastically increases costs and power usage.
 
 ## Devices
 
