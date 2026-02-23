@@ -33,7 +33,7 @@ const int btn4 = 409;  // 1K
 const int btn5 = 95;   // 220
 const int btn6 = 2304; // 10K
 
-const byte Func1 = 1;
+const byte Func1 = 3;
 const byte Func2 = 0;
 const byte Func3 = 3;
 
