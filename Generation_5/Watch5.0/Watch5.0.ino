@@ -1,4 +1,4 @@
-// Watch 5.0: Initial 5th gen watch with OLED - ESP32C3 with NVS.
+// Watch 5.0: Initial 5th gen watch with OLED - ESP32C3 with WiFi & Serial Input.
 
 #include <Adafruit_GFX.h>
 #include <Adafruit_SSD1306.h>
@@ -7,12 +7,16 @@
 #include <ctype.h>
 #include <math.h>
 #include <Preferences.h>
+#include <WiFi.h>
+#include <HTTPClient.h>
+#include <time.h>
+#include <ArduinoJson.h>
 
 #define SCREEN_WIDTH 128
 #define SCREEN_HEIGHT 64
 #define OLED_RESET -1
 
-#define totalFunctions 9
+#define totalFunctions 12
 #define MAX_NOTES 5
 #define MAX_NOTE_LENGTH 64
 
@@ -21,7 +25,7 @@ Preferences preferences;
 
 int selectedFunction = 1;
 
-const char *Functions[] = {"Outputs", "Maths", "Random", "Convert", "Score", "Shooter", "Metronome", "Notes", "Debug"};
+const char *Functions[] = {"Outputs", "Maths", "Random", "Convert", "Score", "Shooter", "Metronome", "Notes", "WiFi", "Weather", "Time", "Debug"};
 
 const byte buttonPin = 2;
 
@@ -35,7 +39,12 @@ const int btn6 = 2304; // 10K
 
 const byte Func1 = 3;
 const byte Func2 = 0;
-const byte Func3 = 3;
+const byte Func3 = 1;
+
+// WiFi credentials (stored in NVS)
+char ssid[32] = "";
+char password[64] = "";
+bool wifiConnected = false;
 
 // Notes storage (in RAM for quick access)
 struct Note {
@@ -65,9 +74,455 @@ bool button_is_pressed(int btnVal, bool onlyOnce = true) {
   return false;
 }
 
-// ===== NVS FUNCTIONS =====
+void saveWiFiCredentials(void) {
+  preferences.begin("wifi", false);
+  preferences.putString("ssid", ssid);
+  preferences.putString("password", password);
+  preferences.end();
+}
+
+void loadWiFiCredentials(void) {
+  preferences.begin("wifi", true);
+  String storedSSID = preferences.getString("ssid", "");
+  String storedPassword = preferences.getString("password", "");
+  preferences.end();
+  
+  if (storedSSID.length() > 0) {
+    strncpy(ssid, storedSSID.c_str(), 31);
+    strncpy(password, storedPassword.c_str(), 63);
+  }
+}
+
+void wifiSetup(void) {
+  bool enteringSSID = true;
+  int charIndex = 0;
+  char charset[] = "ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789.-_";
+  
+  display.clearDisplay();
+  display.setTextSize(1);
+  display.setCursor(0, 0);
+  display.print("WiFi Setup");
+  display.setCursor(0, 20);
+  display.print("Use Serial Console!");
+  display.display();
+  delay(1500);
+}
+
+void connectWiFi(void) {
+  if (strlen(ssid) == 0) {
+    display.clearDisplay();
+    display.setTextSize(1);
+    display.setCursor(0, 20);
+    display.println("Configure WiFi first!");
+    display.println("Use Serial menu.");
+    display.display();
+    delay(2000);
+    return;
+  }
+  
+  display.clearDisplay();
+  display.setTextSize(1);
+  display.setCursor(0, 0);
+  display.print("Connecting to WiFi...");
+  display.setCursor(0, 20);
+  display.print(ssid);
+  display.display();
+  
+  WiFi.begin(ssid, password);
+  
+  int attempts = 0;
+  while (WiFi.status() != WL_CONNECTED && attempts < 20) {
+    delay(500);
+    display.setCursor(0, 30);
+    display.print(".");
+    display.display();
+    attempts++;
+  }
+  
+  if (WiFi.status() == WL_CONNECTED) {
+    wifiConnected = true;
+    display.clearDisplay();
+    display.setTextSize(1);
+    display.setCursor(0, 0);
+    display.print("Connected!");
+    display.setCursor(0, 20);
+    display.print("IP: ");
+    display.print(WiFi.localIP());
+    display.display();
+    delay(2000);
+    
+    configTime(0, 0, "pool.ntp.org", "time.nist.gov");
+  } else {
+    wifiConnected = false;
+    display.clearDisplay();
+    display.setTextSize(1);
+    display.setCursor(0, 20);
+    display.print("Failed to connect");
+    display.display();
+    delay(2000);
+  }
+}
+
+void wifiMenu(void) {
+  int option = 0;
+  
+  while (true) {
+    display.clearDisplay();
+    display.setTextSize(1);
+    display.setCursor(0, 0);
+    display.print("WiFi Menu");
+    display.setCursor(0, 18);
+    
+    if (strlen(ssid) == 0) {
+      display.println("No credentials!");
+      display.println("Use Serial menu");
+      display.println("to configure.");
+    } else {
+      display.print("SSID: ");
+      display.println(ssid);
+      
+      if (wifiConnected) {
+        display.println("Status: Connected");
+      } else {
+        display.println("Status: Disconnected");
+      }
+    }
+    
+    display.setCursor(0, 45);
+    display.setTextSize(0.8);
+    display.println("3:Connect 6:Menu");
+    display.display();
+    
+    if (button_is_pressed(btn3)) {
+      connectWiFi();
+      delay(200);
+    }
+    else if (button_is_pressed(btn6)) {
+      return;
+    }
+    delay(50);
+  }
+}
+
+void printSerialMenu(void) {
+  Serial.println("\n========== WATCH 5.0 SERIAL MENU ==========");
+  Serial.println("1. Configure WiFi Credentials");
+  Serial.println("2. Connect to WiFi");
+  Serial.println("3. Disconnect WiFi");
+  Serial.println("4. Show WiFi Status");
+  Serial.println("5. Clear Credentials");
+  Serial.println("6. Exit Menu");
+  Serial.println("==========================================");
+  Serial.print("Enter option (1-6): ");
+}
+
+void serialConfigureWiFi(void) {
+  Serial.println("\n--- WiFi Configuration ---");
+  
+  // Get SSID
+  Serial.print("Enter SSID: ");
+  while (!Serial.available()) delay(10);
+  String inputSSID = Serial.readStringUntil('\n');
+  inputSSID.trim();
+  
+  if (inputSSID.length() == 0) {
+    Serial.println("SSID cannot be empty!");
+    return;
+  }
+  
+  if (inputSSID.length() > 31) {
+    Serial.println("SSID too long (max 31 characters)");
+    return;
+  }
+  
+  // Get Password
+  Serial.print("Enter Password: ");
+  while (!Serial.available()) delay(10);
+  String inputPassword = Serial.readStringUntil('\n');
+  inputPassword.trim();
+  
+  if (inputPassword.length() > 63) {
+    Serial.println("Password too long (max 63 characters)");
+    return;
+  }
+  
+  // Save credentials
+  strncpy(ssid, inputSSID.c_str(), 31);
+  ssid[31] = '\0';
+  strncpy(password, inputPassword.c_str(), 63);
+  password[63] = '\0';
+  
+  saveWiFiCredentials();
+  
+  Serial.println("\n✓ Credentials saved successfully!");
+  Serial.print("  SSID: ");
+  Serial.println(ssid);
+  Serial.println("  Password: (hidden)");
+  
+  // Update display
+  display.clearDisplay();
+  display.setTextSize(1);
+  display.setCursor(0, 20);
+  display.println("WiFi credentials");
+  display.println("saved via Serial!");
+  display.display();
+  delay(2000);
+}
+
+void serialConnectWiFi(void) {
+  if (strlen(ssid) == 0) {
+    Serial.println("\n✗ No WiFi credentials configured!");
+    Serial.println("  Please configure first.");
+    return;
+  }
+  
+  Serial.print("\nConnecting to WiFi: ");
+  Serial.println(ssid);
+  
+  display.clearDisplay();
+  display.setTextSize(1);
+  display.setCursor(0, 0);
+  display.println("Connecting WiFi");
+  display.println("via Serial...");
+  display.display();
+  
+  WiFi.begin(ssid, password);
+  
+  int attempts = 0;
+  while (WiFi.status() != WL_CONNECTED && attempts < 20) {
+    delay(500);
+    Serial.print(".");
+    attempts++;
+  }
+  
+  Serial.println();
+  
+  if (WiFi.status() == WL_CONNECTED) {
+    wifiConnected = true;
+    Serial.println("✓ Connected!");
+    Serial.print("  IP Address: ");
+    Serial.println(WiFi.localIP());
+    Serial.print("  Signal Strength: ");
+    Serial.print(WiFi.RSSI());
+    Serial.println(" dBm");
+    
+    display.clearDisplay();
+    display.setTextSize(1);
+    display.setCursor(0, 0);
+    display.println("Connected!");
+    display.setCursor(0, 20);
+    display.print("IP: ");
+    display.println(WiFi.localIP());
+    display.display();
+    delay(2000);
+    
+    // Sync time with NTP
+    configTime(0, 0, "pool.ntp.org", "time.nist.gov");
+    Serial.println("  Syncing time with NTP...");
+  } else {
+    wifiConnected = false;
+    Serial.println("✗ Failed to connect");
+    Serial.print("  WiFi Status: ");
+    Serial.println(WiFi.status());
+    
+    display.clearDisplay();
+    display.setTextSize(1);
+    display.setCursor(0, 20);
+    display.println("Connection failed!");
+    display.display();
+    delay(2000);
+  }
+}
+
+void serialDisconnectWiFi(void) {
+  WiFi.disconnect();
+  wifiConnected = false;
+  Serial.println("\n✓ Disconnected from WiFi");
+}
+
+void serialShowWiFiStatus(void) {
+  Serial.println("\n--- WiFi Status ---");
+  
+  if (wifiConnected && WiFi.status() == WL_CONNECTED) {
+    Serial.println("✓ Connected");
+    Serial.print("  SSID: ");
+    Serial.println(WiFi.SSID());
+    Serial.print("  IP Address: ");
+    Serial.println(WiFi.localIP());
+    Serial.print("  Signal Strength: ");
+    Serial.print(WiFi.RSSI());
+    Serial.println(" dBm");
+  } else {
+    Serial.println("✗ Not connected");
+    if (strlen(ssid) > 0) {
+      Serial.print("  Configured SSID: ");
+      Serial.println(ssid);
+    } else {
+      Serial.println("  No credentials configured");
+    }
+  }
+}
+
+void serialClearCredentials(void) {
+  Serial.print("\nClear WiFi credentials? (y/n): ");
+  while (!Serial.available()) delay(10);
+  char response = Serial.read();
+  Serial.println(response);
+  
+  if (response == 'y' || response == 'Y') {
+    ssid[0] = '\0';
+    password[0] = '\0';
+    preferences.begin("wifi", false);
+    preferences.putString("ssid", "");
+    preferences.putString("password", "");
+    preferences.end();
+    Serial.println("✓ Credentials cleared");
+  } else {
+    Serial.println("Cancelled");
+  }
+}
+
+void serialWiFiMenu(void) {
+  while (true) {
+    printSerialMenu();
+    
+    while (!Serial.available()) delay(10);
+    char option = Serial.read();
+    Serial.println(option);
+    
+    // Clear any remaining serial data
+    while (Serial.available()) Serial.read();
+    
+    switch (option) {
+      case '1':
+        serialConfigureWiFi();
+        break;
+      case '2':
+        serialConnectWiFi();
+        break;
+      case '3':
+        serialDisconnectWiFi();
+        break;
+      case '4':
+        serialShowWiFiStatus();
+        break;
+      case '5':
+        serialClearCredentials();
+        break;
+      case '6':
+        Serial.println("\nExiting menu...");
+        return;
+      default:
+        Serial.println("✗ Invalid option");
+    }
+    
+    delay(500);
+  }
+}
+
+void getWeather(void) {
+  if (!wifiConnected) {
+    display.clearDisplay();
+    display.setTextSize(1);
+    display.setCursor(0, 20);
+    display.print("Please connect to WiFi");
+    display.display();
+    delay(2000);
+    return;
+  }
+  
+  display.clearDisplay();
+  display.setTextSize(1);
+  display.setCursor(0, 0);
+  display.print("Fetching weather...");
+  display.display();
+  
+  HTTPClient http;
+  String url = "https://api.open-meteo.com/v1/forecast?latitude=51.754642&longitude=0.0&current=temperature_2m,weather_code&timezone=auto";
+  
+  http.begin(url);
+  int httpCode = http.GET();
+  
+  if (httpCode == 200) {
+    String payload = http.getString();
+    
+    DynamicJsonDocument doc(1024);
+    deserializeJson(doc, payload);
+    
+    float temp = doc["current"]["temperature_2m"];
+    int weatherCode = doc["current"]["weather_code"];
+    
+    display.clearDisplay();
+    display.setTextSize(2);
+    display.setCursor(0, 0);
+    display.print("Weather");
+    
+    display.setTextSize(3);
+    display.setCursor(20, 20);
+    display.print((int)temp);
+    display.print("F");
+    
+    display.setTextSize(1);
+    display.setCursor(0, 50);
+    const char* weatherDesc = "Unknown";
+    if (weatherCode == 0) weatherDesc = "Clear";
+    else if (weatherCode < 3) weatherDesc = "Cloudy";
+    else if (weatherCode < 50) weatherDesc = "Rainy";
+    else if (weatherCode < 60) weatherDesc = "Rain";
+    else if (weatherCode < 80) weatherDesc = "Snow";
+    else weatherDesc = "Thunder";
+    
+    display.print(weatherDesc);
+    display.display();
+    
+    delay(5000);
+  } else {
+    display.clearDisplay();
+    display.setTextSize(1);
+    display.setCursor(0, 20);
+    display.print("Weather fetch failed");
+    display.display();
+    delay(2000);
+  }
+  
+  http.end();
+}
+
+void displayTime(void) {
+  while (true) {
+    time_t now = time(nullptr);
+    struct tm* timeinfo = localtime(&now);
+    
+    display.clearDisplay();
+    display.setTextSize(1);
+    display.setCursor(0, 0);
+    display.print("Current Time");
+    
+    display.setTextSize(2);
+    display.setCursor(10, 20);
+    display.printf("%02d:%02d:%02d", timeinfo->tm_hour, timeinfo->tm_min, timeinfo->tm_sec);
+    
+    display.setTextSize(1);
+    display.setCursor(0, 50);
+    display.printf("%s %d, %d", 
+      (timeinfo->tm_mon == 0 ? "Jan" : timeinfo->tm_mon == 1 ? "Feb" : timeinfo->tm_mon == 2 ? "Mar" : 
+       timeinfo->tm_mon == 3 ? "Apr" : timeinfo->tm_mon == 4 ? "May" : timeinfo->tm_mon == 5 ? "Jun" : 
+       timeinfo->tm_mon == 6 ? "Jul" : timeinfo->tm_mon == 7 ? "Aug" : timeinfo->tm_mon == 8 ? "Sep" : 
+       timeinfo->tm_mon == 9 ? "Oct" : timeinfo->tm_mon == 10 ? "Nov" : "Dec"),
+      timeinfo->tm_mday, timeinfo->tm_year + 1900);
+    
+    display.display();
+    
+    if (button_is_pressed(btn6)) {
+      return;
+    }
+    
+    delay(1000);
+  }
+}
+
 void saveNotesToNVS(void) {
-  preferences.begin("notes", false); // false = read/write mode
+  preferences.begin("notes", false);
   
   for (int i = 0; i < MAX_NOTES; i++) {
     char keyText[20];
@@ -84,7 +539,7 @@ void saveNotesToNVS(void) {
 }
 
 void loadNotesFromNVS(void) {
-  preferences.begin("notes", true); // true = read-only mode
+  preferences.begin("notes", true);
   
   for (int i = 0; i < MAX_NOTES; i++) {
     char keyText[20];
@@ -104,10 +559,10 @@ void loadNotesFromNVS(void) {
 }
 
 void initializeNotesNVS(void) {
-  // Load notes from NVS on startup
   loadNotesFromNVS();
 }
 
+// ===== OTHER FUNCTIONS (from previous code) =====
 void activateFunc(byte func, int blinkTime = 500){
   bool blink = false;
   bool keepOn = false;
@@ -424,7 +879,6 @@ void randomNum(void) {
   }
 }
 
-
 int score1 = 0;
 int score2 = 0;
 void counter(void){
@@ -533,35 +987,29 @@ void metronome(void){
     
     if (button_is_pressed(btn1)){
       if (!btn1Held){
-        
         btn1Held = true;
         btn1RepeatDelay = HOLD_INITIAL_MS;
         btn1NextRepeat = now + btn1RepeatDelay;
         if (bpm > MIN_BPM) bpm--;
       } else {
-        
         if (now >= btn1NextRepeat){
           if (bpm > MIN_BPM) bpm--;
-          
           unsigned long newDelay = (unsigned long)max((float)HOLD_MIN_MS, btn1RepeatDelay * HOLD_ACCEL_FACTOR);
           btn1RepeatDelay = newDelay;
           btn1NextRepeat = now + btn1RepeatDelay;
         }
       }
     } else {
-      
       btn1Held = false;
     }
 
     if (button_is_pressed(btn2)){
       if (!btn2Held){
-        
         btn2Held = true;
         btn2RepeatDelay = HOLD_INITIAL_MS;
         btn2NextRepeat = now + btn2RepeatDelay;
         bpm++;
       } else {
-        
         if (now >= btn2NextRepeat){
           bpm++;
           unsigned long newDelay = (unsigned long)max((float)HOLD_MIN_MS, btn2RepeatDelay * HOLD_ACCEL_FACTOR);
@@ -570,7 +1018,6 @@ void metronome(void){
         }
       }
     } else {
-      
       btn2Held = false;
     }
     if (button_is_pressed(btn6)){
@@ -735,10 +1182,10 @@ void notesFunction(void) {
   while (true) {
     if (viewingMode) {
       display.clearDisplay();
-      display.setTextSize(2);
+      display.setTextSize(1);
       display.setCursor(0, 0);
-      display.print("Notepad");   
-      display.setTextSize(1);   
+      display.print("Notes [NVS]");
+      
       display.setCursor(0, 18);
       for (int i = 0; i < MAX_NOTES; i++) {
         if (i == selectedNote) {
@@ -771,7 +1218,6 @@ void notesFunction(void) {
         delay(150);
       }
       else if (button_is_pressed(btn3)) {
-        // Enter edit mode
         viewingMode = false;
         delay(200);
       }
@@ -787,15 +1233,15 @@ void notesFunction(void) {
       display.print(selectedNote + 1);
       display.print(" - Edit");
       
-      display.setCursor(0, 20);
+      display.setCursor(0, 18);
       display.print("Text:");
-      display.setCursor(0, 35);
+      display.setCursor(0, 30);
       display.print(notes[selectedNote].text);
       display.print("_");
       
-      display.setCursor(0, 48);
+      display.setCursor(0, 40);
       display.print("1:Del 2:Add 3:Char");
-      display.setCursor(0, 56);
+      display.setCursor(0, 50);
       display.print("4:Clr 5:Done 6:Back");
       display.display();
       
@@ -828,12 +1274,14 @@ void notesFunction(void) {
           display.setTextSize(1);
           display.setCursor(0, 0);
           display.print("Select Char:");
-          display.setCursor(0, 20);
+          display.setCursor(0, 18);
           display.setTextSize(2);
           display.print(charset[charIndex]);
           display.setTextSize(1);
-          display.setCursor(0, 56);
-          display.print("1: < 2: > 3: Select");
+          display.setCursor(0, 30);
+          display.print("1:< 2:> 3:Select");
+          display.setCursor(0, 40);
+          display.print("6:Cancel");
           display.display();
           
           if (button_is_pressed(btn1)) {
@@ -910,7 +1358,7 @@ void debug() {
   }
 }
 
-void setup() {
+void setup() {  
   pinMode(buttonPin, INPUT_PULLUP);
   pinMode(Func1, OUTPUT);
   pinMode(Func2, OUTPUT);
@@ -925,9 +1373,6 @@ void setup() {
     }
   }
 
-  // Initialize NVS-based notes
-  initializeNotesNVS();
-
   display.clearDisplay();
   display.setTextSize(2);
   display.setTextColor(SSD1306_WHITE);
@@ -941,11 +1386,46 @@ void setup() {
   display.setCursor(55, 40);
   display.print("of");
   display.display();
-
+  Serial.begin(115200);
   delay(2000);
+  Serial.println("\n\n========================================");
+  Serial.println("     Watch 5.0 - Serial Configuration");
+  Serial.println("========================================");
+  Serial.println("Press any key in Serial Monitor to enter menu...");
+  Serial.println("(You have 5 seconds)");
+  Serial.println("========================================\n");
+  
+  // Wait for serial input for 5 seconds
+  unsigned long startTime = millis();
+  bool enterSerialMenu = false;
+  while (millis() - startTime < 5000) {
+    if (Serial.available()) {
+      Serial.read();
+      enterSerialMenu = true;
+      break;
+    }
+    delay(10);
+  }
+  
+  if (enterSerialMenu) {
+    serialWiFiMenu();
+  }
+
+  initializeNotesNVS();
+  loadWiFiCredentials();
 }
 
 void loop() {
+  if (Serial.available()) {
+    char cmd = Serial.peek();
+    if (cmd == 's' || cmd == 'S') {
+      Serial.read();
+      serialWiFiMenu();
+    } else {
+      Serial.read();
+    }
+  }
+  
   display.clearDisplay();
   display.setTextSize(2);
   display.setCursor(0, 0);
@@ -991,6 +1471,15 @@ void loop() {
         notesFunction();
         break;
       case 9:
+        wifiMenu();
+        break;
+      case 10:
+        getWeather();
+        break;
+      case 11:
+        displayTime();
+        break;
+      case 12:
         debug();
         break;
     }
