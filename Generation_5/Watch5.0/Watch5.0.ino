@@ -187,10 +187,11 @@ void wifiMenu(void) {
         display.println("Status: Disconnected");
       }
     }
-    
-    display.setCursor(0, 45);
-    display.setTextSize(0.8);
-    display.println("3:Connect 6:Menu");
+    display.setCursor(0, 40);
+    display.println(WiFi.RSSI());
+    display.print(" dBm");
+    display.setCursor(0, 56);
+    display.println("3:Connect  6:Menu");
     display.display();
     
     if (button_is_pressed(btn3)) {
@@ -438,6 +439,7 @@ void getWeather(void) {
   display.display();
   
   HTTPClient http;
+  // London co-ordinates
   String url = "https://api.open-meteo.com/v1/forecast?latitude=51.754642&longitude=0.0&current=temperature_2m,weather_code&timezone=auto";
   
   http.begin(url);
@@ -460,7 +462,7 @@ void getWeather(void) {
     display.setTextSize(3);
     display.setCursor(20, 20);
     display.print((int)temp);
-    display.print("F");
+    display.print("C");
     
     display.setTextSize(1);
     display.setCursor(0, 50);
