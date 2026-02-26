@@ -46,7 +46,6 @@ char ssid[32] = "";
 char password[64] = "";
 bool wifiConnected = false;
 
-// Notes storage (in RAM for quick access)
 struct Note {
   char text[MAX_NOTE_LENGTH];
   bool used;
@@ -59,7 +58,7 @@ bool button_is_pressed(int btnVal, bool onlyOnce = true) {
   int errorVal = pinVal - btnVal;
   int absErrorVal = abs(errorVal);
   
-  if (absErrorVal <= 10) {    
+  if (absErrorVal <= 30) {    
       if (onlyOnce) {
         while (true) {
           delay(10);
@@ -171,7 +170,7 @@ void wifiMenu(void) {
     display.setTextSize(1);
     display.setCursor(0, 0);
     display.print("WiFi Menu");
-    display.setCursor(0, 18);
+    display.setCursor(0, 20);
     
     if (strlen(ssid) == 0) {
       display.println("No credentials!");
@@ -179,19 +178,20 @@ void wifiMenu(void) {
       display.println("to configure.");
     } else {
       display.print("SSID: ");
-      display.println(ssid);
-      
+      display.print(ssid);
+      display.setCursor(0, 30);
       if (wifiConnected) {
-        display.println("Status: Connected");
+        display.print("Status: Connected");
       } else {
-        display.println("Status: Disconnected");
+        display.print("Status: Disconnected");
       }
     }
     display.setCursor(0, 40);
-    display.println(WiFi.RSSI());
+    display.print(WiFi.RSSI());
     display.print(" dBm");
+
     display.setCursor(0, 56);
-    display.println("3:Connect  6:Menu");
+    display.println("3:Connect 6:Menu");
     display.display();
     
     if (button_is_pressed(btn3)) {
@@ -220,7 +220,6 @@ void printSerialMenu(void) {
 void serialConfigureWiFi(void) {
   Serial.println("\n--- WiFi Configuration ---");
   
-  // Get SSID
   Serial.print("Enter SSID: ");
   while (!Serial.available()) delay(10);
   String inputSSID = Serial.readStringUntil('\n');
@@ -236,7 +235,6 @@ void serialConfigureWiFi(void) {
     return;
   }
   
-  // Get Password
   Serial.print("Enter Password: ");
   while (!Serial.available()) delay(10);
   String inputPassword = Serial.readStringUntil('\n');
@@ -391,7 +389,6 @@ void serialWiFiMenu(void) {
     char option = Serial.read();
     Serial.println(option);
     
-    // Clear any remaining serial data
     while (Serial.available()) Serial.read();
     
     switch (option) {
@@ -421,12 +418,215 @@ void serialWiFiMenu(void) {
   }
 }
 
+void printSerialNotesMenu(void) {
+  Serial.println("\n========== WATCH 5.0 NOTES MENU ==========");
+  Serial.println("1. Create/Edit Note");
+  Serial.println("2. View All Notes");
+  Serial.println("3. Delete Note");
+  Serial.println("4. Clear All Notes");
+  Serial.println("5. Exit Menu");
+  Serial.println("=========================================");
+  Serial.print("Enter option (1-5): ");
+}
+
+void serialCreateEditNote(void) {
+  Serial.println("\n--- Create/Edit Note ---");
+  
+  Serial.println("\nCurrent Notes:");
+  for (int i = 0; i < MAX_NOTES; i++) {
+    Serial.print("  ");
+    Serial.print(i + 1);
+    Serial.print(": ");
+    if (notes[i].used) {
+      Serial.println(notes[i].text);
+    } else {
+      Serial.println("[Empty]");
+    }
+  }
+  
+  Serial.print("\nEnter note number (1-");
+  Serial.print(MAX_NOTES);
+  Serial.print("): ");
+  while (!Serial.available()) delay(10);
+  int noteNum = Serial.parseInt();
+  Serial.println(noteNum);
+  
+  if (noteNum < 1 || noteNum > MAX_NOTES) {
+    Serial.println("✗ Invalid note number!");
+    return;
+  }
+  
+  int noteIndex = noteNum - 1;
+  
+  Serial.print("Enter note text (max ");
+  Serial.print(MAX_NOTE_LENGTH - 1);
+  Serial.print(" chars): ");
+  while (!Serial.available()) delay(10);
+  String inputNote = Serial.readStringUntil('\n');
+  inputNote.trim();
+  
+  if (inputNote.length() == 0) {
+    Serial.println("✗ Note cannot be empty!");
+    return;
+  }
+  
+  if (inputNote.length() > MAX_NOTE_LENGTH - 1) {
+    Serial.println("✗ Note too long!");
+    return;
+  }
+  
+  strncpy(notes[noteIndex].text, inputNote.c_str(), MAX_NOTE_LENGTH - 1);
+  notes[noteIndex].text[MAX_NOTE_LENGTH - 1] = '\0';
+  notes[noteIndex].used = true;
+  
+  saveNotesToNVS();
+  
+  Serial.println("\n✓ Note saved successfully!");
+  Serial.print("  Note ");
+  Serial.print(noteNum);
+  Serial.print(": ");
+  Serial.println(notes[noteIndex].text);
+  
+  display.clearDisplay();
+  display.setTextSize(1);
+  display.setCursor(0, 20);
+  display.print("Note ");
+  display.print(noteNum);
+  display.println(" saved via");
+  display.println("Serial!");
+  display.display();
+  delay(1500);
+}
+
+void serialViewAllNotes(void) {
+  Serial.println("\n--- All Notes ---");
+  
+  bool hasNotes = false;
+  for (int i = 0; i < MAX_NOTES; i++) {
+    if (notes[i].used) {
+      hasNotes = true;
+      Serial.print("  ");
+      Serial.print(i + 1);
+      Serial.print(": ");
+      Serial.println(notes[i].text);
+    }
+  }
+  
+  if (!hasNotes) {
+    Serial.println("  (No notes yet)");
+  }
+}
+
+void serialDeleteNote(void) {
+  Serial.println("\n--- Delete Note ---");
+  
+  Serial.println("Current Notes:");
+  for (int i = 0; i < MAX_NOTES; i++) {
+    Serial.print("  ");
+    Serial.print(i + 1);
+    Serial.print(": ");
+    if (notes[i].used) {
+      Serial.println(notes[i].text);
+    } else {
+      Serial.println("[Empty]");
+    }
+  }
+  
+  Serial.print("\nEnter note number to delete (1-");
+  Serial.print(MAX_NOTES);
+  Serial.print("): ");
+  while (!Serial.available()) delay(10);
+  int noteNum = Serial.parseInt();
+  Serial.println(noteNum);
+  
+  if (noteNum < 1 || noteNum > MAX_NOTES) {
+    Serial.println("✗ Invalid note number!");
+    return;
+  }
+  
+  int noteIndex = noteNum - 1;
+  
+  if (!notes[noteIndex].used) {
+    Serial.println("✗ Note is already empty!");
+    return;
+  }
+  
+  Serial.print("Are you sure? (y/n): ");
+  while (!Serial.available()) delay(10);
+  char response = Serial.read();
+  Serial.println(response);
+  
+  if (response == 'y' || response == 'Y') {
+    notes[noteIndex].text[0] = '\0';
+    notes[noteIndex].used = false;
+    saveNotesToNVS();
+    Serial.print("✓ Note ");
+    Serial.print(noteNum);
+    Serial.println(" deleted!");
+  } else {
+    Serial.println("Cancelled");
+  }
+}
+
+void serialClearAllNotes(void) {
+  Serial.println("\n--- Clear All Notes ---");
+  Serial.print("This will delete ALL notes! Are you sure? (y/n): ");
+  while (!Serial.available()) delay(10);
+  char response = Serial.read();
+  Serial.println(response);
+  
+  if (response == 'y' || response == 'Y') {
+    for (int i = 0; i < MAX_NOTES; i++) {
+      notes[i].text[0] = '\0';
+      notes[i].used = false;
+    }
+    saveNotesToNVS();
+    Serial.println("✓ All notes cleared!");
+  } else {
+    Serial.println("Cancelled");
+  }
+}
+
+void serialNotesMenu(void) {
+  while (true) {
+    printSerialNotesMenu();
+    
+    while (!Serial.available()) delay(10);
+    char option = Serial.read();
+    Serial.println(option);
+    
+    while (Serial.available()) Serial.read();
+    
+    switch (option) {
+      case '1':
+        serialCreateEditNote();
+        break;
+      case '2':
+        serialViewAllNotes();
+        break;
+      case '3':
+        serialDeleteNote();
+        break;
+      case '4':
+        serialClearAllNotes();
+        break;
+      case '5':
+        Serial.println("\nExiting menu...");
+        return;
+      default:
+        Serial.println("✗ Invalid option");
+    }
+    
+    delay(500);
+  }
+}
+
 void getWeather(void) {
   if (!wifiConnected) {
     display.clearDisplay();
     display.setTextSize(1);
     display.setCursor(0, 20);
-    display.print("Please connect to WiFi");
+    display.print("WiFi not connected");
     display.display();
     delay(2000);
     return;
@@ -440,7 +640,7 @@ void getWeather(void) {
   
   HTTPClient http;
   // London co-ordinates
-  String url = "https://api.open-meteo.com/v1/forecast?latitude=51.754642&longitude=0.0&current=temperature_2m,weather_code&timezone=auto";
+  String url = "https://api.open-meteo.com/v1/forecast?latitude=51.754642&longitude=0.0&current=temperature_2m,weather_code,relative_humidity_2m,wind_speed_10m&timezone=auto";
   
   http.begin(url);
   int httpCode = http.GET();
@@ -453,31 +653,47 @@ void getWeather(void) {
     
     float temp = doc["current"]["temperature_2m"];
     int weatherCode = doc["current"]["weather_code"];
+    int humidity = doc["current"]["relative_humidity_2m"];
+    float windSpeed = doc["current"]["wind_speed_10m"];
     
     display.clearDisplay();
-    display.setTextSize(2);
+    display.setTextSize(1);
     display.setCursor(0, 0);
     display.print("Weather");
     
-    display.setTextSize(3);
-    display.setCursor(20, 20);
+    display.setCursor(0, 20);
+    display.print("Temp: ");
     display.print((int)temp);
     display.print("C");
     
-    display.setTextSize(1);
-    display.setCursor(0, 50);
-    const char* weatherDesc = "Unknown";
-    if (weatherCode == 0) weatherDesc = "Clear";
+    display.setCursor(0, 30);
+    const char* weatherDesc;
+    if (weatherCode == 0) weatherDesc = "Sunny";
+    else if (weatherCode == 1) weatherDesc = "Clear";
     else if (weatherCode < 3) weatherDesc = "Cloudy";
     else if (weatherCode < 50) weatherDesc = "Rainy";
     else if (weatherCode < 60) weatherDesc = "Rain";
     else if (weatherCode < 80) weatherDesc = "Snow";
-    else weatherDesc = "Thunder";
+    else if (weatherCode < 100) weatherDesc = "Thunder";
+    else weatherDesc = "Unknown";
     
+    display.print("Condition: ");
     display.print(weatherDesc);
-    display.display();
     
-    delay(5000);
+    display.setCursor(0, 40);
+    display.print("Humidity: ");
+    display.print(humidity);
+    display.print("%");
+    
+    display.setCursor(0, 50);
+    display.print("Wind: ");
+    display.print((int)windSpeed);
+    display.print(" km/h");
+    
+    display.display();
+    while (true) {
+      if(button_is_pressed(btn6)) break;  
+    }
   } else {
     display.clearDisplay();
     display.setTextSize(1);
@@ -564,7 +780,6 @@ void initializeNotesNVS(void) {
   loadNotesFromNVS();
 }
 
-// ===== OTHER FUNCTIONS (from previous code) =====
 void activateFunc(byte func, int blinkTime = 500){
   bool blink = false;
   bool keepOn = false;
@@ -1186,7 +1401,7 @@ void notesFunction(void) {
       display.clearDisplay();
       display.setTextSize(1);
       display.setCursor(0, 0);
-      display.print("Notes [NVS]");
+      display.print("Notes");
       
       display.setCursor(0, 18);
       for (int i = 0; i < MAX_NOTES; i++) {
@@ -1395,6 +1610,7 @@ void setup() {
   Serial.println("========================================");
   Serial.println("Press any key in Serial Monitor to enter menu...");
   Serial.println("(You have 5 seconds)");
+  Serial.println("s/S = WiFi Menu | n/N = Notes Menu");
   Serial.println("========================================\n");
   
   // Wait for serial input for 5 seconds
@@ -1423,7 +1639,12 @@ void loop() {
     if (cmd == 's' || cmd == 'S') {
       Serial.read();
       serialWiFiMenu();
-    } else {
+    } 
+    else if (cmd == 'n' || cmd == 'N') {
+      Serial.read();
+      serialNotesMenu();
+    } 
+    else {
       Serial.read();
     }
   }
