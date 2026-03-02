@@ -26,7 +26,7 @@ Preferences preferences;
 
 int selectedFunction = 1;
 
-const char *Functions[] = {"Outputs", "Maths", "Random", "Score", "Shooter", "Metronome", "Notes", "WiFi", "Weather", "Time", "Settings"};
+const char *Functions[] = {"Outputs", "Maths", "Random", "Score", "Games", "Metronome", "Notes", "WiFi", "Weather", "Time", "Settings"};
 
 const char *settingFuncs[] = {"Button Offset", "Func1 Settings", "Func2 Settings", "Func3 Settings", "Display Settings"};
 
@@ -589,12 +589,10 @@ double evaluateEquation(char* equation, double x) {
       snprintf(xStr, sizeof(xStr), "(%g)", x);
       strcat(fullExpr, xStr);
     } else {
-      // Copy character as-is (TinyExpr handles all functions)
       strncat(fullExpr, &c, 1);
     }
   }
   
-  // Compile and evaluate using TinyExpr
   int err;
   te_variable vars[] = {};
   te_expr* te = te_compile(fullExpr, vars, 0, &err);
@@ -822,7 +820,25 @@ void metronome(void){
   }
 }
 
-void shooterGame(void) {
+void games() {
+  while (true) {
+    display.clearDisplay();
+    display.setTextSize(1);
+    display.setCursor(0, 20);
+    display.println("1. Shooter");
+    display.println("2. Snake");
+    display.println("3. Flappy Bird");
+    display.display();
+    delay(50);
+    
+    if (button_is_pressed(btn1)) shooter();
+    else if (button_is_pressed(btn2)) snake();
+    else if (button_is_pressed(btn3)) flappyBird();
+    else if (button_is_pressed(btn6)) return;
+  }
+}
+
+void shooter() {
   int playerX = 120;
   int playerY = 55;
   int score = 0;
@@ -963,6 +979,187 @@ void shooterGame(void) {
   display.print("Game Over");
   display.setTextSize(1);
   display.setCursor(20, 40);
+  display.print("Score: ");
+  display.print(score);
+  display.display();
+  delay(3000);
+}
+
+void snake(void) {
+  struct SnakeSegment { int x; int y; };
+  SnakeSegment snake[50];
+  int snakeLength = 3;
+  
+  snake[0].x = 60; snake[0].y = 30;
+  snake[1].x = 56; snake[1].y = 30;
+  snake[2].x = 52; snake[2].y = 30;
+  
+  int dirX = 4, dirY = 0;
+  int nextDirX = 4, nextDirY = 0;
+  
+  int foodX = random(10, 120);
+  int foodY = random(10, 55);
+  
+  int score = 0;
+  bool gameOver = false;
+  unsigned long lastMove = 0;
+  
+  while (!gameOver) {
+    unsigned long now = millis();
+    
+    if (button_is_pressed(btn2, false) && dirX == 0) { nextDirX = -4; nextDirY = 0; }
+    if (button_is_pressed(btn3, false) && dirX == 0) { nextDirX = 4; nextDirY = 0; }
+    if (button_is_pressed(btn1, false) && dirY == 0) { nextDirX = 0; nextDirY = -4; }
+    if (button_is_pressed(btn4, false) && dirY == 0) { nextDirX = 0; nextDirY = 4; }
+    if (button_is_pressed(btn6)) return;
+    
+    if (now - lastMove > 150) {
+      dirX = nextDirX;
+      dirY = nextDirY;
+      
+      for (int i = snakeLength - 1; i > 0; i--) {
+        snake[i].x = snake[i - 1].x;
+        snake[i].y = snake[i - 1].y;
+      }
+      
+      snake[0].x += dirX;
+      snake[0].y += dirY;
+      
+      lastMove = now;
+      
+      if (snake[0].x < 0) snake[0].x = 128;
+      if (snake[0].x > 128) snake[0].x = 0;
+      if (snake[0].y < 0) snake[0].y = 64;
+      if (snake[0].y > 64) snake[0].y = 0;
+      
+      for (int i = 1; i < snakeLength; i++) {
+        if (snake[0].x == snake[i].x && snake[0].y == snake[i].y) {
+          gameOver = true;
+        }
+      }
+      
+      if (snake[0].x >= foodX - 2 && snake[0].x <= foodX + 2 &&
+          snake[0].y >= foodY - 2 && snake[0].y <= foodY + 2) {
+        snakeLength++;
+        score += 10;
+        foodX = random(10, 120);
+        foodY = random(10, 55);
+      }
+    }
+    
+    display.clearDisplay();
+    
+    for (int i = 0; i < snakeLength; i++) {
+      display.fillRect(snake[i].x, snake[i].y, 3, 3, SSD1306_WHITE);
+    }
+    
+    display.fillRect(foodX, foodY, 3, 3, SSD1306_WHITE);
+    
+    display.setTextSize(1);
+    display.setCursor(0, 0);
+    display.print("Len:");
+    display.print(snakeLength);
+    display.setCursor(65, 0);
+    display.print("Score:");
+    display.print(score);
+    
+    display.display();
+    delay(30);
+  }
+  
+  display.clearDisplay();
+  display.setTextSize(2);
+  display.setCursor(20, 20);
+  display.print("Game Over");
+  display.setTextSize(1);
+  display.setCursor(15, 45);
+  display.print("Score: ");
+  display.print(score);
+  display.display();
+  delay(3000);
+}
+
+void flappyBird(void) {
+  int birdY = 30;
+  int birdVelocity = 0;
+  const int gravity = 1;
+  const int flapPower = -2;
+  int score = 0;
+  bool gameOver = false;
+  
+  struct Pipe { int x; int gap; bool passed; };
+  Pipe pipes[3];
+  for (int i = 0; i < 3; i++) {
+    pipes[i].x = 128 + i * 50;
+    pipes[i].gap = random(15, 40);
+    pipes[i].passed = false;
+  }
+  
+  unsigned long lastFlap = 0;
+  
+  while (!gameOver) {
+    if (button_is_pressed(btn3, false) || button_is_pressed(btn5, false)) {
+      birdVelocity = flapPower;
+      lastFlap = millis();
+    }
+    if (button_is_pressed(btn6)) return;
+    
+    birdVelocity += gravity;
+    birdY += birdVelocity;
+    
+    if (birdY < 0 || birdY > 64) gameOver = true;
+    
+    for (int i = 0; i < 3; i++) {
+      pipes[i].x--;
+      
+      if (pipes[i].x < 0) {
+        pipes[i].x = 128;
+        pipes[i].gap = random(15, 100);
+        pipes[i].passed = false;
+      }
+      
+      if (pipes[i].x == 60 && !pipes[i].passed) {
+        score++;
+        pipes[i].passed = true;
+      }
+    }
+    
+    for (int i = 0; i < 3; i++) {
+      if (pipes[i].x > 0 && pipes[i].x < 128) {
+        if (pipes[i].x < 65 && pipes[i].x + 3 > 60) {
+          if (birdY < pipes[i].gap) gameOver = true;
+          // Bottom pipe collision
+          if (birdY + 4 > pipes[i].gap + 20) gameOver = true;
+        }
+      }
+    }
+    
+    display.clearDisplay();
+    
+    display.fillRect(60, birdY, 4, 4, SSD1306_WHITE);
+    
+    for (int i = 0; i < 3; i++) {
+      if (pipes[i].x > 0 && pipes[i].x < 128) {
+        display.fillRect(pipes[i].x, 0, 3, pipes[i].gap, SSD1306_WHITE);
+        display.fillRect(pipes[i].x, pipes[i].gap + 20, 3, 64 - pipes[i].gap - 20, SSD1306_WHITE);
+      }
+    }
+    
+    display.setTextSize(1);
+    display.setCursor(0, 0);
+    display.print("Score:");
+    display.print(score);
+    
+    display.display();
+    delay(30);
+  }
+  
+  display.clearDisplay();
+  display.setTextSize(2);
+  display.setCursor(15, 20);
+  display.print("CRASHED!");
+  display.setTextSize(1);
+  display.setCursor(20, 45);
   display.print("Score: ");
   display.print(score);
   display.display();
@@ -2024,7 +2221,7 @@ void loop() {
         counter();
         break;
       case 5:
-        shooterGame();
+        games();
         break;
       case 6:
         metronome();
