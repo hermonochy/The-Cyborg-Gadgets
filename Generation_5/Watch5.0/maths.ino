@@ -80,7 +80,7 @@ void calculator() {
     }
     display.display();
 
-    if (button_is_pressed(btn2)) {
+    if (button_is_pressed(btn2, false)) {
       selected = (selected+1) % activeSize;
       delay(120);
     }
@@ -179,11 +179,11 @@ void unitConverter(void){
             enteringValue = true;
             delay(250);
         } 
-        else if (button_is_pressed(btn4)){
+        else if (button_is_pressed(btn4, false)){
             if (enteringValue) inputValue--;
             delay(150);
         } 
-        else if (button_is_pressed(btn5)){
+        else if (button_is_pressed(btn5, false)){
             if (enteringValue) inputValue++;
             delay(150);
         } 
@@ -259,11 +259,11 @@ void graphPlotter(void) {
     }
     display.display();
 
-    if (button_is_pressed(btn2)) {
+    if (button_is_pressed(btn2, false)) {
       selected = (selected+1) % activeSize;
       delay(120);
     }
-    else if (button_is_pressed(btn1)) {
+    else if (button_is_pressed(btn1, false)) {
       selected = (selected-1) % activeSize;
       delay(120);
     }

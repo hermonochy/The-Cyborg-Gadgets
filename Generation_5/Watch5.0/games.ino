@@ -1,4 +1,4 @@
-// Includes: Shooter, Snake, Flappy Bird
+// Includes: Shooter, Snake, Flappy Bird, Geo Dash
 
 extern Adafruit_SSD1306 display;
 extern bool button_is_pressed(int btnVal, bool onlyOnce);
@@ -15,12 +15,14 @@ void games() {
     display.println("1. Shooter");
     display.println("2. Snake");
     display.println("3. Flappy Bird");
+    display.println("4. Geometry Dash");
     display.display();
     delay(50);
     
     if (button_is_pressed(btn1)) shooter();
     else if (button_is_pressed(btn2)) snake();
     else if (button_is_pressed(btn3)) flappyBird();
+    else if (button_is_pressed(btn4)) geometryDash();
     else if (button_is_pressed(btn6)) return;
   }
 }
@@ -278,7 +280,7 @@ void flappyBird(void) {
   Pipe pipes[3];
   for (int i = 0; i < 3; i++) {
     pipes[i].x = 128 + i * 50;
-    pipes[i].gap = random(15, 40);
+    pipes[i].gap = random(30, 100);
     pipes[i].passed = false;
   }
   
@@ -348,6 +350,156 @@ void flappyBird(void) {
   display.setCursor(20, 45);
   display.print("Score: ");
   display.print(score);
+  display.display();
+  delay(3000);
+}
+
+void geometryDash(void) {
+  const int playerSize = 6;
+  int playerY = SCREEN_HEIGHT - 8 - playerSize;
+  int score = 0;
+  bool gameOver = false;
+  bool isJumping = false;
+  int jumpVelocity = 0;
+  const int gravity = 1;
+  const int jumpPower = -8;
+  const int groundLevel = SCREEN_HEIGHT - playerSize;
+  
+  struct Obstacle { int x; int y; int type; bool active; };
+  Obstacle obstacles[6];
+  for (int i = 0; i < 6; i++) obstacles[i].active = false;
+  
+  unsigned long lastSpawn = 0;
+  unsigned long gameStartTime = millis();
+  int speed = 2;
+  
+  while (!gameOver) {
+    unsigned long now = millis();
+    
+    if ((button_is_pressed(btn1, false) || button_is_pressed(btn4, false)) && !isJumping) {
+      isJumping = true;
+      jumpVelocity = jumpPower;
+    }
+    if (button_is_pressed(btn6)) return;
+    
+    if (isJumping) {
+      jumpVelocity += gravity;
+      playerY += jumpVelocity;
+      
+      if (playerY >= groundLevel) {
+        playerY = groundLevel - playerSize;
+        isJumping = false;
+        jumpVelocity = 0;
+      }
+    }
+    
+    speed = 2 + (score / 10);
+    if (speed > 8) speed = 8;
+    
+    if (now - lastSpawn > max(1000, 1500 - score * 15)) {
+      for (int i = 0; i < 6; i++) {
+        if (!obstacles[i].active) {
+          obstacles[i].x = SCREEN_WIDTH;
+          obstacles[i].type = random(0, 3);
+          
+          if (obstacles[i].type == 0) {
+            obstacles[i].y = groundLevel - 4;
+          } else if (obstacles[i].type == 1) {
+            obstacles[i].y = groundLevel - 10;
+          } else {
+            obstacles[i].y = groundLevel - 16;
+          }
+          
+          obstacles[i].active = true;
+          lastSpawn = now;
+          break;
+        }
+      }
+    }
+    
+    for (int i = 0; i < 6; i++) {
+      if (obstacles[i].active) {
+        obstacles[i].x -= speed;
+        
+        if (obstacles[i].x < 0) {
+          obstacles[i].active = false;
+          score++;
+        }
+      }
+    }
+    
+    int playerX = 8;
+    int playerWidth = 6;
+    
+    for (int i = 0; i < 6; i++) {
+      if (obstacles[i].active) {
+        int obstacleWidth = 4;
+        int obstacleHeight = 0;
+        
+        if (obstacles[i].type == 0) obstacleHeight = 4;
+        else if (obstacles[i].type == 1) obstacleHeight = 10;
+        else obstacleHeight = 6;
+        
+        if (playerX < obstacles[i].x + obstacleWidth &&
+            playerX + playerWidth > obstacles[i].x &&
+            playerY < obstacles[i].y + obstacleHeight &&
+            playerY + playerSize > obstacles[i].y) {
+          gameOver = true;
+        }
+      }
+    }
+    
+    display.clearDisplay();
+    
+    display.drawLine(0, groundLevel, SCREEN_WIDTH, groundLevel, SSD1306_WHITE);
+    
+    display.fillRect(playerX, playerY, playerSize, playerSize, SSD1306_WHITE);
+    
+    for (int i = 0; i < 6; i++) {
+      if (obstacles[i].active) {
+        int obsWidth = 4;
+        int obsHeight = 0;
+        
+        if (obstacles[i].type == 0) {
+          obsHeight = 4;
+        } else if (obstacles[i].type == 1) {
+          obsHeight = 10;
+        } else {
+          obsHeight = 6;
+        }
+        
+        display.fillRect(obstacles[i].x, obstacles[i].y, obsWidth, obsHeight, SSD1306_WHITE);
+        
+        if (obstacles[i].type == 1) {
+          display.drawPixel(obstacles[i].x + 2, obstacles[i].y - 1, SSD1306_WHITE);
+        }
+      }
+    }
+    
+    display.setTextSize(1);
+    display.setCursor(0, 0);
+    display.print("Score:");
+    display.print(score);
+    
+    display.setCursor(SCREEN_WIDTH - 32, 0);
+    display.print("Spd:");
+    display.print(speed);
+    
+    display.display();
+    delay(20);
+  }
+  
+  display.clearDisplay();
+  display.setTextSize(2);
+  display.setCursor(15, 0);
+  display.print("CRASHED!");
+  display.setTextSize(1);
+  display.setCursor(15, 25);
+  display.print("Score: ");
+  display.print(score);
+  display.setCursor(15, 40);
+  display.print("Speed: ");
+  display.print(speed);
   display.display();
   delay(3000);
 }

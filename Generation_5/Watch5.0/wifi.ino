@@ -126,8 +126,6 @@ void wifiMenu(void) {
   }
 }
 
-// ============ SERIAL WiFi MENU FUNCTIONS ============
-
 void serialConfigureWiFi(void) {
   Serial.println("\n--- WiFi Configuration ---");
   

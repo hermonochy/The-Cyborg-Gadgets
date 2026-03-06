@@ -37,10 +37,10 @@ void prefs() {
       case 0:
         display.println(analogRead(buttonPin));
         display.print(buttonOffset);
-        if(button_is_pressed(btn2)) {
+        if(button_is_pressed(btn2, false)) {
           buttonOffset++;
         }
-        else if(button_is_pressed(btn1)) {
+        else if(button_is_pressed(btn1, false)) {
           buttonOffset--;
         }
         else if(button_is_pressed(btn3)) buttonOffset = 0;

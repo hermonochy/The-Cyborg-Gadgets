@@ -22,7 +22,7 @@ void activateFunc(byte func, int blinkTime = 500){
       delay(blinkTime);
     } 
     else {
-      if (button_is_pressed(btn1)) digitalWrite(func, HIGH);
+      if (button_is_pressed(btn1, false)) digitalWrite(func, HIGH);
       else digitalWrite(func, LOW);
     }
 
@@ -245,7 +245,7 @@ void metronome(void){
       ledOffAt = 0;
     }
     
-    if (button_is_pressed(btn1)){
+    if (button_is_pressed(btn1, false)){
       if (!btn1Held){
         btn1Held = true;
         btn1RepeatDelay = HOLD_INITIAL_MS;
@@ -263,7 +263,7 @@ void metronome(void){
       btn1Held = false;
     }
 
-    if (button_is_pressed(btn2)){
+    if (button_is_pressed(btn2, false)){
       if (!btn2Held){
         btn2Held = true;
         btn2RepeatDelay = HOLD_INITIAL_MS;
@@ -287,8 +287,6 @@ void metronome(void){
     yield();
   }
 }
-
-// ============ NOTES FUNCTIONS ============
 
 void saveNotesToNVS(void) {
   preferences.begin("notes", false);
@@ -401,7 +399,7 @@ void notesFunction(void) {
       display.print("4:Clr 5:Done 6:Back");
       display.display();
       
-      if (button_is_pressed(btn1)) {
+      if (button_is_pressed(btn1, false)) {
         int len = strlen(notes[selectedNote].text);
         if (len > 0) {
           notes[selectedNote].text[len - 1] = '\0';
@@ -411,7 +409,7 @@ void notesFunction(void) {
         }
         delay(150);
       }
-      else if (button_is_pressed(btn2)) {
+      else if (button_is_pressed(btn2, false)) {
         int len = strlen(notes[selectedNote].text);
         if (len < MAX_NOTE_LENGTH - 1) {
           notes[selectedNote].text[len] = ' ';
@@ -485,8 +483,6 @@ void notesFunction(void) {
     delay(50);
   }
 }
-
-// ============ SERIAL NOTES MENU FUNCTIONS ============
 
 void serialCreateEditNote(void) {
   Serial.println("\n--- Create/Edit Note ---");
