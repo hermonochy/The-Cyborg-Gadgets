@@ -1114,7 +1114,7 @@ void flappyBird(void) {
       
       if (pipes[i].x < 0) {
         pipes[i].x = 128;
-        pipes[i].gap = random(15, 100);
+        pipes[i].gap = random(50, 100);
         pipes[i].passed = false;
       }
       
@@ -1128,7 +1128,6 @@ void flappyBird(void) {
       if (pipes[i].x > 0 && pipes[i].x < 128) {
         if (pipes[i].x < 65 && pipes[i].x + 3 > 60) {
           if (birdY < pipes[i].gap) gameOver = true;
-          // Bottom pipe collision
           if (birdY + 4 > pipes[i].gap + 20) gameOver = true;
         }
       }
@@ -2031,6 +2030,22 @@ void notesFunction(void) {
 }
 
 void settings() {
+  while (true) {
+    display.clearDisplay();
+    display.setTextSize(1);
+    display.setCursor(0, 20);
+    display.println("1. Preferences");
+    display.println("2. Debug");
+    display.display();
+    delay(50);
+    
+    if (button_is_pressed(btn1)) prefs();
+    else if (button_is_pressed(btn2)) debug();
+    else if (button_is_pressed(btn6)) return;
+  }
+}
+
+void prefs() {
   int settingIndex = 0;
   bool displayOff = false;
   while(!button_is_pressed(btn6, true)){
@@ -2114,6 +2129,34 @@ void settings() {
   }
 }
 
+void debug() {
+  while (true) {
+    display.clearDisplay();
+    display.setTextSize(2);
+    display.setCursor(0, 0);
+    display.print("Debug Info");
+    display.setTextSize(1);
+    display.setCursor(0, 20);
+    display.print("ADC: ");
+    display.print(analogRead(buttonPin));
+    display.setCursor(0, 30);
+    display.print("Func1: ");
+    display.print(digitalRead(Func1));
+    display.setCursor(0, 40);
+    display.print("Func2: ");
+    display.print(digitalRead(Func2));
+    display.setCursor(0, 50);
+    display.print("Func3: ");
+    display.print(digitalRead(Func3));
+    display.display();
+    
+    if (button_is_pressed(btn6)) {
+      return;
+    }
+    delay(100);
+  }
+}
+
 void setup() {  
   pinMode(buttonPin, INPUT_PULLUP);
   pinMode(Func1, OUTPUT);
@@ -2143,7 +2186,7 @@ void setup() {
   display.print("of");
   display.display();
   Serial.begin(115200);
-  delay(2000);
+  delay(100);
   Serial.println("\n\n========================================");
   Serial.println("     Watch 5.0 - Serial Configuration");
   Serial.println("========================================");
