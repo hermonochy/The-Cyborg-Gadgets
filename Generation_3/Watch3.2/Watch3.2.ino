@@ -465,7 +465,6 @@ void unitConverter(void){
     }
 }
 */
-int score = 0;
 void dinoRunner() {
   int dinoY = 40, velocity = 0, gravity = 2, jumpPower = -12;
   int cactusX = 128, cactusY = 40;
@@ -473,7 +472,7 @@ void dinoRunner() {
   bool jumping = false, gameOver = false;
   unsigned long lastMove = millis(), lastCactusMove = millis();
   bool paused = false;
-  
+  int score = 0;
   int nextSpawnDist;
 
   while (true) {
@@ -505,7 +504,7 @@ void dinoRunner() {
     }
 
     if (!gameOver && millis() - lastCactusMove > 24) {
-      cactusX -= 3;
+      cactusX -= 3 + (score / 10);
       if (cactusX < -cactusW) {
         nextSpawnDist = random(100);
         cactusX = 100 + nextSpawnDist;
@@ -665,11 +664,11 @@ void randomInt(){
     delay(100);
     if (button_is_pressed(btn1)){
       range += 10;
-      delay(250);
+      delay(150);
     } 
     else if (button_is_pressed(btn2)){
       range--;
-      delay(250);
+      delay(150);
     } 
     else if (button_is_pressed(btn3)){
       int randNumber = random(0, range + 1);
@@ -816,13 +815,13 @@ void loop(){
   display.setCursor(0, 32);
   display.print("2. Maths   6. Metron");
   display.setCursor(0, 44);
-  display.print("3. Random  7. Set");
+  display.print("3. Random  7. Prefs");
   display.setCursor(0, 56);
   display.print("4. Counter 8. Power");
 
   display.display();
 
-  delay(150);
+  delay(100);
 
   if (button_is_pressed(btn2)){
     selectedFunction++;

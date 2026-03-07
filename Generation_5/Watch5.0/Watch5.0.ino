@@ -1,4 +1,4 @@
-// Watch 5.0: Initial 5th gen watch with OLED - ESP32C3
+// Watch 5.0: Initial 5th gen watch - ESP32C3 with SSD1306 OLED display
 
 #include <Adafruit_GFX.h>
 #include <Adafruit_SSD1306.h>
@@ -132,7 +132,7 @@ void setup() {
   }
 
   initializeNotesNVS(); 
-  loadWiFiCredentials();
+  loadWiFiNetworksFromNVS();
 }
 
 void loop() {

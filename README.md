@@ -22,7 +22,9 @@ The gadgets are all labeled, as seen in the example below:
     This enhanced its lifespan from roughly 3 weeks to more than 2 years, while also making assembly easier. Currently they are the largest generation, with over a dozen operational gadgets.
     - [The Third Generation](./Generation_3/Generation_3.md) relies on the Arduino platform to drastically enhance capabilities to include smart, multifunctional spy features. Surprisingly, energy consumption is reduced.
     - [Generation 4](./Generation_4/Generation_4.md) devices are electronically identical to the third but use customised PCBs and refined mechanical designs to improve aesthetics and stability.
-    - [Fifth generation](./Generation_5/Generation_5.md) cyborg gadgets will switch from [AVR based microcontrollers]() to [ESP32](https://www.espressif.com/en/products/socs/esp32-c3) based chips, significantly improving proccessing capabilities while retaining small form factor.
+    - [Fifth generation](./Generation_5/Generation_5.md) cyborg gadgets switch from [AVR based microcontrollers]() to [ESP32](https://www.espressif.com/en/products/socs/esp32-c3) based chips, significantly improving proccessing capabilities while retaining small form factor.
+    - The Sixth Generation devices are to the Fifth Generation what the Fourth Generation was to the Third: electrically identical to their predecessor, but implemented on a custom PCB.
+    - A concrete idea for the Seventh Generation hasn’t been defined yet, but the LicheeRV Nano is a promising candidate for its microcontroller. Since the ESP32 devices used in the fifth and sixth generations already exceed the performance requirements at the present time, there is no immediate pressure to launch a Seventh Generation.
 
 - **Type of gadget**: While originally focused on watch extensions, the project now includes devices for:
 
