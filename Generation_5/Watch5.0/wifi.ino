@@ -196,7 +196,8 @@ bool inputStringOnWatch(const char* label, char* buffer, int maxLen) {
     display.print("Char: ");
     display.setTextSize(2);
     display.setCursor(40, 28);
-    display.print(charset[charIndex]);    
+    display.print(charset[charIndex]);
+    
     display.display();
     
     if (button_is_pressed(btn1)) {
@@ -379,7 +380,7 @@ void wifiMenu(void) {
       }
     }
     
-    display.setCursor(0, SCREEN_HEIGHT - 10);
+    display.setCursor(0, 56);
     display.print("3:Networks 6:Back");
     display.display();
     
