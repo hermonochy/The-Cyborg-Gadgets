@@ -2,7 +2,7 @@
 
 extern Adafruit_SSD1306 display;
 extern bool button_is_pressed(int btnVal, bool onlyOnce);
-extern const int btn1, btn2, btn3, btn4, btn5, btn6;
+extern int btn1, btn2, btn3, btn4, btn5, btn6;
 
 #define SCREEN_WIDTH 128
 #define SCREEN_HEIGHT 64
@@ -394,7 +394,6 @@ void geometryDash(void) {
     }
     
     speed = 2 + (score / 10);
-    if (speed > 8) speed = 8;
     
     if (now - lastSpawn > max(1000, 1500 - score * 15)) {
       for (int i = 0; i < 6; i++) {

@@ -1,8 +1,9 @@
-// Includes: Settings, Prefs, Debug
+// Includes: Settings, tuneButtonVals, Prefs, Debug
 
 extern Adafruit_SSD1306 display;
 extern bool button_is_pressed(int btnVal, bool onlyOnce);
-extern const int btn1, btn2, btn3, btn4, btn5, btn6;
+extern const byte buttonPin;
+extern int btn1, btn2, btn3, btn4, btn5, btn6;
 extern byte Func1, Func2, Func3;
 
 void settings() {
@@ -10,14 +11,58 @@ void settings() {
     display.clearDisplay();
     display.setTextSize(1);
     display.setCursor(0, 20);
-    display.println("1. Preferences");
-    display.println("2. Debug");
+    display.println("1. Tune Btns");
+    display.println("2. Preferences");
+    display.println("3. Debug");
     display.display();
     delay(50);
     
-    if (button_is_pressed(btn1)) prefs();
-    else if (button_is_pressed(btn2)) debug();
+    if (button_is_pressed(btn1)) tuneButtonVals();
+    else if (button_is_pressed(btn2)) prefs();
+    else if (button_is_pressed(btn3)) debug();
     else if (button_is_pressed(btn6)) return;
+  }
+}
+
+// Similar in purpose to buttonOffset, but specific for every button
+void tuneButtonVals() {
+  // ensure no mis-measurements
+  while(a_button_is_pressed()) {}
+  int *btnRefs[] = {&btn1, &btn2, &btn3, &btn4, &btn5, &btn6};
+  const char *labels[] = {"Btn 1", "Btn 2", "Btn 3", "Btn 4", "Btn 5", "Btn 6"};
+  const int sampleCount = 75;
+  int samples[sampleCount];
+
+  for (int i = 0; i < 6; i++) {
+    display.clearDisplay();
+    display.setTextSize(2);
+    display.setCursor(0, 30);
+    display.print("Press ");
+    display.print(labels[i]);
+    display.display();
+    while (!a_button_is_pressed()) delay(50);
+
+    for (int s = 0; s < sampleCount; s++) {
+      samples[s] = analogRead(buttonPin);
+      delay(1); 
+    }
+    for (int x = 0; x < sampleCount - 1; x++) {
+      for (int y = 0; y < sampleCount - x - 1; y++) {
+        if (samples[y] > samples[y + 1]) {
+          int temp = samples[y];
+          samples[y] = samples[y + 1];
+          samples[y + 1] = temp;
+        }
+      }
+    }
+    *btnRefs[i] = samples[sampleCount/2];
+
+    display.clearDisplay();
+    display.print(labels[i]);
+    display.print(" Set");
+    display.display();
+
+    while(a_button_is_pressed()) delay(50);
   }
 }
 
@@ -36,12 +81,19 @@ void prefs() {
     switch(settingIndex) {
       case 0:
         display.println(analogRead(buttonPin));
-        display.print(buttonOffset);
+        display.println(buttonOffset);
+        display.println(buttonValRange);
         if(button_is_pressed(btn2, false)) {
           buttonOffset++;
         }
         else if(button_is_pressed(btn1, false)) {
           buttonOffset--;
+        }
+        if(button_is_pressed(btn5, false)) {
+          buttonValRange++;
+        }
+        else if(button_is_pressed(btn4, false)) {
+          buttonValRange--;
         }
         else if(button_is_pressed(btn3)) buttonOffset = 0;
         break;

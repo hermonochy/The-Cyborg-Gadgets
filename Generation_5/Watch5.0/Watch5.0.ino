@@ -27,16 +27,18 @@ const char *settingFuncs[] = {"Button Offset", "Func1 Settings", "Func2 Settings
 const byte buttonPin = 2;
 
 // Button resistance values (Ordered by frequency used)
-const int btn1 = 1433;  // 4.7K
-const int btn2 = 812;   // 2.2K
-const int btn3 = 202;   // 470
-const int btn4 = 409;   // 1K
-const int btn5 = 95;    // 220
-const int btn6 = 2304;  // 10K
+int btn1 = 1433;  // 4.7K
+int btn2 = 812;   // 2.2K
+int btn3 = 202;   // 470
+int btn4 = 409;   // 1K
+int btn5 = 95;    // 220
+int btn6 = 2304;  // 10K
 
 // As power reduces, btn values increase.
 // Offset is a temporary fix for this.
 int buttonOffset = 0;
+// How much button vals are allowed to differ from read value
+int buttonValRange = 30;
 
 byte Func1 = 3;
 byte Func2 = 0;
@@ -62,7 +64,7 @@ bool button_is_pressed(int btnVal, bool onlyOnce = true) {
   int errorVal = pinVal - btnVal;
   int absErrorVal = abs(errorVal);
   
-  if (absErrorVal <= 30) {    
+  if (absErrorVal <= buttonValRange) {    
     if (onlyOnce) {
       while (true) {
         delay(10);
@@ -75,6 +77,10 @@ bool button_is_pressed(int btnVal, bool onlyOnce = true) {
     return true;
   }
   return false;
+}
+
+bool a_button_is_pressed(){
+  return (analogRead(buttonPin) != 4095);
 }
 
 void setup() {
@@ -133,6 +139,8 @@ void setup() {
 
   initializeNotesNVS(); 
   loadWiFiNetworksFromNVS();
+  // If any button is pressed, no matter the value, enter button tuning
+  if (a_button_is_pressed()) tuneButtonVals();
 }
 
 void loop() {

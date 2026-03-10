@@ -2,7 +2,7 @@
 
 extern Adafruit_SSD1306 display;
 extern bool button_is_pressed(int btnVal, bool onlyOnce);
-extern const int btn1, btn2, btn3, btn4, btn5, btn6;
+extern int btn1, btn2, btn3, btn4, btn5, btn6;
 extern byte Func1, Func2, Func3;
 extern int bpm;
 extern Note notes[5];

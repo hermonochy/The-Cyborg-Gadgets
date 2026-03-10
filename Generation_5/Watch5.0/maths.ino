@@ -4,13 +4,16 @@
 
 extern Adafruit_SSD1306 display;
 extern bool button_is_pressed(int btnVal, bool onlyOnce);
-extern const int btn1, btn2, btn3, btn4, btn5, btn6;
+extern int btn1, btn2, btn3, btn4, btn5, btn6;
 extern const byte buttonPin;
 extern byte Func1;
 extern int buttonOffset;
 
 #define SCREEN_WIDTH 128
 #define SCREEN_HEIGHT 64
+
+#define MAX_NUMBER_LENGTH 64
+
 
 void maths(void) {
   while (true) {
@@ -20,12 +23,14 @@ void maths(void) {
     display.println("1. Calculator");
     display.println("2. Unit Converter");
     display.println("3. Graph Plotter");
+    display.println("4. Base Converter");
     display.display();
     delay(50);
     
     if (button_is_pressed(btn1)) calculator();
     else if (button_is_pressed(btn2)) unitConverter();
     else if (button_is_pressed(btn3)) graphPlotter();
+    else if (button_is_pressed(btn4)) baseConverter();
     else if (button_is_pressed(btn6)) return;
   }
 }
@@ -450,5 +455,327 @@ double evaluateEquation(char* equation, double x) {
     return result;
   } else {
     return NAN;
+  }
+}
+
+const char* baseCharsets[] = {
+  "",                                    // 0 (unused)
+  "",                                    // 1 (unused)
+  "01",                                  // 2 (binary)
+  "012",                                 // 3
+  "0123",                                // 4
+  "01234",                               // 5
+  "012345",                              // 6
+  "0123456",                             // 7
+  "01234567",                            // 8 (octal)
+  "012345678",                           // 9
+  "0123456789",                          // 10 (decimal)
+  "0123456789A",                         // 11
+  "0123456789AB",                        // 12
+  "0123456789ABC",                       // 13
+  "0123456789ABCD",                      // 14
+  "0123456789ABCDE",                     // 15
+  "0123456789ABCDEF"                     // 16 (hexadecimal)
+};
+
+void baseConverter(void) {
+  int sourceBase = 10;
+  int targetBase = 16;
+  char inputNumber[MAX_NUMBER_LENGTH] = "";
+  
+  while (true) {
+    display.clearDisplay();
+    display.setTextSize(1);
+    display.setCursor(0, 0);
+    display.println("Base Converter");
+    display.setCursor(0, 20);
+    display.print(sourceBase);
+    display.print("->");
+    display.println(targetBase);
+    display.setCursor(0, 30);
+    display.print("Input: ");
+    display.println(inputNumber);
+    display.setCursor(0, 45);
+    display.println("3:Change Base 4:Convert");
+    display.setCursor(0, 56);
+    display.println("5:Input 6:Back");
+    display.display();
+    
+    if (button_is_pressed(btn3)) {
+      selectBases(&sourceBase, &targetBase);
+      delay(200);
+    }
+    else if (button_is_pressed(btn4)) {
+      if (strlen(inputNumber) > 0) {
+        convertAndDisplay(inputNumber, sourceBase, targetBase);
+      } else {
+        display.clearDisplay();
+        display.setTextSize(1);
+        display.setCursor(0, 20);
+        display.println("Enter a number first!");
+        display.display();
+        delay(2000);
+      }
+      delay(200);
+    }
+    else if (button_is_pressed(btn5)) {
+      inputNumberOnWatch(inputNumber, MAX_NUMBER_LENGTH, sourceBase);
+      delay(200);
+    }
+    else if (button_is_pressed(btn6)) {
+      return;
+    }
+    delay(50);
+  }
+}
+
+void selectBases(int* sourceBase, int* targetBase) {
+  int selectedRole = 0;
+  int* selectedBase = sourceBase;
+  
+  while (true) {
+    display.clearDisplay();
+    display.setTextSize(1);
+    display.setCursor(0, 0);
+    if (selectedRole == 0) {
+      display.println("Select SOURCE Base:");
+    } else {
+      display.println("Select TARGET Base:");
+    }
+    
+    for (int i = 2; i <= 16; i++) {
+      display.setCursor(0, 20 + (i - 2) * 6);
+      if (i == *selectedBase) {
+        display.print("> ");
+      } else {
+        display.print("  ");
+      }
+      display.print("Base ");
+      display.println(i);
+    }
+    
+    display.setCursor(0, SCREEN_HEIGHT - 10);
+    display.print("1/2:Sel 3:OK 6:Back");
+    display.display();
+    
+    if (button_is_pressed(btn1)) {
+      (*selectedBase)--;
+      if (*selectedBase < 2) *selectedBase = 16;
+      delay(100);
+    }
+    else if (button_is_pressed(btn2)) {
+      (*selectedBase)++;
+      if (*selectedBase > 16) *selectedBase = 2;
+      delay(100);
+    }
+    else if (button_is_pressed(btn3)) {
+      if (selectedRole == 0) {
+        selectedRole = 1;
+        selectedBase = targetBase;
+      } else {
+        return;
+      }
+      delay(200);
+    }
+    else if (button_is_pressed(btn6)) {
+      return;
+    }
+    delay(50);
+  }
+}
+
+void inputNumberOnWatch(char* buffer, int maxLen, int base) {
+  buffer[0] = '\0';
+  int charIndex = 0;
+  const char* charset = baseCharsets[base];
+  int charsetSize = strlen(charset);
+  
+  if (charsetSize == 0) {
+    display.clearDisplay();
+    display.setTextSize(1);
+    display.setCursor(0, 20);
+    display.println("Invalid base!");
+    display.display();
+    delay(2000);
+    return;
+  }
+  
+  while (true) {
+    display.clearDisplay();
+    display.setTextSize(1);
+    display.setCursor(0, 0);
+    display.print("Enter Base ");
+    display.print(base);
+    display.print(" Number:");
+    
+    display.setCursor(0, 20);
+    display.print("> ");
+    display.print(buffer);
+    if (strlen(buffer) < maxLen - 1) {
+      display.print("_");
+    }
+    
+    display.setCursor(0, 30);
+    display.print("Digit: ");
+    display.setTextSize(2);
+    display.setCursor(60, 28);
+    display.print(charset[charIndex]);
+    display.setTextSize(1);
+    
+    display.setCursor(0, 48);
+    display.print("1/2:Digit 3:Add 4:Del 5:Clr");
+    display.setCursor(0, 56);
+    display.print("6:Done");
+    display.display();
+    
+    if (button_is_pressed(btn1)) {
+      charIndex = (charIndex - 1 + charsetSize) % charsetSize;
+      delay(100);
+    }
+    else if (button_is_pressed(btn2)) {
+      charIndex = (charIndex + 1) % charsetSize;
+      delay(100);
+    }
+    else if (button_is_pressed(btn3)) {
+      if (strlen(buffer) < maxLen - 1) {
+        buffer[strlen(buffer)] = charset[charIndex];
+        buffer[strlen(buffer) + 1] = '\0';
+      }
+      delay(150);
+    }
+    else if (button_is_pressed(btn4)) {
+      if (strlen(buffer) > 0) {
+        buffer[strlen(buffer) - 1] = '\0';
+      }
+      delay(150);
+    }
+    else if (button_is_pressed(btn5)) {
+      buffer[0] = '\0';
+      delay(150);
+    }
+    else if (button_is_pressed(btn6)) {
+      if (strlen(buffer) > 0) {
+        return;
+      } else {
+        return;
+      }
+    }
+    delay(30);
+  }
+}
+
+void convertAndDisplay(const char* number, int sourceBase, int targetBase) {
+  unsigned long decimalValue = 0;
+  const char* charset = baseCharsets[sourceBase];
+  
+  for (int i = 0; i < strlen(number); i++) {
+    char c = toupper(number[i]);
+    if (strchr(charset, c) == NULL) {
+      display.clearDisplay();
+      display.setTextSize(1);
+      display.setCursor(0, 20);
+      display.print("Invalid digit '");
+      display.print(c);
+      display.print("' for base ");
+      display.println(sourceBase);
+      display.display();
+      delay(3000);
+      return;
+    }
+  }
+  
+  for (int i = 0; i < strlen(number); i++) {
+    char c = toupper(number[i]);
+    int digit = 0;
+    
+    if (c >= '0' && c <= '9') {
+      digit = c - '0';
+    } else if (c >= 'A' && c <= 'F') {
+      digit = c - 'A' + 10;
+    }
+    
+    decimalValue = decimalValue * sourceBase + digit;
+  }
+  
+  char result[MAX_NUMBER_LENGTH] = "";
+  
+  if (decimalValue == 0) {
+    strcpy(result, "0");
+  } else {
+    char temp[MAX_NUMBER_LENGTH] = "";
+    int idx = 0;
+    unsigned long val = decimalValue;
+    
+    while (val > 0) {
+      int remainder = val % targetBase;
+      temp[idx++] = baseCharsets[targetBase][remainder];
+      val /= targetBase;
+    }
+    temp[idx] = '\0';
+    
+    for (int i = 0; i < idx; i++) {
+      result[i] = temp[idx - 1 - i];
+    }
+    result[idx] = '\0';
+  }
+  
+  int scrollPos = 0;
+  int maxScroll = 0;
+  
+  if (strlen(result) > 20) {
+    maxScroll = strlen(result) - 20;
+  }
+  
+  while (true) {
+    display.clearDisplay();
+    display.setTextSize(1);
+    display.setCursor(0, 0);
+    display.print("Base ");
+    display.print(sourceBase);
+    display.print(" to Base ");
+    display.println(targetBase);
+    
+    display.setCursor(0, 20);
+    display.print("Input: ");
+    display.println(number);
+    
+    display.setCursor(0, 28);
+    display.print("Decimal: ");
+    
+    if (strlen(number) * 7 > 100) {
+      display.println(decimalValue);
+    } else {
+      display.println(decimalValue);
+    }
+    
+    display.setCursor(0, 42);
+    display.print("Result: ");
+    if (maxScroll > 0) {
+      String displayText = String(result).substring(scrollPos, min(scrollPos + 20, (int)strlen(result)));
+      display.println(displayText);
+    } else {
+      display.println(result);
+    }
+    
+    display.setCursor(0, SCREEN_HEIGHT - 10);
+    if (maxScroll > 0) {
+      display.print("1/2:Scroll 6:Back");
+    } else {
+      display.print("6:Back");
+    }
+    display.display();
+    
+    if (button_is_pressed(btn1)) {
+      if (scrollPos > 0) scrollPos--;
+      delay(100);
+    }
+    else if (button_is_pressed(btn2)) {
+      if (scrollPos < maxScroll) scrollPos++;
+      delay(100);
+    }
+    else if (button_is_pressed(btn6)) {
+      return;
+    }
+    delay(50);
   }
 }
