@@ -6,6 +6,10 @@ extern const byte buttonPin;
 extern int btn1, btn2, btn3, btn4, btn5, btn6;
 extern byte Func1, Func2, Func3;
 
+int *btnRefs[] = {&btn1, &btn2, &btn3, &btn4, &btn5, &btn6};
+const char *labels[] = {"Btn 1", "Btn 2", "Btn 3", "Btn 4", "Btn 5", "Btn 6"};
+
+
 void settings() {
   while (true) {
     display.clearDisplay();
@@ -27,9 +31,7 @@ void settings() {
 // Similar in purpose to buttonOffset, but specific for every button
 void tuneButtonVals() {
   // ensure no mis-measurements
-  while(a_button_is_pressed()) {}
-  int *btnRefs[] = {&btn1, &btn2, &btn3, &btn4, &btn5, &btn6};
-  const char *labels[] = {"Btn 1", "Btn 2", "Btn 3", "Btn 4", "Btn 5", "Btn 6"};
+  while (a_button_is_pressed()) {}
   const int sampleCount = 75;
   int samples[sampleCount];
 
@@ -37,13 +39,13 @@ void tuneButtonVals() {
     display.clearDisplay();
     display.setTextSize(2);
     display.setCursor(0, 30);
-    display.print("Press ");
+    display.print("Push ");
     display.print(labels[i]);
     display.display();
     while (!a_button_is_pressed()) delay(50);
 
     for (int s = 0; s < sampleCount; s++) {
-      samples[s] = analogRead(buttonPin);
+      samples[s] = analogRead(buttonPin); 
       delay(1); 
     }
     for (int x = 0; x < sampleCount - 1; x++) {
@@ -58,6 +60,7 @@ void tuneButtonVals() {
     *btnRefs[i] = samples[sampleCount/2];
 
     display.clearDisplay();
+    display.setCursor(0, 30);
     display.print(labels[i]);
     display.print(" Set");
     display.display();
@@ -158,26 +161,23 @@ void prefs() {
 }
 
 void debug() {
+  int posY;
   while (true) {
     display.clearDisplay();
     display.setTextSize(2);
     display.setCursor(0, 0);
-    display.print("Debug Info");
-    display.setTextSize(1);
-    display.setCursor(0, 20);
     display.print("ADC: ");
     display.print(analogRead(buttonPin));
-    display.setCursor(0, 30);
-    display.print("Func1: ");
-    display.print(digitalRead(Func1));
-    display.setCursor(0, 40);
-    display.print("Func2: ");
-    display.print(digitalRead(Func2));
-    display.setCursor(0, 50);
-    display.print("Func3: ");
-    display.print(digitalRead(Func3));
+    display.setTextSize(1);
+    for (int i = 0; i < 6;i++) {
+      posY = 18 + i*8;
+      display.setCursor(0, posY);
+      display.print(labels[i]);
+      display.print(": ");
+      display.print(*btnRefs[i]);
+    }
     display.display();
-    
+    // an alternative needs to be found here:
     if (button_is_pressed(btn6)) {
       return;
     }

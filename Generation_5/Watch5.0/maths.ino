@@ -459,23 +459,23 @@ double evaluateEquation(char* equation, double x) {
 }
 
 const char* baseCharsets[] = {
-  "",                                    // 0 (unused)
-  "",                                    // 1 (unused)
-  "01",                                  // 2 (binary)
+  "",                                    // 0 (Not used)
+  "",                                    // 1 (Not used)
+  "01",                                  // 2
   "012",                                 // 3
   "0123",                                // 4
   "01234",                               // 5
   "012345",                              // 6
   "0123456",                             // 7
-  "01234567",                            // 8 (octal)
+  "01234567",                            // 8
   "012345678",                           // 9
-  "0123456789",                          // 10 (decimal)
+  "0123456789",                          // 10
   "0123456789A",                         // 11
   "0123456789AB",                        // 12
   "0123456789ABC",                       // 13
   "0123456789ABCD",                      // 14
   "0123456789ABCDE",                     // 15
-  "0123456789ABCDEF"                     // 16 (hexadecimal)
+  "0123456789ABCDEF"                     // 16
 };
 
 void baseConverter(void) {
@@ -528,10 +528,10 @@ void baseConverter(void) {
     delay(50);
   }
 }
-
-void selectBases(int* sourceBase, int* targetBase) {
-  int selectedRole = 0;
-  int* selectedBase = sourceBase;
+void selectBases(int *sourceBase, int *targetBase) {
+  int selectedRole = 0;  // 0 = source, 1 = target
+  int tempSourceBase = *sourceBase;
+  int tempTargetBase = *targetBase;
   
   while (true) {
     display.clearDisplay();
@@ -542,37 +542,44 @@ void selectBases(int* sourceBase, int* targetBase) {
     } else {
       display.println("Select TARGET Base:");
     }
-    
-    for (int i = 2; i <= 16; i++) {
-      display.setCursor(0, 20 + (i - 2) * 6);
-      if (i == *selectedBase) {
-        display.print("> ");
-      } else {
-        display.print("  ");
-      }
-      display.print("Base ");
-      display.println(i);
+    display.setCursor(0, SCREEN_HEIGHT - 8);
+    display.print("1:- 2:+ 3:OK 6:Back");
+    display.setTextSize(2);
+    display.setCursor(10, 30);
+    display.print("Base ");
+    if (selectedRole == 0) {
+      display.print(tempSourceBase);
+    } else {
+      display.print(tempTargetBase);
     }
-    
-    display.setCursor(0, SCREEN_HEIGHT - 10);
-    display.print("1/2:Sel 3:OK 6:Back");
     display.display();
     
     if (button_is_pressed(btn1)) {
-      (*selectedBase)--;
-      if (*selectedBase < 2) *selectedBase = 16;
+      if (selectedRole == 0) {
+        tempSourceBase--;
+        if (tempSourceBase < 2) tempSourceBase = 2;
+      } else {
+        tempTargetBase--;
+        if (tempTargetBase < 2) tempTargetBase = 2;
+      }
       delay(100);
     }
     else if (button_is_pressed(btn2)) {
-      (*selectedBase)++;
-      if (*selectedBase > 16) *selectedBase = 2;
+      if (selectedRole == 0) {
+        tempSourceBase++;
+        if (tempSourceBase > 16) tempSourceBase = 16;
+      } else {
+        tempTargetBase++;
+        if (tempTargetBase > 16) tempTargetBase = 16;
+      }
       delay(100);
     }
     else if (button_is_pressed(btn3)) {
       if (selectedRole == 0) {
-        selectedRole = 1;
-        selectedBase = targetBase;
+        selectedRole = 1; 
       } else {
+        *sourceBase = tempSourceBase;
+        *targetBase = tempTargetBase;
         return;
       }
       delay(200);

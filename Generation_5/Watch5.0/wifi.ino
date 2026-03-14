@@ -7,6 +7,12 @@
 #define MAX_WIFI_SSID 32
 #define MAX_WIFI_PASS 64
 
+#define MAX_HEADLINES 20
+#define MAX_HEADLINE_TITLE 200
+#define MAX_HEADLINE_DESC 400
+#define MAX_HEADLINE_URL 256
+#define MAX_HEADLINE_SOURCE 50
+
 struct WiFiNetwork {
   char ssid[MAX_WIFI_SSID];
   char password[MAX_WIFI_PASS];
@@ -369,10 +375,13 @@ void wifiMenu(void) {
       display.print("Networks: ");
       display.print(wifiNetworkCount);
       display.println("/5");
-      display.setCursor(0, 35);
+      display.setCursor(0, 30);
       display.print("Current: ");
       display.println(wifiNetworks[currentWiFiIndex].ssid);
-      display.setCursor(0, 48);
+      display.setCursor(0, 40);
+      display.print(WiFi.RSSI());
+      display.print(" dBm");
+      display.setCursor(0, 50);
       if (wifiConnected) {
         display.print("Status: Connected");
       } else {

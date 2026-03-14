@@ -1,4 +1,4 @@
-// Watch 5.0: Initial 5th gen watch - ESP32C3 with SSD1306 OLED display
+  // Watch 5.0: Initial 5th gen watch - ESP32C3 with SSD1306 OLED display
 
 #include <Adafruit_GFX.h>
 #include <Adafruit_SSD1306.h>
@@ -16,12 +16,12 @@
 Adafruit_SSD1306 display(SCREEN_WIDTH, SCREEN_HEIGHT, &Wire, OLED_RESET);
 Preferences preferences;
 
-#define totalFunctions 11
+#define totalFunctions 12
 #define numSettings 5
 #define MAX_NOTES 5
 #define MAX_NOTE_LENGTH 64
 
-const char *Functions[] = {"Outputs", "Maths", "Random", "Score", "Games", "Metronome", "Notes", "WiFi", "Weather", "Time", "Settings"};
+const char *Functions[] = {"Outputs", "Maths", "Random", "Score", "Games", "Metronome", "Notes", "WiFi", "Weather", "Time", "News", "Settings"};
 const char *settingFuncs[] = {"Button Offset", "Func1 Settings", "Func2 Settings", "Func3 Settings", "Display Settings"};
 
 const byte buttonPin = 2;
@@ -210,6 +210,8 @@ void loop() {
         displayTime();
         break;
       case 11:
+        break;
+      case 12:
         settings();
         break;
     }
