@@ -376,12 +376,12 @@ void wifiMenu(void) {
       display.print(wifiNetworkCount);
       display.println("/5");
       display.setCursor(0, 30);
-      display.print("Current: ");
+      display.print("Cur: ");
       display.println(wifiNetworks[currentWiFiIndex].ssid);
-      display.setCursor(0, 40);
+      display.setCursor(0, 45);
       display.print(WiFi.RSSI());
       display.print(" dBm");
-      display.setCursor(0, 50);
+      display.setCursor(0, 56);
       if (wifiConnected) {
         display.print("Status: Connected");
       } else {
@@ -389,8 +389,6 @@ void wifiMenu(void) {
       }
     }
     
-    display.setCursor(0, 56);
-    display.print("3:Networks 6:Back");
     display.display();
     
     if (button_is_pressed(btn3)) {

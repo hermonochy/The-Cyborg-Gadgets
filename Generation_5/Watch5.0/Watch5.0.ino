@@ -143,6 +143,7 @@ void setup() {
   if (a_button_is_pressed()) tuneButtonVals();
 }
 
+
 void loop() {
   if (Serial.available()) {
     char cmd = Serial.peek();
@@ -160,11 +161,28 @@ void loop() {
   }
   
   display.clearDisplay();
+  
+  display.drawLine(0, 0, SCREEN_WIDTH, 0, SSD1306_WHITE);
+  
   display.setTextSize(2);
-  display.setCursor(0, 0);
-  display.print("Watch 5.0");
-  display.setCursor(0, 30);
+  display.setTextColor(SSD1306_WHITE);
+  int titleX = (SCREEN_WIDTH - (strlen(Functions[selectedFunction - 1]) * 12)) / 2;
+  display.setCursor(titleX, 20);
   display.print(Functions[selectedFunction - 1]);
+  
+  display.setTextSize(1);
+  display.setCursor(90, 5);
+  display.print(selectedFunction);
+  display.print("/");
+  display.print(totalFunctions);
+  
+  if (wifiConnected) {
+    display.setCursor(3, 5);
+    display.print("W");
+  }
+  
+  display.drawLine(0, SCREEN_HEIGHT - 1, SCREEN_WIDTH, SCREEN_HEIGHT - 1, SSD1306_WHITE);
+  
   display.display();
 
   delay(100);

@@ -48,6 +48,8 @@ void calculator() {
   bool showResult = false;
   double result = 0;
   bool error = false;
+  int selMinus;
+  int absSel;
   
   while (true) {
     display.clearDisplay();
@@ -90,7 +92,9 @@ void calculator() {
       delay(120);
     }
     else if (button_is_pressed(btn1)) {
-      selected = (selected-1) % activeSize;
+      selMinus = selected - 1;
+      absSel = abs(selMinus);
+      selected = absSel % activeSize;
       delay(120);
     }
     else if (button_is_pressed(btn3)) {
@@ -157,6 +161,9 @@ void unitConverter(void){
     float inputValue = 0;
     bool enteringValue = true;
     float result = 0;
+    int selMinus;
+    int absSel;
+
     while (true){
         display.clearDisplay();
         display.setTextSize(1);
@@ -175,7 +182,9 @@ void unitConverter(void){
             display.print(result, 4);
         display.display();
         if (button_is_pressed(btn1)){
-            selectedType = (selectedType - 1) % numTypes;
+            selMinus = selectedType - 1;
+            absSel = abs(selMinus);
+            selectedType = absSel % numTypes;
             enteringValue = true;
             delay(250);
         } 
@@ -230,6 +239,9 @@ void graphPlotter(void) {
   bool onScreen1 = true;
   int selected = 0;
   
+  int selMinus;
+  int absSel;
+
   while (true) {
     display.clearDisplay();
     display.setTextSize(2);
@@ -269,7 +281,9 @@ void graphPlotter(void) {
       delay(120);
     }
     else if (button_is_pressed(btn1, false)) {
-      selected = (selected-1) % activeSize;
+      selMinus = selected - 1;
+      absSel = abs(selMinus);
+      selected = absSel % activeSize;
       delay(120);
     }
     else if (button_is_pressed(btn3)) {
@@ -519,7 +533,7 @@ void baseConverter(void) {
       delay(200);
     }
     else if (button_is_pressed(btn5)) {
-      inputNumberOnWatch(inputNumber, MAX_NUMBER_LENGTH, sourceBase);
+      inputNum(inputNumber, MAX_NUMBER_LENGTH, sourceBase);
       delay(200);
     }
     else if (button_is_pressed(btn6)) {
@@ -591,7 +605,7 @@ void selectBases(int *sourceBase, int *targetBase) {
   }
 }
 
-void inputNumberOnWatch(char* buffer, int maxLen, int base) {
+void inputNum(char* buffer, int maxLen, int base) {
   buffer[0] = '\0';
   int charIndex = 0;
   const char* charset = baseCharsets[base];

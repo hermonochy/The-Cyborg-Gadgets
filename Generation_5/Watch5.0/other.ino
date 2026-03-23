@@ -376,7 +376,6 @@ void notesFunction(void) {
         delay(200);
       }
       else if (button_is_pressed(btn6)) {
-        saveNotesToNVS();
         return;
       }
     } else {
@@ -396,7 +395,7 @@ void notesFunction(void) {
       display.setCursor(0, 40);
       display.print("1:Del 2:Add 3:Char");
       display.setCursor(0, 50);
-      display.print("4:Clr 5:Done 6:Back");
+      display.print("4:Clr 5:Save 6:Back");
       display.display();
       
       if (button_is_pressed(btn1, false)) {
@@ -432,10 +431,8 @@ void notesFunction(void) {
           display.setTextSize(2);
           display.print(charset[charIndex]);
           display.setTextSize(1);
-          display.setCursor(0, 30);
+          display.setCursor(0, 56);
           display.print("1:< 2:> 3:Select");
-          display.setCursor(0, 40);
-          display.print("6:Cancel");
           display.display();
           
           if (button_is_pressed(btn1)) {
@@ -474,7 +471,6 @@ void notesFunction(void) {
         delay(200);
       }
       else if (button_is_pressed(btn6)) {
-        saveNotesToNVS();
         viewingMode = true;
         delay(200);
       }
