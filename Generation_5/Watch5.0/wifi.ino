@@ -358,6 +358,179 @@ void deleteWiFiNetwork(int idx) {
   }
 }
 
+void scanWiFiNetworks() {
+  display.clearDisplay();
+  display.setTextSize(1);
+  display.setCursor(0, 0);
+  display.print("Scanning networks...");
+  display.display();
+  
+  int numNetworks = WiFi.scanNetworks();
+  
+  if (numNetworks == 0) {
+    display.clearDisplay();
+    display.setTextSize(1);
+    display.setCursor(0, 20);
+    display.print("No networks found");
+    display.display();
+    delay(2000);
+    return;
+  }
+  
+  int indices[numNetworks];
+  for (int i = 0; i < numNetworks; i++) {
+    indices[i] = i;
+  }
+  
+  for (int i = 0; i < numNetworks - 1; i++) {
+    for (int j = 0; j < numNetworks - i - 1; j++) {
+      if (WiFi.RSSI(indices[j]) < WiFi.RSSI(indices[j + 1])) {
+        int temp = indices[j];
+        indices[j] = indices[j + 1];
+        indices[j + 1] = temp;
+      }
+    }
+  }
+  
+  int selectedIdx = 0;
+  
+  while (true) {
+    display.clearDisplay();
+    display.setTextSize(2);
+    display.setCursor(0, 0);
+    display.print("Found: ");
+    display.println(numNetworks);
+
+    display.setTextSize(1);
+
+    int displayCount = min(5, numNetworks);
+    for (int i = 0; i < displayCount; i++) {
+      int idx = indices[i];
+      int rssi = WiFi.RSSI(idx);
+      
+      display.setCursor(0, 20 + i * 9);
+      if (i == selectedIdx) {
+        display.print("> ");
+      } else {
+        display.print("  ");
+      }
+      
+      String ssid = WiFi.SSID(idx);
+      if (ssid.length() > 12) {
+        ssid = ssid.substring(0, 12);
+      }
+      display.print(ssid);
+            
+      display.setCursor(110, 20 + i * 9);
+      display.print(rssi);
+    }
+    
+    display.display();
+    
+    if (button_is_pressed(btn1)) {
+      selectedIdx = (selectedIdx - 1 + min(5, numNetworks)) % min(5, numNetworks);
+      delay(150);
+    }
+    else if (button_is_pressed(btn2)) {
+      selectedIdx = (selectedIdx + 1) % min(5, numNetworks);
+      delay(150);
+    }
+    else if (button_is_pressed(btn3)) {
+      int idx = indices[selectedIdx];
+      String selectedSSID = WiFi.SSID(idx);
+      
+      display.clearDisplay();
+      display.setTextSize(1);
+      display.setCursor(0, 0);
+      display.print("SSID: ");
+      display.println(selectedSSID);
+      display.setCursor(0, 20);
+      display.println("Add to saved");
+      display.println("networks?");
+      display.setCursor(0, 45);
+      display.println("3:Yes 6:No");
+      display.display();
+      
+      while (true) {
+        if (button_is_pressed(btn3)) {
+          if (wifiNetworkCount < MAX_WIFI_NETWORKS) {
+            strncpy(wifiNetworks[wifiNetworkCount].ssid, selectedSSID.c_str(), MAX_WIFI_SSID - 1);
+            wifiNetworks[wifiNetworkCount].ssid[MAX_WIFI_SSID - 1] = '\0';
+            
+            char newPassword[MAX_WIFI_PASS] = "";
+            if (inputStringOnWatch("Password:", newPassword, MAX_WIFI_PASS)) {
+              strncpy(wifiNetworks[wifiNetworkCount].password, newPassword, MAX_WIFI_PASS - 1);
+              wifiNetworks[wifiNetworkCount].password[MAX_WIFI_PASS - 1] = '\0';
+              
+              wifiNetworkCount++;
+              saveWiFiNetworksToNVS();
+              
+              display.clearDisplay();
+              display.setTextSize(1);
+              display.setCursor(0, 20);
+              display.print("Network saved!");
+              display.display();
+              delay(1500);
+            }
+          }
+          return;
+        }
+        if (button_is_pressed(btn6)) {
+          return;
+        }
+        delay(50);
+      }
+    }
+    else if (button_is_pressed(btn6)) {
+      return;
+    }
+    
+    delay(50);
+  }
+}
+
+void disconnectWiFi() {
+  if (!wifiConnected) {
+    display.clearDisplay();
+    display.setTextSize(1);
+    display.setCursor(0, 20);
+    display.print("Not connected");
+    display.display();
+    delay(1500);
+    return;
+  }
+  
+  display.clearDisplay();
+  display.setTextSize(1);
+  display.setCursor(0, 0);
+  display.print("Disconnect?");
+  display.setCursor(0, 20);
+  display.print("SSID: ");
+  display.println(WiFi.SSID());
+  display.setCursor(0, 45);
+  display.println("3:Yes 6:Cancel");
+  display.display();
+  
+  while (true) {
+    if (button_is_pressed(btn3)) {
+      WiFi.disconnect(true);
+      wifiConnected = false;
+      
+      display.clearDisplay();
+      display.setTextSize(1);
+      display.setCursor(0, 20);
+      display.print("Disconnected!");
+      display.display();
+      delay(1500);
+      return;
+    }
+    if (button_is_pressed(btn6)) {
+      return;
+    }
+    delay(50);
+  }
+}
+
 void wifiMenu(void) {
   while (true) {
     display.clearDisplay();
@@ -367,10 +540,7 @@ void wifiMenu(void) {
     display.setCursor(0, 20);
     
     if (wifiNetworkCount == 0) {
-      display.println("No networks saved.");
-      display.setCursor(0, 35);
-      display.println("Button 3 to setup");
-      display.println("new network.");
+      display.println("No networks saved!");
     } else {
       display.print("Networks: ");
       display.print(wifiNetworkCount);
@@ -391,8 +561,16 @@ void wifiMenu(void) {
     
     display.display();
     
-    if (button_is_pressed(btn3)) {
+    if (button_is_pressed(btn4)) {
+      scanWiFiNetworks();
+      delay(200);
+    }
+    else if (button_is_pressed(btn3)) {
       wifiNetworkMenu();
+      delay(200);
+    }
+    else if (button_is_pressed(btn5)) {
+      disconnectWiFi();
       delay(200);
     }
     else if (button_is_pressed(btn6)) {
