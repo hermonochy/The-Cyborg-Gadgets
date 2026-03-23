@@ -21,7 +21,7 @@ Preferences preferences;
 #define MAX_NOTES 5
 #define MAX_NOTE_LENGTH 64
 
-const char *Functions[] = {"Outputs", "Maths", "Random", "Score", "Games", "Metronome", "Notes", "WiFi", "Weather", "Time", "News", "Settings"};
+const char *Functions[] = {"Outputs", "Maths", "Random", "Score", "Games", "Metronome", "Notes", "WiFi", "Weather", "Time", "Shell", "Settings"};
 const char *settingFuncs[] = {"Button Offset", "Func1 Settings", "Func2 Settings", "Func3 Settings", "Display Settings"};
 
 const byte buttonPin = 2;
@@ -228,6 +228,7 @@ void loop() {
         displayTime();
         break;
       case 11:
+        shell();
         break;
       case 12:
         settings();
