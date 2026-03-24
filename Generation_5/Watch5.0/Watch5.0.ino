@@ -16,12 +16,12 @@
 Adafruit_SSD1306 display(SCREEN_WIDTH, SCREEN_HEIGHT, &Wire, OLED_RESET);
 Preferences preferences;
 
-#define totalFunctions 12
+#define totalFunctions 13
 #define numSettings 5
 #define MAX_NOTES 5
 #define MAX_NOTE_LENGTH 64
 
-const char *Functions[] = {"Outputs", "Maths", "Random", "Score", "Games", "Metronome", "Notes", "WiFi", "Weather", "Time", "Shell", "Settings"};
+const char *Functions[] = {"Outputs", "Maths", "Random", "Score", "Games", "Metronome", "Notes", "WiFi", "Weather", "Time", "Shell","Calendar", "Settings"};
 const char *settingFuncs[] = {"Button Offset", "Func1 Settings", "Func2 Settings", "Func3 Settings", "Display Settings"};
 
 const byte buttonPin = 2;
@@ -112,30 +112,7 @@ void setup() {
   display.print("of");
   display.display();
   Serial.begin(115200);
-  delay(100);
-  Serial.println("\n\n========================================");
-  Serial.println("     Watch 5.0 - Serial Configuration");
-  Serial.println("========================================");
-  Serial.println("Press any key in Serial Monitor to enter menu...");
-  Serial.println("(You have 5 seconds)");
-  Serial.println("s/S = WiFi Menu | n/N = Notes Menu");
-  Serial.println("========================================\n");
-  
-  // Wait for serial input for 5 seconds
-  unsigned long startTime = millis();
-  bool enterSerialMenu = false;
-  while (millis() - startTime < 5000) {
-    if (Serial.available()) {
-      Serial.read();
-      enterSerialMenu = true;
-      break;
-    }
-    delay(10);
-  }
-  
-  if (enterSerialMenu) {
-    serialWiFiMenu();
-  }
+  delay(3000);
 
   initializeNotesNVS(); 
   loadWiFiNetworksFromNVS();
@@ -155,10 +132,15 @@ void loop() {
       Serial.read();
       serialNotesMenu();
     } 
+    else if (cmd == 'c' || cmd == 'C') {
+      Serial.read();
+      serialCalendarMenu();
+    } 
     else {
       Serial.read();
     }
   }
+  checkCalendarAlarms();
   
   display.clearDisplay();
   
@@ -231,6 +213,9 @@ void loop() {
         shell();
         break;
       case 12:
+        calendar();
+        break;
+      case 13 :
         settings();
         break;
     }

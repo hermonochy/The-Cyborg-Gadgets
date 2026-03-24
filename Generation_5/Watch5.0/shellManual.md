@@ -1,5 +1,3 @@
-***Warning: A large portion of this manual and the shell itself are AI written.***
-
 # Watch Shell Manual
 
 ## Overview

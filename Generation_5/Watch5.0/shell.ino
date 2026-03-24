@@ -122,7 +122,6 @@ void shell(void) {
     display.print("Command:");
     display.setCursor(0, 35);
     
-    // Display input with scrolling if too long
     int dispLen = strlen(inputBuffer);
     if (dispLen > 20) {
       display.print(&inputBuffer[dispLen - 20]);
@@ -289,7 +288,6 @@ void executeCommand(const char* command) {
     strncpy(args, command + spacePos + 1, MAX_COMMAND_LENGTH - 1);
   }
   
-  // GPIO Commands
   if (strcmp(cmd, "digitalWrite") == 0 || strcmp(cmd, "dw") == 0) {
     cmdDigitalWrite(args);
   }
@@ -305,7 +303,6 @@ void executeCommand(const char* command) {
   else if (strcmp(cmd, "pinMode") == 0 || strcmp(cmd, "pm") == 0) {
     cmdPinMode(args);
   }
-  // Variable Commands
   else if (strcmp(cmd, "var") == 0) {
     cmdVariable(args);
   }
@@ -324,7 +321,6 @@ void executeCommand(const char* command) {
   else if (strcmp(cmd, "clear") == 0) {
     clearVariables();
   }
-  // LED/Pattern Commands
   else if (strcmp(cmd, "blink") == 0) {
     cmdBlink(args);
   }
@@ -334,21 +330,18 @@ void executeCommand(const char* command) {
   else if (strcmp(cmd, "pulse") == 0) {
     cmdPulse(args);
   }
-  // Time Commands
   else if (strcmp(cmd, "delay") == 0) {
     cmdDelay(args);
   }
   else if (strcmp(cmd, "millis") == 0) {
     cmdMillis(args);
   }
-  // Math Commands
   else if (strcmp(cmd, "calc") == 0) {
     cmdCalc(args);
   }
   else if (strcmp(cmd, "random") == 0) {
     cmdRandomNum(args);
   }
-  // Display Commands
   else if (strcmp(cmd, "print") == 0) {
     cmdPrint(args);
   }
@@ -357,25 +350,21 @@ void executeCommand(const char* command) {
     display.display();
     delay(500);
   }
-  // Memory Commands
   else if (strcmp(cmd, "save") == 0) {
     cmdSave(args);
   }
   else if (strcmp(cmd, "load") == 0) {
     cmdLoad(args);
   }
-  // Loop Commands
   else if (strcmp(cmd, "for") == 0) {
     cmdFor(args);
   }
   else if (strcmp(cmd, "while") == 0) {
     cmdWhile(args);
   }
-  // Conditional
   else if (strcmp(cmd, "if") == 0) {
     cmdIf(args);
   }
-  // Help
   else if (strcmp(cmd, "help") == 0) {
     showHelp();
   }
