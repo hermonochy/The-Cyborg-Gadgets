@@ -112,14 +112,19 @@ void setup() {
   display.print("of");
   display.display();
   Serial.begin(115200);
-  delay(3000);
 
   initializeNotesNVS(); 
   loadWiFiNetworksFromNVS();
-  // If any button is pressed, no matter the value, enter button tuning
-  if (a_button_is_pressed()) tuneButtonVals();
-}
 
+  // Attempt to connect to WiFi for time sync
+  timeSync();
+
+  // If any button is pressed, no matter the value, enter button tuning
+  if (a_button_is_pressed()) {
+    display.clearDisplay();
+    tuneButtonVals();
+  }
+}
 
 void loop() {
   if (Serial.available()) {

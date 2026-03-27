@@ -236,10 +236,10 @@ void snake(void) {
   while (!gameOver) {
     unsigned long now = millis();
     
-    if (button_is_pressed(btn2, false) && dirX == 0) { nextDirX = -4; nextDirY = 0; }
+    if (button_is_pressed(btn1, false) && dirX == 0) { nextDirX = -4; nextDirY = 0; }
     if (button_is_pressed(btn3, false) && dirX == 0) { nextDirX = 4; nextDirY = 0; }
-    if (button_is_pressed(btn1, false) && dirY == 0) { nextDirX = 0; nextDirY = -4; }
-    if (button_is_pressed(btn4, false) && dirY == 0) { nextDirX = 0; nextDirY = 4; }
+    if (button_is_pressed(btn2, false) && dirY == 0) { nextDirX = 0; nextDirY = -4; }
+    if (button_is_pressed(btn5, false) && dirY == 0) { nextDirX = 0; nextDirY = 4; }
     if (button_is_pressed(btn6)) return;
     
     if (now - lastMove > 150) {

@@ -821,7 +821,7 @@ void loop(){
 
   display.display();
 
-  delay(100);
+  delay(50);
 
   if (button_is_pressed(btn2)){
     selectedFunction++;

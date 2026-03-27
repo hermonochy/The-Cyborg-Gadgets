@@ -57,6 +57,27 @@ void loadWiFiNetworksFromNVS() {
   currentWiFiIndex = 0;
 }
 
+void timeSync() {
+  if (wifiNetworkCount == 0) {
+    delay(2000);
+    return;
+  }
+
+  WiFi.begin(wifiNetworks[currentWiFiIndex].ssid, wifiNetworks[currentWiFiIndex].password);
+  
+  int attempts = 0;
+  while (WiFi.status() != WL_CONNECTED && attempts < 15) {
+    delay(500);
+    attempts++;
+  }
+  
+  if (WiFi.status() == WL_CONNECTED) {
+    delay(2000 - attempts*100);
+    configTime(0, 0, "pool.ntp.org", "time.nist.gov");
+  } 
+  else delay(2000);
+}
+
 void connectWiFi() {
   if (wifiNetworkCount == 0) {
     display.clearDisplay();
