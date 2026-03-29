@@ -11,6 +11,7 @@ Third generation watches make a significant leap forward, being the first to inc
 - [Watch 3.0](./Watch3.0/Watch3.0.ino) was the first 3th generation watch to be built. It uses the inbuilt LED to flash sequences at the user.
 - [Watch 3.1](./Watch3.1/Watch3.1.ino) uses a neopixel for communication, flashing various colours and sequences for various meanings. 
 - [Watch 3.2](./Watch3.2/Watch3.2.ino) introducess a more advanced SSD1306 I2C OLED display, allowing for more advanced functions such as calculators or games.
+- [Watch 3.3](./Watch3.3/Watch3.3.ino) is an adapted version of [Watch 3.2](./Watch3.2/Watch3.2.ino), using a 64x32px display rather than a 128x64px one. It is also the smallest watch featuring a display.
 - [Watch 3.4](./Watch3.4/Watch3.4.ino) is an adapted version of [Watch 3.2](./Watch3.2/Watch3.2.ino), using a 128x32px display rather than a 128x64px one.
 - [Watch 3.5](./Watch3.5/Watch3.5.ino) is packed with sensors for data collection, however only has one output.
 - [Watch 3.6](./Watch3.6/Watch3.6.ino) is a computation‑focused watch that consists only of a Pro Mini, an OLED display, but has 6 push‑buttons. It provides on‑device tools such as a calculator, unit converter, random number generator, score tracker, etc, while omitting any additional sensors or output peripherals.
