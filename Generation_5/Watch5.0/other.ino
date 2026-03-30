@@ -1,12 +1,20 @@
 // Includes: Watch Funcs, Counter, Random Num, Metronome, Notes storage, Serial Notes Menu
 
+#define MAX_NOTES 5
+#define MAX_NOTE_LENGTH 64
+
 extern Adafruit_SSD1306 display;
 extern bool button_is_pressed(int btnVal, bool onlyOnce);
 extern int btn1, btn2, btn3, btn4, btn5, btn6;
 extern byte Func1, Func2, Func3;
-extern int bpm;
-extern Note notes[5];
 extern Preferences preferences;
+
+struct Note {
+  char text[MAX_NOTE_LENGTH];
+  bool used;
+};
+
+Note notes[MAX_NOTES];
 
 void activateFunc(byte func, int blinkTime = 500){
   bool blink = false;
@@ -184,7 +192,7 @@ void randomNum(void) {
   }
 }
 
-
+int bpm = 100;
 void metronome(void){
   const int MIN_BPM = 1;
   const unsigned long PULSE_MS = 10;

@@ -69,6 +69,7 @@ void tuneButtonVals() {
   }
 }
 
+int rotation = 0;
 void prefs() {
   int settingIndex = 0;
   bool displayOff = false;
@@ -177,7 +178,7 @@ void debug() {
       display.print(*btnRefs[i]);
     }
     display.display();
-    // an alternative needs to be found here:
+    // ToDo: an alternative needs to be found here:
     if (button_is_pressed(btn6)) {
       return;
     }

@@ -21,8 +21,11 @@ struct WiFiNetwork {
 extern Adafruit_SSD1306 display;
 extern bool button_is_pressed(int btnVal, bool onlyOnce);
 extern int btn1, btn2, btn3, btn4, btn5, btn6;
-extern bool wifiConnected;
 extern Preferences preferences;
+
+char ssid[32] = "";
+char password[64] = "";
+bool wifiConnected = false;
 
 WiFiNetwork wifiNetworks[MAX_WIFI_NETWORKS];
 int wifiNetworkCount = 0;

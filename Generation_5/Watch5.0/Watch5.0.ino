@@ -18,8 +18,6 @@ Preferences preferences;
 
 #define totalFunctions 13
 #define numSettings 5
-#define MAX_NOTES 5
-#define MAX_NOTE_LENGTH 64
 
 const char *Functions[] = {"Outputs", "Maths", "Random", "Score", "Games", "Metronome", "Notes", "WiFi", "Weather", "Time", "Shell","Calendar", "Settings"};
 const char *settingFuncs[] = {"Button Offset", "Func1 Settings", "Func2 Settings", "Func3 Settings", "Display Settings"};
@@ -45,19 +43,6 @@ byte Func2 = 0;
 byte Func3 = 1;
 
 int selectedFunction = 1;
-int rotation = 0;
-int bpm = 100;
-
-char ssid[32] = "";
-char password[64] = "";
-bool wifiConnected = false;
-
-struct Note {
-  char text[MAX_NOTE_LENGTH];
-  bool used;
-};
-
-Note notes[MAX_NOTES];
 
 bool button_is_pressed(int btnVal, bool onlyOnce = true) {
   int pinVal = analogRead(buttonPin) - buttonOffset;
