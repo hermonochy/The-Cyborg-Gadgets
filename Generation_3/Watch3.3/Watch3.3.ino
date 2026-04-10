@@ -1,4 +1,4 @@
-// Watch 3.2: OLED display watch - Optimized for 64x32 display
+// Watch 3.3: 64x32 OLED display watch
 #include <Adafruit_GFX.h>
 #include <Adafruit_SSD1306.h>
 #include <avr/sleep.h>
@@ -22,6 +22,8 @@ unsigned long lastActivityTime = 0;
 unsigned long inactivityPeriod = 60000;
 
 int selectedFunction = 1;
+
+const char *Functions[] = {"Outputs", "Maths", "Random", "Score", "Dino Game", "Metronome", "Settings", "Sleep"};
 
 const char *settingFuncs[] = {"Inactivity", "Func1", "Func2", "Func3", "Display"};
 
@@ -62,15 +64,15 @@ void setup(){
   display.clearDisplay();
   display.setTextSize(1);
   display.setTextColor(SSD1306_WHITE);
-  display.setCursor(0, 0);
-  display.print("Watch 2");
-  display.setCursor(0, 10);
+  display.setCursor(0, 5);
+  display.print("Watch 3");
+  display.setCursor(0, 20);
   display.print("Gen 3");
   display.display();
 
   delay(100);
 
-  for (int i = 0; i < 200; i++){
+  for (int i = 0; i < 100; i++){
     delay(20);
     digitalWrite(LED_BUILTIN, !digitalRead(LED_BUILTIN));
     
@@ -174,17 +176,16 @@ void activateFunc(const byte func, int blinkTime){
     display.clearDisplay();
     display.setTextSize(1);
     display.setCursor(0, 0);
-    display.println("1.QFlash");
+    display.println("1. Flash");
     display.setCursor(0, 8);
-    display.println("2.Always");
+    display.println("2. On");
     display.setCursor(0, 16);
-    display.println("3.Blink");
+    display.println("3. Blink");
     display.setCursor(0, 24);
-    display.println("4.Ret");
+    display.println("4. Return");
     
-    display.setCursor(35, 0);
-    display.setTextSize(2);
-    display.print(digitalRead(func) ? "On" : "Off");
+    display.setCursor(52, 0);
+    display.print(digitalRead(func));
     display.display();
     delay(250);
   }
@@ -196,11 +197,11 @@ void watchFuncs(void){
     display.clearDisplay();
     display.setTextSize(1);
     display.setCursor(0, 0);
-    display.println("1.White");
+    display.println("1. White");
     display.setCursor(0, 8);
-    display.println("2.Laser");
+    display.println("2. Laser");
     display.setCursor(0, 16);
-    display.println("3.UV");
+    display.println("3. UV");
     display.display();
 
     delay(100);
@@ -213,77 +214,109 @@ void watchFuncs(void){
 }
 
 void calculator(void){
-    const char buttons[] = "123456789.0+-*/";
-    const byte numButtons = 15;
+    const char buttons[] = "1234567890.+-*/^%";
+    const byte numButtons = 17;
     byte selected = 0;
-    char expr[16] = "";
+    char expr[20] = "";
     byte exprLen = 0;
     bool showResult = false;
     double result = 0;
     bool error = false;
+    byte displayMode = 0;
 
     while (true){
         display.clearDisplay();
         display.setTextSize(1);
 
-        display.setCursor(0, 0);
-        if (showResult) {
-            if (error) display.print("E");
-            else display.print(result, 2);
-        }
-
-        display.setCursor(0, 8);
-        display.print(expr);
-
-        display.setCursor(0, 16);
-        for (byte i = 0; i < numButtons; i++) {
-            if (i == selected) {
-                display.setTextColor(SSD1306_BLACK);
-                display.fillRect((i % 5) * 12, 16 + (i / 5) * 8, 11, 7, SSD1306_WHITE);
-                display.setCursor((i % 5) * 12 + 1, 17 + (i / 5) * 8);
-                display.print(buttons[i]);
-                display.setTextColor(SSD1306_WHITE);
-            } else {
-                display.setCursor((i % 5) * 12 + 1, 17 + (i / 5) * 8);
-                display.print(buttons[i]);
-            }
-        }
-
-        display.display();
-
-        if (button_is_pressed(btn2)) {
-            selected = (selected + 1) % numButtons;
-            delay(100);
-        }
-        else if (button_is_pressed(btn1, true)) {
+        if (displayMode == 0) {
+            display.setCursor(0, 0);
             if (showResult) {
-                expr[0] = '\0';
-                exprLen = 0;
-                showResult = false;
+                if (error) {
+                    display.print("Err");
+                } else {
+                    display.print(result);
+                }
+            } else {
+                display.print("Expr:");
+                display.print(expr);
             }
-            if (exprLen < 15) {
-                expr[exprLen++] = buttons[selected];
-                expr[exprLen] = '\0';
+            
+            display.display();
+
+            if (button_is_pressed(btn1, true)) {
+                displayMode = 1;
+                delay(100);
             }
-            delay(150);
+            else if (button_is_pressed(btn2, true)) {
+              expr[exprLen-1] = '\0';
+              exprLen = strlen(expr);
+              showResult = false;
+              showResult = false;
+
+                delay(100);
+            }
+            else if (button_is_pressed(btn3, true)) {
+                if (exprLen > 0) {
+                    error = false;
+                    result = evaluateExpression(expr, error);
+                    showResult = true;
+                }
+                delay(100);
+            }
+            else if (button_is_pressed(btn4, true)) {
+                return;
+            }
         }
-        else if (button_is_pressed(btn3)) {
-            if (exprLen > 0) {
-                expr[--exprLen] = '\0';
+        else if (displayMode == 1) {
+            byte pageStart = (selected / 3) * 3;
+            
+            display.setCursor(0, 0);
+            display.print(expr);
+            for (byte i = 0; i < 3 && pageStart + i < numButtons; i++) {
+                byte buttonIndex = pageStart + i;
+                byte xPos = i * 20 + 2;
+                
+                if (buttonIndex == selected) {
+                    display.setTextColor(SSD1306_BLACK);
+                    display.fillRect(xPos, 11, 19, 8, SSD1306_WHITE);
+                    display.setCursor(xPos + 6, 12);
+                    display.print(buttons[buttonIndex]);
+                    display.setTextColor(SSD1306_WHITE);
+                } else {
+                    display.setCursor(xPos + 6, 12);
+                    display.print(buttons[buttonIndex]);
+                }
             }
-            delay(100);
-        }
-        else if (button_is_pressed(btn4, true)) {
-            if (!showResult) {
-                error = false;
-                result = evaluateExpression(expr, error);
-                showResult = true;
-                delay(400);
-            } else return;
+            display.display();
+
+            if (button_is_pressed(btn1, true)) {
+                if (selected == 0) {
+                    selected = numButtons - 1;
+                } else {
+                    selected--;
+                }
+                delay(100);
+            }
+            else if (button_is_pressed(btn2, true)) {
+                selected = (selected + 1) % numButtons;
+                delay(100);
+            }
+            else if (button_is_pressed(btn3, true)) {
+                if (exprLen < 19) {
+                    expr[exprLen++] = buttons[selected];
+                    expr[exprLen] = '\0';
+                }
+                delay(100);
+            }
+            else if (button_is_pressed(btn4, true)) {
+                displayMode = 0;
+                delay(100);
+            }
         }
         delay(50);
     }
 }
+
 
 double parsePrimary(const char* &s, bool &error);
 
@@ -310,9 +343,10 @@ double parseNumber(const char* &s, bool &error){
 
 double parseFactor(const char* &s, bool &error){
     while (*s == ' ') s++;
-    if (*s == '+') { s++; return parseFactor(s, error); }
-    if (*s == '-') { s++; return -parseFactor(s, error); }
-    if (*s == '(') {
+    if (*s == '+'){ s++; return parseFactor(s, error); }
+    if (*s == '-'){ s++; return -parseFactor(s, error); }
+    if (*s == 'r'){ s++; double val = parseFactor(s, error); return val<0?(error=true,0):sqrt(val); }
+    if (*s == '('){
         s++;
         double val = parsePrimary(s, error);
         if (*s == ')') s++;
@@ -322,16 +356,24 @@ double parseFactor(const char* &s, bool &error){
     return parseNumber(s, error);
 }
 
-double parseTerm(const char* &s, bool &error){
+double parseExponent(const char* &s, bool &error){
     double left = parseFactor(s, error);
-    while (*s == '*' || *s == '/'){
-        char op = *s++;
+    while (*s == '^'){
+        s++;
         double right = parseFactor(s, error);
+        left = pow(left, right);
+    }
+    return left;
+}
+
+double parseTerm(const char* &s, bool &error){
+    double left = parseExponent(s, error);
+    while (*s == '*' || *s == '/' || *s == '%'){
+        char op = *s++;
+        double right = parseExponent(s, error);
         if (op == '*') left *= right;
-        else if (op == '/') { 
-            if (right == 0) { error = true; return 0; } 
-            left /= right; 
-        }
+        else if (op == '/'){ if (right == 0){ error = true; return 0; } left /= right; }
+        else if (op == '%'){ if (right == 0){ error = true; return 0; } left = fmod(left, right); }
     }
     return left;
 }
@@ -359,7 +401,9 @@ double evaluateExpression(const char* expr, bool &error){
 }
 
 void dinoRunner() {
-  byte dinoY = 20, velocity = 0, gravity = 1, jumpPower = 242;
+  byte dinoY = 20, velocity = 0;
+  int gravity = 1;
+  int jumpPower = 5;
   byte cactusX = 64, cactusY = 20;
   const byte cactusW = 2, cactusH = 8;
   bool jumping = false, gameOver = false;
@@ -371,11 +415,16 @@ void dinoRunner() {
   while (true) {
     if (button_is_pressed(btn4)) return;
 
-    if (button_is_pressed(btn3, true)) paused = !paused;
-    if (paused) { delay(10); continue; }
+    if (button_is_pressed(btn3, true)) {
+      paused = !paused;
+    }
+    if (paused) {
+      delay(10);
+      continue;
+    }
 
     if (!gameOver && !jumping && (button_is_pressed(btn1) || button_is_pressed(btn2))) {
-      velocity = jumpPower;
+      velocity = -jumpPower; 
       jumping = true;
     }
 
@@ -386,23 +435,24 @@ void dinoRunner() {
         if (dinoY >= 20) {
           dinoY = 20;
           jumping = false;
+          velocity = 0; 
         }
       }
       lastMove = millis();
     }
 
-    if (!gameOver && millis() - lastCactusMove > 30) {
-      cactusX -= 2 + (score / 15);
-      if (cactusX < 250) {
-        nextSpawnDist = random(30);
+    if (!gameOver && cactusX < 12 && cactusX + cactusW > 8 && dinoY + 8 > cactusY) {
+      gameOver = true;
+    }
+
+    if (!gameOver && millis() - lastCactusMove > 24) {
+      cactusX -= 2 + (score / 5);
+      if (cactusX < -cactusW) { 
+        nextSpawnDist = random(50);
         cactusX = 50 + nextSpawnDist;
         score++;
       }
       lastCactusMove = millis();
-    }
-
-    if (!gameOver && cactusX < 12 && cactusX + cactusW > 8 && dinoY + 8 > cactusY) {
-      gameOver = true;
     }
 
     display.clearDisplay();
@@ -420,15 +470,14 @@ void dinoRunner() {
 
     if (gameOver) {
       display.clearDisplay();
-      display.setTextSize(1);
-      display.setCursor(10, 10);
+      display.setCursor(0, 10);
       display.print("Game Over!");
       display.setCursor(5, 20);
       display.print("Score: ");
       display.print(score);
       display.display();
-      if (button_is_pressed(btn3)) {
-        dinoRunner();
+      
+      if (button_is_pressed(btn3, true)) {
         return; 
       }
       delay(100);
@@ -439,21 +488,22 @@ void dinoRunner() {
   }
 }
 
+int bpm = 100;
 void metronome(void){
   const int MIN_BPM = 1;
   const unsigned long PULSE_MS = 10;
   unsigned long lastBeat = millis();
   unsigned long ledOffAt = 0;
   volatile byte Func = Func1;
-  int bpm = 100;
   
   const unsigned long HOLD_INITIAL_MS = 400; 
   const unsigned long HOLD_MIN_MS = 1; 
-  const float HOLD_ACCEL_FACTOR = 0.75f;
+  const float HOLD_ACCEL_FACTOR = 0.75f;     
 
   unsigned long now = 0;
   unsigned long interval = 60000UL / (unsigned long)max(1, bpm);
 
+  
   bool btn1Held = false;
   bool btn2Held = false;
   unsigned long btn1NextRepeat = 0;
@@ -472,11 +522,10 @@ void metronome(void){
       display.clearDisplay();
       display.setTextSize(1);
       display.setCursor(0, 0);
-      display.print("Metro");
-      display.setCursor(0, 10);
-      display.setTextSize(2);
+      display.print("Metronome");
+      display.setCursor(0,16);
       display.print(bpm);
-      display.print("BPM");
+      display.print(" BPM");
       display.display();
       
       interval = 60000UL / (unsigned long)max(1, bpm);
@@ -495,29 +544,35 @@ void metronome(void){
     
     if (button_is_pressed(btn1)){
       if (!btn1Held){
+        
         btn1Held = true;
         btn1RepeatDelay = HOLD_INITIAL_MS;
         btn1NextRepeat = now + btn1RepeatDelay;
         if (bpm > MIN_BPM) bpm--;
       } else {
+        
         if (now >= btn1NextRepeat){
           if (bpm > MIN_BPM) bpm--;
+          
           unsigned long newDelay = (unsigned long)max((float)HOLD_MIN_MS, btn1RepeatDelay * HOLD_ACCEL_FACTOR);
           btn1RepeatDelay = newDelay;
           btn1NextRepeat = now + btn1RepeatDelay;
         }
       }
     } else {
+      
       btn1Held = false;
     }
 
     if (button_is_pressed(btn2)){
       if (!btn2Held){
+        
         btn2Held = true;
         btn2RepeatDelay = HOLD_INITIAL_MS;
         btn2NextRepeat = now + btn2RepeatDelay;
         bpm++;
       } else {
+        
         if (now >= btn2NextRepeat){
           bpm++;
           unsigned long newDelay = (unsigned long)max((float)HOLD_MIN_MS, btn2RepeatDelay * HOLD_ACCEL_FACTOR);
@@ -526,6 +581,7 @@ void metronome(void){
         }
       }
     } else {
+      
       btn2Held = false;
     }
     if (button_is_pressed(btn4)){
@@ -553,14 +609,14 @@ void randomInt(){
       delay(100);
     } 
     else if (button_is_pressed(btn2)){
-      range = max(1, range - 10);
+      range = max(1, range - 1);
       delay(100);
     } 
     else if (button_is_pressed(btn3)){
       int randNumber = random(0, range + 1);
       display.clearDisplay();
       display.setTextSize(2);
-      display.setCursor(10, 8);
+      display.setCursor(0, 8);
       display.print(randNumber);
       display.display();
       delay(2000);
@@ -576,24 +632,18 @@ void counter(void){
   while (true){
     display.clearDisplay();
     display.setTextSize(1);
-    display.setCursor(0, 0);
-    display.print("P1");
-    display.setCursor(40, 0);
-    display.print("P2");
-
-    display.setTextSize(2);
-    display.setCursor(5, 10);
+    display.setCursor(0, 10);
     display.print(score1);
-    display.setCursor(40, 10);
+    display.print(" : ");
     display.print(score2);
     display.display();
 
     if (button_is_pressed(btn1)){
-      ++score1;
+      score1++;
       delay(150);
     }
     else if (button_is_pressed(btn2)){
-      ++score2;
+      score2++;
       delay(150);
     }
     else if (button_is_pressed(btn4)){
@@ -613,7 +663,6 @@ void settings() {
     display.setCursor(0, 0);
     display.print(settingFuncs[settingIndex]);
 
-    display.setTextSize(1);
     display.setCursor(0, 10);
 
     switch(settingIndex) {
@@ -632,10 +681,10 @@ void settings() {
         }
         break;
       case 1:
-        display.print("T:");
+        display.print("Blk:");
         display.print(blinkTime1);
         display.setCursor(0, 20);
-        display.print("P:");
+        display.print("Pin:");
         display.print(Func1);
         if(button_is_pressed(btn1)) {
           blinkTime1 += 50;
@@ -648,10 +697,10 @@ void settings() {
         }
         break;
       case 2:
-        display.print("T:");
+        display.print("Blk:");
         display.print(blinkTime2);
         display.setCursor(0, 20);
-        display.print("P:");
+        display.print("Pin:");
         display.print(Func2);
         if(button_is_pressed(btn1)) {
           blinkTime2 += 5;
@@ -664,10 +713,10 @@ void settings() {
         }
         break;
       case 3:
-        display.print("T:");
+        display.print("Blk:");
         display.print(blinkTime3);
         display.setCursor(0, 20);
-        display.print("P:");
+        display.print("Pin:");
         display.print(Func3);
         if(button_is_pressed(btn1)) {
           blinkTime3 += 5;
@@ -701,37 +750,22 @@ void settings() {
   }
 }
 
-void loop(){
+void loop() {
   display.clearDisplay();
   display.setTextSize(1);
-  display.setCursor(0, 0);
-  display.print("Menu ");
-  display.print(selectedFunction);
-  display.print("/");
-  display.print(totalFunctions);
-
-  display.setCursor(0, 8);
-  display.print("1.Out 5.Game");
-  display.setCursor(0, 16);
-  display.print("2.Math 6.Metro");
-  display.setCursor(0, 24);
-  display.print("3.Rnd 7.Prefs");
-
+  display.setCursor(0,10);
+  display.print(Functions[selectedFunction - 1]);
   display.display();
 
-  delay(50);
-
-  if (button_is_pressed(btn2)){
+  delay(150);
+  
+  if (button_is_pressed(btn2)) {
     selectedFunction++;
     if (selectedFunction > totalFunctions) selectedFunction = 1;
-    delay(100);
   } 
-  else if (button_is_pressed(btn1)){
+  else if (button_is_pressed(btn1)) {
     selectedFunction--;
-    if (selectedFunction < 1){
-      selectedFunction = totalFunctions;
-    }
-    delay(100);
+    if (selectedFunction < 1) selectedFunction = totalFunctions;
   } 
   else if (button_is_pressed(btn4, true)){
     switch (selectedFunction){
