@@ -1,4 +1,4 @@
-// Advanced Interactive Shell for Watch 5.0
+// Interactive Shell for Watch 5.0
 
 extern Adafruit_SSD1306 display;
 extern bool button_is_pressed(int btnVal, bool onlyOnce);
@@ -35,7 +35,7 @@ bool inputString(const char* label, char* buffer, int maxLen) {
   int cursorPos = 0;
   buffer[0] = '\0';
   
-  char charset[] = "abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789_+-*/ ";
+  char charset[] = "abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ_+-*/=0123456789 ";
   int charsetSize = strlen(charset);
   int charIndex = 0;
   
@@ -324,7 +324,7 @@ void executeCommand(const char* command) {
   else if (strcmp(cmd, "blink") == 0) {
     cmdBlink(args);
   }
-  else if (strcmp(cmd, "pattern") == 0) {
+  else if (strcmp(cmd, "ptn") == 0) {
     cmdPattern(args);
   }
   else if (strcmp(cmd, "pulse") == 0) {
@@ -365,11 +365,14 @@ void executeCommand(const char* command) {
   else if (strcmp(cmd, "if") == 0) {
     cmdIf(args);
   }
-  else if (strcmp(cmd, "help") == 0) {
-    showHelp();
+  else if (strcmp(cmd, "help") == 0 || strcmp(cmd, "h") == 0) {
+    showHelp1();
   }
-  else if (strcmp(cmd, "help2") == 0) {
+  else if (strcmp(cmd, "help2") == 0 || strcmp(cmd, "h2") == 0) {
     showHelp2();
+  }
+  else if (strcmp(cmd, "help3") == 0 || strcmp(cmd, "h3") == 0) {
+    showHelp3();
   }
   else {
     display.clearDisplay();
@@ -564,7 +567,7 @@ void cmdPattern(const char* args) {
     digitalWrite(pin, LOW);
     showSuccess("Pattern", strlen(sequence));
   } else {
-    showError("pattern pin seq [delay]");
+    showError("ptn pin seq [delay]");
   }
 }
 
@@ -692,6 +695,77 @@ void cmdLoad(const char* args) {
   }
 }
 
+bool evaluateCondition(const char* condition) {
+  char left[64] = "";
+  char right[64] = "";
+  char op[4] = "";
+  int opPos = -1;
+  
+  for (int i = 0; i < strlen(condition); i++) {
+    if (condition[i] == '<' || condition[i] == '>' || condition[i] == '=' || condition[i] == '!') {
+      opPos = i;
+      break;
+    }
+  }
+  
+  if (opPos == -1) {
+    showError("Invalid condition");
+    return false;
+  }
+  
+  int pos = 0;
+  for (int i = 0; i < opPos; i++) {
+    if (condition[i] != ' ') {
+      left[pos++] = condition[i];
+    }
+  }
+  left[pos] = '\0';
+  
+  pos = 0;
+  int i = opPos;
+  while (i < strlen(condition) && (condition[i] == '<' || condition[i] == '>' || condition[i] == '=' || condition[i] == '!')) {
+    op[pos++] = condition[i];
+    i++;
+  }
+  op[pos] = '\0';
+  
+  pos = 0;
+  while (i < strlen(condition) && condition[i] == ' ') {
+    i++;
+  }
+  while (i < strlen(condition)) {
+    if (condition[i] != ' ') {
+      right[pos++] = condition[i];
+    }
+    i++;
+  }
+  right[pos] = '\0';
+  
+  int leftVal = 0;
+  if (isalpha(left[0])) {
+    leftVal = getVariableValue(left);
+  } else {
+    leftVal = atoi(left);
+  }
+  
+  int rightVal = 0;
+  if (isalpha(right[0])) {
+    rightVal = getVariableValue(right);
+  } else {
+    rightVal = atoi(right);
+  }
+  
+  if (strcmp(op, "<") == 0) return leftVal < rightVal;
+  else if (strcmp(op, ">") == 0) return leftVal > rightVal;
+  else if (strcmp(op, "<=") == 0) return leftVal <= rightVal;
+  else if (strcmp(op, ">=") == 0) return leftVal >= rightVal;
+  else if (strcmp(op, "==") == 0) return leftVal == rightVal;
+  else if (strcmp(op, "!=") == 0) return leftVal != rightVal;
+  
+  showError("Unknown operator");
+  return false;
+}
+
 void cmdFor(const char* args) {
   char varName[32] = "";
   int start = 0, end = 0, step = 1;
@@ -719,11 +793,185 @@ void cmdFor(const char* args) {
 }
 
 void cmdWhile(const char* args) {
-  showError("while: Not implemented");
+  char condition[256] = "";
+  char command[256] = "";
+  
+  int spaceCount = 0;
+  int commandStart = -1;
+  
+  for (int i = 0; i < strlen(args); i++) {
+    if (args[i] == ' ') {
+      spaceCount++;
+      if (spaceCount >= 4) {
+        commandStart = i + 1;
+        break;
+      }
+    }
+  }
+  
+  if (commandStart == -1) {
+    showError("while cond cmd");
+    return;
+  }
+  
+  int pos = 0;
+  for (int i = 0; i < commandStart - 1; i++) {
+    if (args[i] == ' ' && pos > 0 && condition[pos-1] != ' ') {
+      condition[pos++] = ' ';
+    } else if (args[i] != ' ') {
+      condition[pos++] = args[i];
+    }
+  }
+  condition[pos] = '\0';
+  
+  strncpy(command, args + commandStart, 255);
+  command[255] = '\0';
+  
+  display.clearDisplay();
+  display.setTextSize(1);
+  display.setCursor(0, 0);
+  display.println("While Loop:");
+  display.setCursor(0, 15);
+  display.println(condition);
+  display.setCursor(0, 30);
+  display.println("Running...");
+  display.display();
+  delay(1000);
+  
+  int iterations = 0;
+  unsigned long startTime = millis();
+  const unsigned long MAX_RUNTIME = 60000; 
+  
+  while (evaluateCondition(condition)) {
+    executeCommand(command);
+    iterations++;
+    
+    if (millis() - startTime > MAX_RUNTIME) {
+      showError("Loop timeout!");
+      return;
+    }
+    
+    if (button_is_pressed(btn6)) {
+      display.clearDisplay();
+      display.setTextSize(1);
+      display.setCursor(0, 20);
+      display.println("Loop interrupted!");
+      display.display();
+      delay(1000);
+      return;
+    }
+    
+    delay(100);
+  }
+  
+  display.clearDisplay();
+  display.setTextSize(1);
+  display.setCursor(0, 0);
+  display.print("Loop done!");
+  display.setCursor(0, 20);
+  display.print("Iterations: ");
+  display.println(iterations);
+  display.display();
+  delay(1500);
 }
 
 void cmdIf(const char* args) {
-  showError("if: Not implemented");
+  char condition[256] = "";
+  char trueCommand[256] = "";
+  char falseCommand[256] = "";
+  
+  int elsePos = -1;
+  for (int i = 0; i < strlen(args) - 3; i++) {
+    if (strncmp(&args[i], " else ", 6) == 0) {
+      elsePos = i;
+      break;
+    }
+  }
+  
+  int spaceCount = 0;
+  int commandStart = -1;
+  
+  for (int i = 0; i < strlen(args); i++) {
+    if (args[i] == ' ') {
+      spaceCount++;
+      if (spaceCount == 3) {
+        commandStart = i + 1;
+        break;
+      }
+    }
+  }
+  
+  if (commandStart == -1) {
+    showError("if cond cmd");
+    return;
+  }
+  
+  int pos = 0;
+  for (int i = 0; i < commandStart - 1; i++) {
+    if (args[i] == ' ' && pos > 0 && condition[pos-1] != ' ') {
+      condition[pos++] = ' ';
+    } else if (args[i] != ' ') {
+      condition[pos++] = args[i];
+    }
+  }
+  condition[pos] = '\0';
+  
+  int cmdEnd = (elsePos == -1) ? strlen(args) : elsePos;
+  pos = 0;
+  for (int i = commandStart; i < cmdEnd; i++) {
+    if (args[i] != ' ' || (pos > 0 && trueCommand[pos-1] != ' ')) {
+      trueCommand[pos++] = args[i];
+    }
+  }
+  while (pos > 0 && trueCommand[pos-1] == ' ') {
+    pos--;
+  }
+  trueCommand[pos] = '\0';
+  
+  if (elsePos != -1) {
+    int falseStart = elsePos + 6;
+    pos = 0;
+    for (int i = falseStart; i < strlen(args); i++) {
+      falseCommand[pos++] = args[i];
+    }
+    falseCommand[pos] = '\0';
+  }
+  
+  bool conditionMet = evaluateCondition(condition);
+  
+  display.clearDisplay();
+  display.setTextSize(1);
+  display.setCursor(0, 0);
+  display.println("If condition:");
+  display.println(condition);
+  display.setCursor(0, 30);
+  display.print("Result: ");
+  display.println(conditionMet ? "TRUE" : "FALSE");
+  display.display();
+  delay(1000);
+  
+  if (conditionMet) {
+    if (strlen(trueCommand) > 0) {
+      executeCommand(trueCommand);
+    }
+  } else {
+    if (strlen(falseCommand) > 0) {
+      executeCommand(falseCommand);
+    }
+  }
+}
+
+void showConditionResult(const char* condition, bool result) {
+  display.clearDisplay();
+  display.setTextSize(1);
+  display.setCursor(0, 0);
+  display.println("Condition:");
+  display.println(condition);
+  display.setCursor(0, 35);
+  display.setTextSize(2);
+  display.print(result ? "TRUE" : "FALSE");
+  display.display();
+  delay(1500);
 }
 
 void showSuccess(const char* cmd, int val) {
@@ -807,16 +1055,18 @@ void clearVariables() {
   delay(1500);
 }
 
-void showHelp() {
+void showHelp1() {
   display.clearDisplay();
   display.setTextSize(1);
   display.setCursor(0, 0);
-  display.println("GPIO:");
   display.println("dw/dr pin [val]");
   display.println("aw/ar pin val");
   display.println("pm pin INPUT/OUTPUT");
-  display.setCursor(0, 50);
-  display.println("2:More 6:Back");
+  display.println("delay <ms>");
+  display.println("millis");
+  display.println("blink <pin> <cnt> <dly>");
+  display.println("ptn <pin> <seq> <dly>");
+  display.println("pm <pin> <mode>");
   display.display();
   
   while (true) {
@@ -824,8 +1074,12 @@ void showHelp() {
       showHelp2();
       return;
     }
-    if (button_is_pressed(btn6)) break;
-    delay(50);
+    else if (button_is_pressed(btn3)) {
+      showHelp3();
+      return;
+    }
+    else if (button_is_pressed(btn6)) break;
+    delay(100);
   }
 }
 
@@ -833,21 +1087,52 @@ void showHelp2() {
   display.clearDisplay();
   display.setTextSize(1);
   display.setCursor(0, 0);
-  display.println("VAR/MATH:");
-  display.println("var name val");
-  display.println("let v = expr");
-  display.println("calc expr");
-  display.println("inc/dec var");
-  display.setCursor(0, 50);
-  display.println("1:Back 6:Back");
+  display.println("var <name> <val>");
+  display.println("let <var> = <expr>");
+  display.println("calc <expr>");
+  display.println("inc/dec <var>");
+  display.println("vars (all vars)");
+  display.println("clear (all vars)");
+  display.println("save <key> (NVS)");
+  display.println("load <key> (NVS)");
   display.display();
   
   while (true) {
     if (button_is_pressed(btn1)) {
-      showHelp();
+      showHelp1();
+      return;
+    }
+    else if (button_is_pressed(btn3)) {
+      showHelp3();
       return;
     }
     if (button_is_pressed(btn6)) break;
-    delay(50);
+    delay(100);
+  }
+}
+
+void showHelp3() {
+  display.clearDisplay();
+  display.setTextSize(1);
+  display.setCursor(0, 20);
+  display.println("random <min> <max>");
+  display.println("for <v> <srt> <end> <stp>");
+  display.println("while <expr> <cmd>");
+  display.println("if <expr> <cmd>");
+  display.println("print <txt>");
+  display.println("cls (clear screen)");
+  display.display();
+  
+  while (true) {
+    if (button_is_pressed(btn2)) {
+      showHelp2();
+      return;
+    }
+    else if (button_is_pressed(btn1)) {
+      showHelp1();
+      return;
+    }
+    if (button_is_pressed(btn6)) break;
+    delay(100);
   }
 }
