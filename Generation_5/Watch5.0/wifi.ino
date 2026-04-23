@@ -21,11 +21,11 @@ struct WiFiNetwork {
 extern Adafruit_SSD1306 display;
 extern bool button_is_pressed(int btnVal, bool onlyOnce);
 extern int btn1, btn2, btn3, btn4, btn5, btn6;
+extern bool wifiConnected;
 extern Preferences preferences;
 
 char ssid[32] = "";
 char password[64] = "";
-bool wifiConnected = false;
 
 WiFiNetwork wifiNetworks[MAX_WIFI_NETWORKS];
 int wifiNetworkCount = 0;
@@ -65,21 +65,21 @@ void timeSync() {
     delay(2000);
     return;
   }
-
-  WiFi.begin(wifiNetworks[currentWiFiIndex].ssid, wifiNetworks[currentWiFiIndex].password);
-  
-  int attempts = 0;
-  while (WiFi.status() != WL_CONNECTED && attempts < 15) {
-    delay(500);
-    attempts++;
+  for (int wifiIndex=0; wifiIndex<=wifiNetworkCount; wifiIndex++){
+    if (WiFi.status() == WL_CONNECTED) {
+      configTime(0, 0, "pool.ntp.org", "time.nist.gov");
+      break;
+    }
+    WiFi.begin(wifiNetworks[wifiIndex].ssid, wifiNetworks[wifiIndex].password);
+    int attempts = 0;
+    while (WiFi.status() != WL_CONNECTED && attempts < 15) {
+      delay(500);
+      attempts++;
+    }
   }
-  
-  if (WiFi.status() == WL_CONNECTED) {
-    delay(2000 - attempts*100);
-    configTime(0, 0, "pool.ntp.org", "time.nist.gov");
-  } 
-  else delay(2000);
+  delay(2000);
 }
+
 
 void connectWiFi() {
   if (wifiNetworkCount == 0) {
@@ -879,9 +879,16 @@ void getWeather(void) {
     display.setTextSize(1);
     display.setCursor(0, 20);
     display.print("WiFi not connected");
+    display.setCursor(0, 40);
+    display.print("Connect?");
     display.display();
-    delay(2000);
-    return;
+    while(true){
+      if(button_is_pressed(btn3)) {
+        wifiNetworkMenu();
+        break;
+      }
+      else if (button_is_pressed(btn6)) return;
+    }
   }
   
   display.clearDisplay();
@@ -891,8 +898,7 @@ void getWeather(void) {
   display.display();
   
   HTTPClient http;
-  String url = "https://api.open-meteo.com/v1/forecast?latitude=51.754642&longitude=0.0&current=temperature_2m,weather_code,relative_humidity_2m,wind_speed_10m&timezone=auto";
-  
+  String url = "https://api.open-meteo.com/v1/forecast?latitude=51.752&longitude=-1.258&current=temperature_2m,weather_code,relative_humidity_2m,wind_speed_10m&timezone=auto";
   http.begin(url);
   int httpCode = http.GET();
   
@@ -922,8 +928,8 @@ void getWeather(void) {
     if (weatherCode == 0) weatherDesc = "Sunny";
     else if (weatherCode == 1) weatherDesc = "Clear";
     else if (weatherCode < 3) weatherDesc = "Cloudy";
-    else if (weatherCode < 50) weatherDesc = "Rainy";
-    else if (weatherCode < 60) weatherDesc = "Rain";
+    else if (weatherCode < 50) weatherDesc = "Drizzle";
+    else if (weatherCode < 60) weatherDesc = "Heavy Rain";
     else if (weatherCode < 80) weatherDesc = "Snow";
     else if (weatherCode < 100) weatherDesc = "Thunder";
     else weatherDesc = "Unknown";
@@ -965,8 +971,13 @@ void displayTime(void) {
     display.clearDisplay();
     display.setTextSize(1);
     display.setCursor(0, 0);
-    display.print("Current Time");
-    
+    display.print("Time");
+    // If the year is less than 2000, clearly the time is not correct, most likely because it is not synced.
+    if (timeinfo->tm_year + 1900 < 2000){
+      if (!wifiConnected) display.print(" (Not Synced!)");
+      // If WiFi is connected and the time is still impossible, something strange has happened.
+      else display.print("  Unknown Error!");
+    }
     display.setTextSize(2);
     display.setCursor(10, 20);
     display.printf("%02d:%02d:%02d", timeinfo->tm_hour, timeinfo->tm_min, timeinfo->tm_sec);

@@ -44,6 +44,8 @@ byte Func3 = 1;
 
 int selectedFunction = 1;
 
+bool wifiConnected = false;
+
 bool button_is_pressed(int btnVal, bool onlyOnce = true) {
   int pinVal = analogRead(buttonPin) - buttonOffset;
   int errorVal = pinVal - btnVal;
