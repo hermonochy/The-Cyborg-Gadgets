@@ -19,7 +19,7 @@ Preferences preferences;
 #define totalFunctions 13
 #define numSettings 5
 
-const char *Functions[] = {"Outputs", "Maths", "Random", "Score", "Games", "Metronome", "Notes", "WiFi", "Weather", "Time", "Shell","Calendar", "Settings"};
+const char *Functions[] = {"Outputs", "Maths", "Random", "Score", "Games", "Metronome", "Notes", "Calendar", "WiFi", "Weather", "Time", "Shell", "Settings"};
 const char *settingFuncs[] = {"Button Offset", "Func1 Settings", "Func2 Settings", "Func3 Settings", "Display Settings"};
 
 const byte buttonPin = 2;
@@ -105,10 +105,12 @@ void setup() {
 
   // Attempt to connect to WiFi for time sync
   timeSync();
+  delay(1000);
 
   // If any button is pressed, no matter the value, enter button tuning
   if (a_button_is_pressed()) {
     display.clearDisplay();
+    display.display();
     tuneButtonVals();
   }
 }
@@ -193,19 +195,19 @@ void loop() {
         notesFunction();
         break;
       case 8:
-        wifiMenu();
+        calendar();
         break;
       case 9:
-        getWeather();
+        wifiMenu();
         break;
       case 10:
-        displayTime();
+        getWeather();
         break;
       case 11:
-        shell();
+        displayTime();
         break;
       case 12:
-        calendar();
+        shell();
         break;
       case 13 :
         settings();

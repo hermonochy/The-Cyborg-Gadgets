@@ -1,4 +1,4 @@
-// Includes: WiFi connection, Weather data, Time display, Serial WiFi Menu, Multi-network support
+// Includes: WiFi connection, Weather data, Time display, Serial WiFi Menu, Multi-network support, Time Sync
 
 #include <HTTPClient.h>
 #include <ArduinoJson.h>
@@ -74,7 +74,7 @@ void timeSync() {
     }
     WiFi.begin(wifiNetworks[wifiIndex].ssid, wifiNetworks[wifiIndex].password);
     attempts = 0;
-    while (WiFi.status() != WL_CONNECTED && attempts < 10) {
+    while (WiFi.status() != WL_CONNECTED && attempts < 20) {
       delay(500);
       totAttempts++;
       attempts++;
@@ -82,11 +82,7 @@ void timeSync() {
       if (button_is_pressed(btn6)) return;
     }
   }
-  // max attempts = max wifi's * max attempts = 5*10 = 50
-  // 2001 - max attempts*K = 1 ms delay, so K = 40 
-  delay(2001-(totAttempts*40));
 }
-
 
 void connectWiFi() {
   if (wifiNetworkCount == 0) {
@@ -1209,7 +1205,9 @@ void displayTime(void) {
     
     display.display();
     
-    if (button_is_pressed(btn4)) {
+    if (button_is_pressed(btn1)) timeSync();
+
+    else if (button_is_pressed(btn4)) {
       timeSettingsMenu();
       timeOffset = getTimeOffset();
       use12Hour = get12HourMode();

@@ -192,76 +192,230 @@ void randomNum(void) {
   }
 }
 
-int bpm = 100;
-void metronome(void){
-  const int MIN_BPM = 1;
-  const unsigned long PULSE_MS = 10;
-  unsigned long lastBeat = millis();
-  unsigned long ledOffAt = 0;
-  volatile byte Func = Func1;
-  
-  const unsigned long HOLD_INITIAL_MS = 400; 
-  const unsigned long HOLD_MIN_MS = 1; 
-  const float HOLD_ACCEL_FACTOR = 0.75f;     
+// Professional Metronome Variables
+int metronome_bpm = 100;
+int metronome_time_sig = 0;  // 0=4/4, 1=3/4, 2=2/4
+byte metronome_subdivision = 0; // 0=quarters, 1=eighths, 2=triplets
+const int MIN_BPM = 30;
+const int MAX_BPM = 300;
+const int TEMPO_INCREMENT = 1;
+const char* TIME_SIGS[] = {"4/4", "3/4", "2/4"};
+const int TIME_SIG_BEATS[] = {4, 3, 2};
 
-  unsigned long now = 0;
-  unsigned long interval = 60000UL / (unsigned long)max(1, bpm);
+void metronome_display_main(int bpm, int time_sig, int beat, int total_beats) {
+  display.clearDisplay();
+  display.setTextSize(2);
+  display.setCursor(0, 0);
+  display.print(bpm);
+  display.print(" BPM");
   
+  display.setTextSize(1);
+  display.setCursor(90, 0);
+  display.print(TIME_SIGS[time_sig]);
+  
+  // Display beat indicator
+  display.setCursor(0, 20);
+  display.print("Beat: ");
+  display.print(beat + 1);
+  display.print("/");
+  display.print(total_beats);
+  
+  // Visual beat indicator with accent on downbeat
+  display.setCursor(0, 32);
+  for (int i = 0; i < total_beats; i++) {
+    if (i == beat) {
+      display.print(i == 0 ? "[*]" : "[ ]");
+    } else if (i == 0) {
+      display.print("[*]");
+    } else {
+      display.print("[ ]");
+    }
+  }
+  
+  display.setCursor(0, 46);
+  display.setTextSize(1);
+  display.print("1:< 2:> 3:Time 4:Sub");
+  display.setCursor(0, 56);
+  display.print("5:Tap 6:Exit");
+  
+  display.display();
+}
+
+void metronome_pulse_beat(int beat, int total_beats) {
+  const unsigned long PULSE_STRONG = 30;  // Downbeat pulse
+  const unsigned long PULSE_WEAK = 15;    // Regular beat pulse
+  
+  unsigned long pulse_duration = (beat == 0) ? PULSE_STRONG : PULSE_WEAK;
+  
+  digitalWrite(Func1, HIGH);
+  delay(pulse_duration);
+  digitalWrite(Func1, LOW);
+}
+
+void metronome_tap_tempo() {
+  static unsigned long lastTapTime = 0;
+  unsigned long currentTime = millis();
+  
+  if (lastTapTime == 0) {
+    lastTapTime = currentTime;
+    return;
+  }
+  
+  unsigned long tapInterval = currentTime - lastTapTime;
+  
+  // Ignore taps that are too fast or too slow (prevent anomalies)
+  if (tapInterval > 200 && tapInterval < 4000) {
+    int calculatedBpm = 60000 / tapInterval;
+    metronome_bpm = constrain(calculatedBpm, MIN_BPM, MAX_BPM);
+  }
+  
+  lastTapTime = currentTime;
+  
+  // Visual feedback
+  display.clearDisplay();
+  display.setTextSize(2);
+  display.setCursor(10, 25);
+  display.print("Tempo Set!");
+  display.setCursor(20, 45);
+  display.print(metronome_bpm);
+  display.print(" BPM");
+  display.display();
+  delay(800);
+}
+
+void metronome_time_signature_menu() {
+  while (true) {
+    display.clearDisplay();
+    display.setTextSize(1);
+    display.setCursor(0, 0);
+    display.print("Time Signature");
+    
+    display.setCursor(10, 20);
+    display.setTextSize(2);
+    for (int i = 0; i < 3; i++) {
+      if (i == metronome_time_sig) {
+        display.print(">");
+      } else {
+        display.print(" ");
+      }
+      display.println(TIME_SIGS[i]);
+    }
+    
+    display.setTextSize(1);
+    display.setCursor(0, 56);
+    display.print("1:< 2:> 3:OK 6:Back");
+    display.display();
+    
+    if (button_is_pressed(btn1)) {
+      metronome_time_sig = (metronome_time_sig - 1 + 3) % 3;
+      delay(200);
+    }
+    else if (button_is_pressed(btn2)) {
+      metronome_time_sig = (metronome_time_sig + 1) % 3;
+      delay(200);
+    }
+    else if (button_is_pressed(btn3)) {
+      return;
+    }
+    else if (button_is_pressed(btn6)) {
+      return;
+    }
+  }
+}
+
+void metronome_subdivision_menu() {
+  const char* SUBS[] = {"Quarters", "Eighths", "Triplets"};
+  
+  while (true) {
+    display.clearDisplay();
+    display.setTextSize(1);
+    display.setCursor(0, 0);
+    display.print("Subdivision");
+    
+    display.setCursor(10, 20);
+    display.setTextSize(1);
+    for (int i = 0; i < 3; i++) {
+      if (i == metronome_subdivision) {
+        display.print(">");
+      } else {
+        display.print(" ");
+      }
+      display.println(SUBS[i]);
+    }
+    
+    display.setCursor(0, 56);
+    display.print("1:< 2:> 3:OK 6:Back");
+    display.display();
+    
+    if (button_is_pressed(btn1)) {
+      metronome_subdivision = (metronome_subdivision - 1 + 3) % 3;
+      delay(200);
+    }
+    else if (button_is_pressed(btn2)) {
+      metronome_subdivision = (metronome_subdivision + 1) % 3;
+      delay(200);
+    }
+    else if (button_is_pressed(btn3)) {
+      return;
+    }
+    else if (button_is_pressed(btn6)) {
+      return;
+    }
+  }
+}
+
+void metronome(void) {
+  int total_beats = TIME_SIG_BEATS[metronome_time_sig];
+  int current_beat = 0;
+  
+  unsigned long lastBeatTime = millis();
+  unsigned long beatInterval = 60000UL / (unsigned long)max(1, metronome_bpm);
+  
+  // Button hold tracking for smooth tempo adjustment
   bool btn1Held = false;
   bool btn2Held = false;
   unsigned long btn1NextRepeat = 0;
   unsigned long btn2NextRepeat = 0;
+  const unsigned long HOLD_INITIAL_MS = 500;
+  const unsigned long HOLD_MIN_MS = 50;
+  const float HOLD_ACCEL_FACTOR = 0.85f;
   unsigned long btn1RepeatDelay = HOLD_INITIAL_MS;
   unsigned long btn2RepeatDelay = HOLD_INITIAL_MS;
   
-  display.clearDisplay();
-  display.setTextSize(2);
-  display.setCursor(0, 0);
-  display.print("Metronome");
-  display.setCursor(0,30);
-  display.print(bpm);
-  display.print("BPM");
-  display.display();
-  
-  digitalWrite(Func, LOW);
+  digitalWrite(Func1, LOW);
 
-  while (true){
-    now = millis();
-    static int lastShownBpm = -1;
-    if (bpm != lastShownBpm){
-      lastShownBpm = bpm;
-      display.clearDisplay();
-      display.setTextSize(2);
-      display.setCursor(0, 0);
-      display.print("Metronome");
-      display.setCursor(0,30);
-      display.print(bpm);
-      display.print("BPM");
-      display.display();
-      
-      interval = 60000UL / (unsigned long)max(1, bpm);
+  while (true) {
+    unsigned long now = millis();
+    
+    // Update display only when BPM or time signature changes
+    static int lastDisplayedBpm = -1;
+    static int lastDisplayedTimeSig = -1;
+    if (metronome_bpm != lastDisplayedBpm || metronome_time_sig != lastDisplayedTimeSig) {
+      lastDisplayedBpm = metronome_bpm;
+      lastDisplayedTimeSig = metronome_time_sig;
+      total_beats = TIME_SIG_BEATS[metronome_time_sig];
+      beatInterval = 60000UL / (unsigned long)max(1, metronome_bpm);
+      metronome_display_main(metronome_bpm, metronome_time_sig, current_beat, total_beats);
     }
     
-    if ((unsigned long)(now - lastBeat) >= interval){
-      digitalWrite(Func, HIGH);
-      ledOffAt = now + PULSE_MS;
-      lastBeat = now;
-    }
-
-    if (ledOffAt && now >= ledOffAt){
-      digitalWrite(Func, LOW);
-      ledOffAt = 0;
+    // Main metronome beat timing
+    if ((unsigned long)(now - lastBeatTime) >= beatInterval) {
+      metronome_pulse_beat(current_beat, total_beats);
+      current_beat = (current_beat + 1) % total_beats;
+      lastBeatTime = now;
+      metronome_display_main(metronome_bpm, metronome_time_sig, current_beat, total_beats);
     }
     
-    if (button_is_pressed(btn1, false)){
-      if (!btn1Held){
+    // Button 1: Decrease tempo
+    if (button_is_pressed(btn1, false)) {
+      if (!btn1Held) {
         btn1Held = true;
         btn1RepeatDelay = HOLD_INITIAL_MS;
         btn1NextRepeat = now + btn1RepeatDelay;
-        if (bpm > MIN_BPM) bpm--;
+        if (metronome_bpm > MIN_BPM) metronome_bpm -= TEMPO_INCREMENT;
       } else {
-        if (now >= btn1NextRepeat){
-          if (bpm > MIN_BPM) bpm--;
+        if (now >= btn1NextRepeat) {
+          if (metronome_bpm > MIN_BPM) metronome_bpm -= TEMPO_INCREMENT;
           unsigned long newDelay = (unsigned long)max((float)HOLD_MIN_MS, btn1RepeatDelay * HOLD_ACCEL_FACTOR);
           btn1RepeatDelay = newDelay;
           btn1NextRepeat = now + btn1RepeatDelay;
@@ -270,16 +424,17 @@ void metronome(void){
     } else {
       btn1Held = false;
     }
-
-    if (button_is_pressed(btn2, false)){
-      if (!btn2Held){
+    
+    // Button 2: Increase tempo
+    if (button_is_pressed(btn2, false)) {
+      if (!btn2Held) {
         btn2Held = true;
         btn2RepeatDelay = HOLD_INITIAL_MS;
         btn2NextRepeat = now + btn2RepeatDelay;
-        bpm++;
+        if (metronome_bpm < MAX_BPM) metronome_bpm += TEMPO_INCREMENT;
       } else {
-        if (now >= btn2NextRepeat){
-          bpm++;
+        if (now >= btn2NextRepeat) {
+          if (metronome_bpm < MAX_BPM) metronome_bpm += TEMPO_INCREMENT;
           unsigned long newDelay = (unsigned long)max((float)HOLD_MIN_MS, btn2RepeatDelay * HOLD_ACCEL_FACTOR);
           btn2RepeatDelay = newDelay;
           btn2NextRepeat = now + btn2RepeatDelay;
@@ -288,10 +443,31 @@ void metronome(void){
     } else {
       btn2Held = false;
     }
-    if (button_is_pressed(btn6)){
-      digitalWrite(Func, LOW);
+    
+    // Button 3: Time signature menu
+    if (button_is_pressed(btn3, true)) {
+      metronome_time_signature_menu();
+      delay(200);
+    }
+    
+    // Button 4: Subdivision menu
+    if (button_is_pressed(btn4, true)) {
+      metronome_subdivision_menu();
+      delay(200);
+    }
+    
+    // Button 5: Tap tempo
+    if (button_is_pressed(btn5, true)) {
+      metronome_tap_tempo();
+      delay(200);
+    }
+    
+    // Button 6: Exit metronome
+    if (button_is_pressed(btn6, true)) {
+      digitalWrite(Func1, LOW);
       return;
-    }  
+    }
+    
     yield();
   }
 }

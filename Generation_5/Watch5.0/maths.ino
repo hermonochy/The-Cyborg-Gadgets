@@ -14,31 +14,56 @@ extern int buttonOffset;
 
 #define MAX_NUMBER_LENGTH 64
 
+#define totalMathsFunctions 4
+
+const char *mathsFuncs[] = {"Calculator", "Unit Converter", "Base Converter", "Graph Plotter"};
+int selectedMathsFunction = 1;
 
 void maths(void) {
-  while (true) {
-    display.clearDisplay();
-    display.setTextSize(1);
-    display.setCursor(0, 20);
-    display.println("1. Calculator");
-    display.println("2. Unit Converter");
-    display.println("3. Graph Plotter");
-    display.println("4. Base Converter");
-    display.display();
-    delay(50);
-    
-    if (button_is_pressed(btn1)) calculator();
-    else if (button_is_pressed(btn2)) unitConverter();
-    else if (button_is_pressed(btn3)) graphPlotter();
-    else if (button_is_pressed(btn4)) baseConverter();
-    else if (button_is_pressed(btn6)) return;
+  display.clearDisplay();
+  display.setTextSize(1);
+  display.setCursor(0,20);
+  display.print(mathsFuncs[selectedMathsFunction - 1]);
+  
+  display.setCursor(10, 5);
+  display.print(selectedMathsFunction);
+  display.print("/");
+  display.print(totalMathsFunctions);
+  
+  display.display();
+
+  delay(100);
+  
+  if (button_is_pressed(btn2)) {
+    selectedMathsFunction++;
+    if (selectedMathsFunction > totalMathsFunctions) selectedMathsFunction = 1;
+  } 
+  else if (button_is_pressed(btn1)) {
+    selectedMathsFunction--;
+    if (selectedMathsFunction < 1) selectedMathsFunction = totalMathsFunctions;
+  } 
+  else if (button_is_pressed(btn6)) {
+    switch (selectedMathsFunction) {
+      case 1:
+        calculator();
+        break;
+      case 2:
+        unitConverter();
+        break;
+      case 3:
+        baseConverter();
+        break;
+      case 4:
+        graphPlotter();
+        break;
+    }
   }
 }
 
 void calculator() {
   const char* screen1[] = {"1","2","3","4","5","6","7","8","9","0",".","pi"};
   const int screen1_size = sizeof(screen1) / sizeof(screen1[0]);
-  const char* screen2[] = {"+","-","*","/","(",")","^","%","!","sin","cos","tan","asn","acs","atn"};
+  const char* screen2[] = {"+","-","*","/","(",")","^","%","!","sin","cos","tan","asin","acos","atan"};
   const int screen2_size = sizeof(screen2) / sizeof(screen2[0]);
   
   bool onScreen1 = true;
@@ -48,8 +73,6 @@ void calculator() {
   bool showResult = false;
   double result = 0;
   bool error = false;
-  int selMinus;
-  int absSel;
   
   while (true) {
     display.clearDisplay();
@@ -92,9 +115,9 @@ void calculator() {
       delay(120);
     }
     else if (button_is_pressed(btn1)) {
-      selMinus = selected - 1;
-      absSel = abs(selMinus);
-      selected = absSel % activeSize;
+      selected--;
+      if (selected<0) selected = activeSize;
+      selected = selected % activeSize;
       delay(120);
     }
     else if (button_is_pressed(btn3)) {
