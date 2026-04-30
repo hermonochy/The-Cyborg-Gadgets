@@ -81,14 +81,16 @@ void prefs() {
     display.setCursor(0,5);
     display.print(settingFuncs[settingIndex]);
 
-    display.setTextSize(2);
+    display.setTextSize(1);
     display.setCursor(0,24);
 
     switch(settingIndex) {
       case 0:
-        display.println(analogRead(buttonPin));
-        display.println(buttonOffset);
-        display.println(buttonValRange);
+        display.print(analogRead(buttonPin));
+        display.setCursor(0,36);
+        display.print(buttonOffset);
+        display.setCursor(0,48);
+        display.print(buttonValRange);
         if(button_is_pressed(btn2, false)) {
           buttonOffset++;
         }
@@ -104,23 +106,49 @@ void prefs() {
         else if(button_is_pressed(btn3)) buttonOffset = 0;
         break;
       case 1:
+        display.print("Blk 1: ");
+        display.print(blinkTime1);
+        display.print("us");
+        display.setCursor(0,40);
+        display.print("Func1: ");
         display.print(Func1);
         if(button_is_pressed(btn1)) {
+          blinkTime1 *= 2;
+          if(blinkTime1 > 5000000) blinkTime1 = 5000000;
+        }
+        if(button_is_pressed(btn2)) {
+          blinkTime1 /= 2;
+          if(blinkTime1 < 1) blinkTime1 = 1;
+        }
+        if(button_is_pressed(btn3)) {
           Func1--;
           if(Func1 < 0) Func1 = 10;
         }
-        if(button_is_pressed(btn2, true)) {
+        if(button_is_pressed(btn4, true)) {
           Func1++;
           if(Func1 > 10) Func1 = 0;
         }
         break;
       case 2:
-      display.print(Func2);
-      if(button_is_pressed(btn1)) {
+        display.print("Blk 2: ");
+        display.print(blinkTime2);
+        display.print("us");
+        display.setCursor(0,40);
+        display.print("Func2: ");
+        display.print(Func2);
+        if(button_is_pressed(btn1)) {
+          blinkTime2 *= 2;
+          if(blinkTime2 > 5000000) blinkTime2 = 5000000;
+        }
+        if(button_is_pressed(btn2)) {
+          blinkTime2 /= 2;
+          if(blinkTime2 < 1) blinkTime2 = 1;
+        }
+        if(button_is_pressed(btn3)) {
         Func2--;
         if(Func2 < 0) Func1 = 10;
       }
-      if(button_is_pressed(btn2, true)) {
+      if(button_is_pressed(btn4, true)) {
         Func2++;
         if(Func2 > 10) Func2 = 0;
       }
@@ -156,7 +184,7 @@ void prefs() {
         break;
     }
     display.display();
-    
+    delay(100);
     if(button_is_pressed(btn3, true)) {
       settingIndex = (settingIndex + 1) % numSettings;
     }

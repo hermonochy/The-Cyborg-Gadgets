@@ -7,6 +7,7 @@ extern Adafruit_SSD1306 display;
 extern bool button_is_pressed(int btnVal, bool onlyOnce);
 extern int btn1, btn2, btn3, btn4, btn5, btn6;
 extern byte Func1, Func2, Func3;
+extern int blinkTime1, blinkTime2, blinkTime3;
 extern Preferences preferences;
 
 struct Note {
@@ -27,7 +28,8 @@ void activateFunc(byte func, int blinkTime = 500){
     } 
     else if (blink){
       digitalWrite(func, !digitalRead(func));
-      delay(blinkTime);
+      if (blinkTime>5000) delay(round(blinkTime/1000));
+      else delayMicroseconds(blinkTime);
     } 
     else {
       if (button_is_pressed(btn1, false)) digitalWrite(func, HIGH);
@@ -77,9 +79,9 @@ void watchFuncs(void) {
     display.display();
     delay(50);
     
-    if (button_is_pressed(btn1)) activateFunc(Func1);
-    else if (button_is_pressed(btn2)) activateFunc(Func2);
-    else if (button_is_pressed(btn3)) activateFunc(Func3);
+    if (button_is_pressed(btn1)) activateFunc(Func1, blinkTime1);
+    else if (button_is_pressed(btn2)) activateFunc(Func2, blinkTime2);
+    else if (button_is_pressed(btn3)) activateFunc(Func3, blinkTime3);
     else if (button_is_pressed(btn6)) return;
   }
 }

@@ -42,11 +42,16 @@ byte Func1 = 3;
 byte Func2 = 0;
 byte Func3 = 1;
 
+// blink time in microseconds
+int blinkTime1 = 500000;
+int blinkTime2 = 100;
+int blinkTime3 = 10000;
+
 int selectedFunction = 1;
 
 bool wifiConnected = false;
 
-bool button_is_pressed(int btnVal, bool onlyOnce = true) {
+bool button_is_pressed(int btnVal, bool onlyOnce = false) {
   int pinVal = analogRead(buttonPin) - buttonOffset;
   int errorVal = pinVal - btnVal;
   int absErrorVal = abs(errorVal);
