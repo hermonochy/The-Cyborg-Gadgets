@@ -16,10 +16,10 @@
 Adafruit_SSD1306 display(SCREEN_WIDTH, SCREEN_HEIGHT, &Wire, OLED_RESET);
 Preferences preferences;
 
-#define totalFunctions 14
+#define totalFunctions 12
 #define numSettings 5
 
-const char *Functions[] = {"Outputs", "Maths", "Random", "Score", "Games", "Metronome", "Notes", "Calendar", "WiFi", "Weather", "Time", "Dictionary","Shell", "Settings"};
+const char *Functions[] = {"Outputs", "Maths", "Random", "Score", "Games", "Metronome", "Notes", "Calendar", "WiFi Menu", "WiFi Funcs","Shell", "Settings"};
 const char *settingFuncs[] = {"Button Offset", "Func1 Settings", "Func2 Settings", "Func3 Settings", "Display Settings"};
 
 const byte buttonPin = 2;
@@ -70,12 +70,36 @@ bool a_button_is_pressed(){
   return (analogRead(buttonPin) != 4095);
 }
 
+void saveBtnVals() {
+  preferences.begin("btns", false);
+  preferences.putInt("btn1", btn1);
+  preferences.putInt("btn2", btn2);
+  preferences.putInt("btn3", btn3);
+  preferences.putInt("btn4", btn4);
+  preferences.putInt("btn5", btn5);
+  preferences.putInt("btn6", btn6);
+  preferences.end();
+}
+
+void loadBtnVals(){
+  preferences.begin("btns", true);
+  btn1 = preferences.getInt("btn1", btn1);
+  btn2 = preferences.getInt("btn2", btn2);
+  btn3 = preferences.getInt("btn3", btn3);
+  btn4 = preferences.getInt("btn4", btn4);
+  btn5 = preferences.getInt("btn5", btn5);
+  btn6 = preferences.getInt("btn6", btn6);
+  preferences.end();
+}
+
 void setup() {
   pinMode(buttonPin, INPUT_PULLUP);
   pinMode(Func1, OUTPUT);
   pinMode(Func2, OUTPUT);
   pinMode(Func3, OUTPUT);
 
+  loadBtnVals();
+  
   randomSeed(analogRead(1));
 
   if (!display.begin(SSD1306_SWITCHCAPVCC, 0x3C)) {
@@ -105,8 +129,8 @@ void setup() {
 
   // Attempt to connect to WiFi for time sync
   timeSync();
+  // give user time to press a button, in case the wifi connects instantly
   delay(1000);
-
   // If any button is pressed, no matter the value, enter button tuning
   if (a_button_is_pressed()) {
     display.clearDisplay();
@@ -201,18 +225,12 @@ void loop() {
         wifiMenu();
         break;
       case 10:
-        getWeather();
+        wifiFuncs();
         break;
       case 11:
-        displayTime();
-        break;
-      case 12:
-        dictionary();
-        break;
-      case 13:
         shell();
         break;
-      case 14 :
+      case 12 :
         settings();
         break;
     }

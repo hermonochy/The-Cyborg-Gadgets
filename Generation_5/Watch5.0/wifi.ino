@@ -894,6 +894,25 @@ void serialWiFiMenu(void) {
   }
 }
 
+void wifiFuncs(){
+  while (!button_is_pressed(btn6)) {
+    display.clearDisplay();
+    display.setTextSize(1);
+    display.setCursor(0, 20);
+    display.print("1. Weather");
+    display.setCursor(0, 30);
+    display.print("2. Time");
+    display.setCursor(0, 40);
+    display.print("3. Dictionary");
+    display.display();
+    delay(50);
+    
+    if (button_is_pressed(btn1)) getWeather();
+    else if (button_is_pressed(btn2)) displayTime();
+    else if (button_is_pressed(btn3)) dictionary();
+  }
+}
+
 void getWeather(void) {
   if (!wifiConnected) {
     display.clearDisplay();

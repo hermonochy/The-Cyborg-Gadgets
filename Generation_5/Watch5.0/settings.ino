@@ -1,6 +1,7 @@
 // Includes: Settings, tuneButtonVals, Prefs, Debug
 
 extern Adafruit_SSD1306 display;
+extern void loadBtnVals();
 extern bool button_is_pressed(int btnVal, bool onlyOnce);
 extern const byte buttonPin;
 extern int btn1, btn2, btn3, btn4, btn5, btn6;
@@ -8,7 +9,6 @@ extern byte Func1, Func2, Func3;
 
 int *btnRefs[] = {&btn1, &btn2, &btn3, &btn4, &btn5, &btn6};
 const char *labels[] = {"Btn 1", "Btn 2", "Btn 3", "Btn 4", "Btn 5", "Btn 6"};
-
 
 void settings() {
   while (true) {
@@ -18,12 +18,14 @@ void settings() {
     display.println("1. Tune Btns");
     display.println("2. Preferences");
     display.println("3. Debug");
+    display.println("4. Save Btn Vals");
     display.display();
     delay(50);
     
     if (button_is_pressed(btn1)) tuneButtonVals();
     else if (button_is_pressed(btn2)) prefs();
     else if (button_is_pressed(btn3)) debug();
+    else if (button_is_pressed(btn4)) saveBtnVals();
     else if (button_is_pressed(btn6)) return;
   }
 }
