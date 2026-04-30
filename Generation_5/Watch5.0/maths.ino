@@ -20,42 +20,44 @@ const char *mathsFuncs[] = {"Calculator", "Unit Converter", "Base Converter", "G
 int selectedMathsFunction = 1;
 
 void maths(void) {
-  display.clearDisplay();
-  display.setTextSize(1);
-  display.setCursor(0,20);
-  display.print(mathsFuncs[selectedMathsFunction - 1]);
-  
-  display.setCursor(10, 5);
-  display.print(selectedMathsFunction);
-  display.print("/");
-  display.print(totalMathsFunctions);
-  
-  display.display();
+  while(!button_is_pressed(btn6)){
+    display.clearDisplay();
+    display.setTextSize(1);
+    display.setCursor(0,30);
+    display.print(mathsFuncs[selectedMathsFunction - 1]);
+    
+    display.setCursor(10, 5);
+    display.print(selectedMathsFunction);
+    display.print("/");
+    display.print(totalMathsFunctions);
+    
+    display.display();
 
-  delay(100);
-  
-  if (button_is_pressed(btn2)) {
-    selectedMathsFunction++;
-    if (selectedMathsFunction > totalMathsFunctions) selectedMathsFunction = 1;
-  } 
-  else if (button_is_pressed(btn1)) {
-    selectedMathsFunction--;
-    if (selectedMathsFunction < 1) selectedMathsFunction = totalMathsFunctions;
-  } 
-  else if (button_is_pressed(btn6)) {
-    switch (selectedMathsFunction) {
-      case 1:
-        calculator();
-        break;
-      case 2:
-        unitConverter();
-        break;
-      case 3:
-        baseConverter();
-        break;
-      case 4:
-        graphPlotter();
-        break;
+    delay(100);
+    
+    if (button_is_pressed(btn2)) {
+      selectedMathsFunction++;
+      if (selectedMathsFunction > totalMathsFunctions) selectedMathsFunction = 1;
+    } 
+    else if (button_is_pressed(btn1)) {
+      selectedMathsFunction--;
+      if (selectedMathsFunction < 1) selectedMathsFunction = totalMathsFunctions;
+    } 
+    else if (button_is_pressed(btn3)) {
+      switch (selectedMathsFunction) {
+        case 1:
+          calculator();
+          break;
+        case 2:
+          unitConverter();
+          break;
+        case 3:
+          baseConverter();
+          break;
+        case 4:
+          graphPlotter();
+          break;
+      }
     }
   }
 }

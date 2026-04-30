@@ -16,10 +16,10 @@
 Adafruit_SSD1306 display(SCREEN_WIDTH, SCREEN_HEIGHT, &Wire, OLED_RESET);
 Preferences preferences;
 
-#define totalFunctions 13
+#define totalFunctions 14
 #define numSettings 5
 
-const char *Functions[] = {"Outputs", "Maths", "Random", "Score", "Games", "Metronome", "Notes", "Calendar", "WiFi", "Weather", "Time", "Shell", "Settings"};
+const char *Functions[] = {"Outputs", "Maths", "Random", "Score", "Games", "Metronome", "Notes", "Calendar", "WiFi", "Weather", "Time", "Dictionary","Shell", "Settings"};
 const char *settingFuncs[] = {"Button Offset", "Func1 Settings", "Func2 Settings", "Func3 Settings", "Display Settings"};
 
 const byte buttonPin = 2;
@@ -161,7 +161,7 @@ void loop() {
   
   display.display();
 
-  delay(100);
+  delay(150);
   
   if (button_is_pressed(btn2)) {
     selectedFunction++;
@@ -207,9 +207,12 @@ void loop() {
         displayTime();
         break;
       case 12:
+        dictionary();
+        break;
+      case 13:
         shell();
         break;
-      case 13 :
+      case 14 :
         settings();
         break;
     }

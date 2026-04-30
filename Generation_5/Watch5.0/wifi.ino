@@ -3,20 +3,20 @@
 #include <HTTPClient.h>
 #include <ArduinoJson.h>
 
+// WiFi Menu:
 #define MAX_WIFI_NETWORKS 5
 #define MAX_WIFI_SSID 32
 #define MAX_WIFI_PASS 64
 
+// Clock:
 #define TIME_SETTINGS "time_settings"
 #define DEFAULT_TIME_OFFSET 0
 #define DEFAULT_12_HOUR_MODE false
 #define DEFAULT_DST_OFFSET 0
 
-
-struct WiFiNetwork {
-  char ssid[MAX_WIFI_SSID];
-  char password[MAX_WIFI_PASS];
-};
+// Dictionary:
+#define MAX_WORD_LENGTH 32
+#define MAX_DEFINITIONS 5
 
 extern Adafruit_SSD1306 display;
 extern bool button_is_pressed(int btnVal, bool onlyOnce);
@@ -24,12 +24,30 @@ extern int btn1, btn2, btn3, btn4, btn5, btn6;
 extern bool wifiConnected;
 extern Preferences preferences;
 
+struct WiFiNetwork {
+  char ssid[MAX_WIFI_SSID];
+  char password[MAX_WIFI_PASS];
+};
+
+struct DictResult {
+  char word[MAX_WORD_LENGTH];
+  char phonetic[MAX_WORD_LENGTH];
+  char partOfSpeech[16];
+  char definition[256];
+  char example[256];
+  int definitionCount;
+  int currentDefinition;
+};
+
 char ssid[32] = "";
 char password[64] = "";
 
 WiFiNetwork wifiNetworks[MAX_WIFI_NETWORKS];
 int wifiNetworkCount = 0;
 int currentWiFiIndex = 0;
+
+DictResult dictResult;
+bool dictDataValid = false;
 
 void saveWiFiNetworksToNVS() {
   preferences.begin("wifi", false);
@@ -1219,5 +1237,255 @@ void displayTime(void) {
     }
     
     delay(1000);
+  }
+}
+
+bool fetchWordDefinition(const char* word) {
+  if (!wifiConnected) {
+    display.clearDisplay();
+    display.setTextSize(1);
+    display.setCursor(0, 20);
+    display.println("WiFi not connected");
+    display.display();
+    delay(2000);
+    return false;
+  }
+
+  HTTPClient http;
+  char url[256];
+  snprintf(url, sizeof(url), "https://api.dictionaryapi.dev/api/v2/entries/en/%s", word);
+  
+  http.begin(url);
+  int httpCode = http.GET();
+  
+  if (httpCode != 200) {
+    http.end();
+    return false;
+  }
+  
+  String payload = http.getString();
+  http.end();
+  
+  DynamicJsonDocument doc(4096);
+  DeserializationError error = deserializeJson(doc, payload);
+  
+  if (error) {
+    return false;
+  }
+  
+  strncpy(dictResult.word, doc[0]["word"].as<const char*>(), MAX_WORD_LENGTH - 1);
+  dictResult.word[MAX_WORD_LENGTH - 1] = '\0';
+  
+  if (doc[0]["phonetic"].is<const char*>()) {
+    strncpy(dictResult.phonetic, doc[0]["phonetic"].as<const char*>(), MAX_WORD_LENGTH - 1);
+  } else {
+    strcpy(dictResult.phonetic, "");
+  }
+  dictResult.phonetic[MAX_WORD_LENGTH - 1] = '\0';
+  
+  // Get first meaning
+  if (doc[0]["meanings"].size() > 0) {
+    JsonObject meaning = doc[0]["meanings"][0];
+    strncpy(dictResult.partOfSpeech, meaning["partOfSpeech"].as<const char*>(), 15);
+    dictResult.partOfSpeech[15] = '\0';
+    
+    if (meaning["definitions"].size() > 0) {
+      strncpy(dictResult.definition, meaning["definitions"][0]["definition"].as<const char*>(), 255);
+      dictResult.definition[255] = '\0';
+    }
+    
+    if (meaning["definitions"][0]["example"].is<const char*>()) {
+      strncpy(dictResult.example, meaning["definitions"][0]["example"].as<const char*>(), 255);
+      dictResult.example[255] = '\0';
+    } else {
+      strcpy(dictResult.example, "");
+    }
+  }
+  
+  dictResult.definitionCount = min((int)doc[0]["meanings"].size(), MAX_DEFINITIONS);
+  dictResult.currentDefinition = 0;
+  dictDataValid = true;
+  return true;
+}
+
+void dictCharacterInput(char* buffer, int maxLen) {
+  buffer[0] = '\0';
+  int charIndex = 0;
+  const char charset[] = "abcdefghijklmnopqrstuvwxyz";
+  int charsetSize = strlen(charset);
+  
+  while (true) {
+    display.clearDisplay();
+    display.setTextSize(1);
+    display.setCursor(0, 0);
+    display.println("Dictionary - Search");
+    display.drawLine(0, 10, SCREEN_WIDTH, 10, SSD1306_WHITE);
+    
+    // Display input word with scrolling
+    display.setCursor(0, 15);
+    int wordLen = strlen(buffer);
+    if (wordLen > 18) {
+      display.print(&buffer[wordLen - 18]);
+    } else {
+      display.print(buffer);
+    }
+    display.print("_");
+    
+    // Display current character in large text
+    display.setTextSize(2);
+    display.setCursor(35, 35);
+    display.print(charset[charIndex]);
+    
+    // Display controls
+    display.setTextSize(1);
+    display.setCursor(0, 55);
+    display.print("1:< 2:> 3:Add 4:Del");
+    display.setCursor(0, 62);
+    display.print("5:Clr 6:Search");
+    
+    display.display();
+    
+    if (button_is_pressed(btn1)) {
+      charIndex = (charIndex - 1 + charsetSize) % charsetSize;
+      delay(100);
+    }
+    else if (button_is_pressed(btn2)) {
+      charIndex = (charIndex + 1) % charsetSize;
+      delay(100);
+    }
+    else if (button_is_pressed(btn3)) {
+      if (strlen(buffer) < maxLen - 1) {
+        buffer[strlen(buffer)] = charset[charIndex];
+        buffer[strlen(buffer) + 1] = '\0';
+      }
+      delay(150);
+    }
+    else if (button_is_pressed(btn4)) {
+      if (strlen(buffer) > 0) {
+        buffer[strlen(buffer) - 1] = '\0';
+      }
+      delay(150);
+    }
+    else if (button_is_pressed(btn5)) {
+      buffer[0] = '\0';
+      delay(150);
+    }
+    else if (button_is_pressed(btn6, true)) {
+      if (strlen(buffer) > 0) {
+        display.clearDisplay();
+        display.setTextSize(1);
+        display.setCursor(0, 25);
+        display.println("Searching...");
+        display.display();
+        
+        if (fetchWordDefinition(buffer)) {
+          return;
+        } else {
+          display.clearDisplay();
+          display.setTextSize(1);
+          display.setCursor(0, 20);
+          display.println("Word not found!");
+          display.setCursor(0, 35);
+          display.println("Try another word.");
+          display.display();
+          delay(2000);
+        }
+      }
+      delay(200);
+    }
+    
+    delay(50);
+  }
+}
+
+void dictDisplayWord(int defIndex) {
+  if (defIndex < 0 || defIndex >= dictResult.definitionCount) return;
+  
+  display.clearDisplay();
+  display.setTextSize(2);
+  display.setCursor(0, 0);
+  display.println(dictResult.word);
+  
+  display.setTextSize(1);
+  display.setCursor(0, 18);
+  display.print("(");
+  display.print(defIndex + 1);
+  display.print("/");
+  display.print(dictResult.definitionCount);
+  display.println(")");
+  
+  display.print(dictResult.partOfSpeech);
+  
+  display.setCursor(0, 30);
+  display.println(dictResult.definition);
+  
+  display.setCursor(0, 56);
+  display.print("1:< 2:> 6:Back");
+  
+  display.display();
+}
+
+void dictDisplayResult() {
+  if (!dictDataValid) return;
+  
+  while (true) {
+    dictDisplayWord(dictResult.currentDefinition);
+    
+    if (button_is_pressed(btn1)) {
+      if (dictResult.currentDefinition > 0) {
+        dictResult.currentDefinition--;
+      }
+      delay(200);
+    }
+    else if (button_is_pressed(btn2)) {
+      if (dictResult.currentDefinition < dictResult.definitionCount - 1) {
+        dictResult.currentDefinition++;
+      }
+      delay(200);
+    }
+    else if (button_is_pressed(btn6, true)) {
+      dictDataValid = false;
+      return;
+    }
+    
+    delay(50);
+  }
+}
+
+void dictionary(void) {
+  while (true) {
+    display.clearDisplay();
+    display.setTextSize(1);
+    display.setCursor(0, 0);
+    display.println("Dictionary");
+    display.drawLine(0, 10, SCREEN_WIDTH, 10, SSD1306_WHITE);
+    
+    display.setCursor(0, 20);
+    if (wifiConnected) {
+      display.println("WiFi: Connected");
+    } else {
+      display.println("WiFi: Offline");
+    }
+    
+    display.setCursor(0, 35);
+    display.println("1. Search Word");
+    display.setCursor(0, 45);
+    display.println("6. Back");
+    
+    display.display();
+    
+    if (button_is_pressed(btn1)) {
+      char searchWord[MAX_WORD_LENGTH];
+      dictCharacterInput(searchWord, MAX_WORD_LENGTH);
+      if (dictDataValid) {
+        dictDisplayResult();
+      }
+      delay(200);
+    }
+    else if (button_is_pressed(btn6)) {
+      return;
+    }
+    
+    delay(50);
   }
 }

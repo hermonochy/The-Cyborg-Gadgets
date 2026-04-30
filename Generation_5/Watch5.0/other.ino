@@ -192,7 +192,6 @@ void randomNum(void) {
   }
 }
 
-// Professional Metronome Variables
 int metronome_bpm = 100;
 int metronome_time_sig = 0;  // 0=4/4, 1=3/4, 2=2/4
 byte metronome_subdivision = 0; // 0=quarters, 1=eighths, 2=triplets
@@ -213,14 +212,12 @@ void metronome_display_main(int bpm, int time_sig, int beat, int total_beats) {
   display.setCursor(90, 0);
   display.print(TIME_SIGS[time_sig]);
   
-  // Display beat indicator
   display.setCursor(0, 20);
   display.print("Beat: ");
   display.print(beat + 1);
   display.print("/");
   display.print(total_beats);
   
-  // Visual beat indicator with accent on downbeat
   display.setCursor(0, 32);
   for (int i = 0; i < total_beats; i++) {
     if (i == beat) {
@@ -242,8 +239,8 @@ void metronome_display_main(int bpm, int time_sig, int beat, int total_beats) {
 }
 
 void metronome_pulse_beat(int beat, int total_beats) {
-  const unsigned long PULSE_STRONG = 30;  // Downbeat pulse
-  const unsigned long PULSE_WEAK = 15;    // Regular beat pulse
+  const unsigned long PULSE_STRONG = 30;
+  const unsigned long PULSE_WEAK = 15;
   
   unsigned long pulse_duration = (beat == 0) ? PULSE_STRONG : PULSE_WEAK;
   
@@ -263,7 +260,6 @@ void metronome_tap_tempo() {
   
   unsigned long tapInterval = currentTime - lastTapTime;
   
-  // Ignore taps that are too fast or too slow (prevent anomalies)
   if (tapInterval > 200 && tapInterval < 4000) {
     int calculatedBpm = 60000 / tapInterval;
     metronome_bpm = constrain(calculatedBpm, MIN_BPM, MAX_BPM);
@@ -271,7 +267,6 @@ void metronome_tap_tempo() {
   
   lastTapTime = currentTime;
   
-  // Visual feedback
   display.clearDisplay();
   display.setTextSize(2);
   display.setCursor(10, 25);
@@ -371,7 +366,6 @@ void metronome(void) {
   unsigned long lastBeatTime = millis();
   unsigned long beatInterval = 60000UL / (unsigned long)max(1, metronome_bpm);
   
-  // Button hold tracking for smooth tempo adjustment
   bool btn1Held = false;
   bool btn2Held = false;
   unsigned long btn1NextRepeat = 0;
@@ -387,7 +381,6 @@ void metronome(void) {
   while (true) {
     unsigned long now = millis();
     
-    // Update display only when BPM or time signature changes
     static int lastDisplayedBpm = -1;
     static int lastDisplayedTimeSig = -1;
     if (metronome_bpm != lastDisplayedBpm || metronome_time_sig != lastDisplayedTimeSig) {
@@ -398,7 +391,6 @@ void metronome(void) {
       metronome_display_main(metronome_bpm, metronome_time_sig, current_beat, total_beats);
     }
     
-    // Main metronome beat timing
     if ((unsigned long)(now - lastBeatTime) >= beatInterval) {
       metronome_pulse_beat(current_beat, total_beats);
       current_beat = (current_beat + 1) % total_beats;
@@ -406,7 +398,6 @@ void metronome(void) {
       metronome_display_main(metronome_bpm, metronome_time_sig, current_beat, total_beats);
     }
     
-    // Button 1: Decrease tempo
     if (button_is_pressed(btn1, false)) {
       if (!btn1Held) {
         btn1Held = true;
@@ -425,7 +416,6 @@ void metronome(void) {
       btn1Held = false;
     }
     
-    // Button 2: Increase tempo
     if (button_is_pressed(btn2, false)) {
       if (!btn2Held) {
         btn2Held = true;
@@ -444,25 +434,21 @@ void metronome(void) {
       btn2Held = false;
     }
     
-    // Button 3: Time signature menu
     if (button_is_pressed(btn3, true)) {
       metronome_time_signature_menu();
       delay(200);
     }
     
-    // Button 4: Subdivision menu
     if (button_is_pressed(btn4, true)) {
       metronome_subdivision_menu();
       delay(200);
     }
     
-    // Button 5: Tap tempo
     if (button_is_pressed(btn5, true)) {
       metronome_tap_tempo();
       delay(200);
     }
     
-    // Button 6: Exit metronome
     if (button_is_pressed(btn6, true)) {
       digitalWrite(Func1, LOW);
       return;
