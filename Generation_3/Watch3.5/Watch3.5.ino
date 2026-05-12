@@ -23,6 +23,8 @@
 #define lightPin A2
 #define lightInterrupt 2
 
+#define distancePin 8
+
 #define LED A1
 
 Adafruit_SSD1306 display(SCREEN_WIDTH, SCREEN_HEIGHT, &Wire, OLED_RESET);
@@ -45,6 +47,8 @@ const char *settingFuncs[] = {"Display Settings", "LED Power"};
 
 volatile bool wakeup = false;
 int rotation = 0;
+
+int power = 0;
 
 const char *Functions[] = {"Torch", "Sensors", "Random", "Counter", "Settings", "Sleep"};
 const char *Sensors[] = {"Temp", "Light", "Sonar"};
@@ -182,6 +186,7 @@ void torch(){
 }
 
 void temp(){
+  int lightVal;
   float tempValC;
   float tempValK;
   float tempValF;
