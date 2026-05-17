@@ -2,6 +2,8 @@
 
 #include <Adafruit_GFX.h>
 #include <Adafruit_SSD1306.h>
+#include "esp_sleep.h"
+#include "driver/gpio.h"
 #include <Wire.h>
 #include <ctype.h>
 #include <math.h>
@@ -24,13 +26,20 @@ const char *settingFuncs[] = {"Button Offset", "Func1 Settings", "Func2 Settings
 
 const byte buttonPin = 2;
 
-// Button resistance values (Ordered by frequency used)
-int btn1 = 1433;  // 4.7K
-int btn2 = 812;   // 2.2K
-int btn3 = 202;   // 470
-int btn4 = 409;   // 1K
-int btn5 = 95;    // 220
-int btn6 = 2304;  // 10K
+// Default button resistance values (Ordered by frequency used)
+const int defBtn1 = 1433;  // 4.7K
+const int defBtn2 = 812;   // 2.2K
+const int defBtn3 = 202;   // 470
+const int defBtn4 = 409;   // 1K
+const int defBtn5 = 95;    // 220
+const int defBtn6 = 2304;  // 10K
+
+int btn1;
+int btn2;
+int btn3;
+int btn4;
+int btn5;
+int btn6;
 
 // As power reduces, btn values increase.
 // Offset is a temporary fix for this.
@@ -44,7 +53,7 @@ byte Func3 = 1;
 
 // blink time in microseconds
 int blinkTime1 = 500000;
-int blinkTime2 = 100;
+int blinkTime2 = 1;
 int blinkTime3 = 10000;
 
 int selectedFunction = 1;
@@ -74,6 +83,19 @@ bool button_is_pressed(int btnVal, bool onlyOnce = false) {
 bool a_button_is_pressed(){
   return (analogRead(buttonPin) != 4095);
 }
+/*
+void deepSleep(){
+  display.ssd1306_command(SSD1306_DISPLAYOFF);
+  esp_deep_sleep_start();
+  display.ssd1306_command(SSD1306_DISPLAYON);
+}
+
+void lightSleep(){
+  display.ssd1306_command(SSD1306_DISPLAYOFF);
+  esp_light_sleep_start();
+  display.ssd1306_command(SSD1306_DISPLAYON);
+}
+*/
 
 void saveBtnVals() {
   preferences.begin("btns", false);
@@ -88,12 +110,12 @@ void saveBtnVals() {
 
 void loadBtnVals(){
   preferences.begin("btns", true);
-  btn1 = preferences.getInt("btn1", btn1);
-  btn2 = preferences.getInt("btn2", btn2);
-  btn3 = preferences.getInt("btn3", btn3);
-  btn4 = preferences.getInt("btn4", btn4);
-  btn5 = preferences.getInt("btn5", btn5);
-  btn6 = preferences.getInt("btn6", btn6);
+  btn1 = preferences.getInt("btn1", defBtn1);
+  btn2 = preferences.getInt("btn2", defBtn2);
+  btn3 = preferences.getInt("btn3", defBtn3);
+  btn4 = preferences.getInt("btn4", defBtn4);
+  btn5 = preferences.getInt("btn5", defBtn5);
+  btn6 = preferences.getInt("btn6", defBtn6);
   preferences.end();
 }
 
@@ -102,6 +124,8 @@ void setup() {
   pinMode(Func1, OUTPUT);
   pinMode(Func2, OUTPUT);
   pinMode(Func3, OUTPUT);
+
+  //esp_sleep_enable_gpio_wakeup(2, FALLING);
 
   loadBtnVals();
   
@@ -145,6 +169,7 @@ void setup() {
 }
 
 void loop() {
+  
   if (Serial.available()) {
     char cmd = Serial.peek();
     if (cmd == 's' || cmd == 'S') {

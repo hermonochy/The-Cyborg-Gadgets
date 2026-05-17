@@ -20,7 +20,7 @@ const char *mathsFuncs[] = {"Calculator", "Unit Converter", "Base Converter", "G
 int selectedMathsFunction = 1;
 
 void maths(void) {
-  while(!button_is_pressed(btn6)){
+  while(true){
     display.clearDisplay();
     display.setTextSize(1);
     display.setCursor(0,30);
@@ -43,6 +43,7 @@ void maths(void) {
       selectedMathsFunction--;
       if (selectedMathsFunction < 1) selectedMathsFunction = totalMathsFunctions;
     } 
+    else if (button_is_pressed(btn6)) return;
     else if (button_is_pressed(btn3)) {
       switch (selectedMathsFunction) {
         case 1:

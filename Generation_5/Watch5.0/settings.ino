@@ -5,9 +5,12 @@ extern void loadBtnVals();
 extern bool button_is_pressed(int btnVal, bool onlyOnce);
 extern const byte buttonPin;
 extern int btn1, btn2, btn3, btn4, btn5, btn6;
+extern const int defBtn1, defBtn2,defBtn3,defBtn4,defBtn5,defBtn6;
 extern byte Func1, Func2, Func3;
 
 int *btnRefs[] = {&btn1, &btn2, &btn3, &btn4, &btn5, &btn6};
+const int *defBtnRefs[] = {&defBtn1, &defBtn2, &defBtn3, &defBtn4, &defBtn5, &defBtn6};
+
 const char *labels[] = {"Btn 1", "Btn 2", "Btn 3", "Btn 4", "Btn 5", "Btn 6"};
 
 void settings() {
@@ -18,14 +21,14 @@ void settings() {
     display.println("1. Tune Btns");
     display.println("2. Preferences");
     display.println("3. Debug");
-    display.println("4. Save Btn Vals");
+    display.println("4. Btn Settings");
     display.display();
     delay(50);
     
     if (button_is_pressed(btn1)) tuneButtonVals();
     else if (button_is_pressed(btn2)) prefs();
     else if (button_is_pressed(btn3)) debug();
-    else if (button_is_pressed(btn4)) saveBtnVals();
+    else if (button_is_pressed(btn4)) btnSettings();
     else if (button_is_pressed(btn6)) return;
   }
 }
@@ -206,12 +209,32 @@ void debug() {
       display.print(labels[i]);
       display.print(": ");
       display.print(*btnRefs[i]);
+      display.setCursor(90, posY);
+      display.print("(");
+      if (*defBtnRefs[i]-*btnRefs[i] > 0) display.print("+"); 
+      display.print(*defBtnRefs[i]-*btnRefs[i]);
+      display.print(")");
     }
     display.display();
-    // ToDo: an alternative needs to be found here:
+    // TODO: an alternative needs to be found here:
     if (button_is_pressed(btn6)) {
       return;
     }
     delay(100);
+  }
+}
+
+void btnSettings(){
+  display.println("1. Save Btn Vals");
+  display.println("2. Revert Btn Vals");
+  display.display();
+  while(true){
+    if (button_is_pressed(btn1)) saveBtnVals();
+    else if (button_is_pressed(btn2)) {
+      for (int i = 0; i < 6; i++){
+        *btnRefs[i] = *defBtnRefs[i];
+      }
+    }
+    else if (button_is_pressed(btn6)) return;
   }
 }
