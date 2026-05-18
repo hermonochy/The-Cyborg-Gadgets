@@ -3,11 +3,6 @@
 #include <HTTPClient.h>
 #include <ArduinoJson.h>
 
-// WiFi Menu:
-#define MAX_WIFI_NETWORKS 5
-#define MAX_WIFI_SSID 32
-#define MAX_WIFI_PASS 64
-
 // Clock:
 #define TIME_SETTINGS "time_settings"
 #define DEFAULT_TIME_OFFSET 0
@@ -24,11 +19,6 @@ extern int btn1, btn2, btn3, btn4, btn5, btn6;
 extern bool wifiConnected;
 extern Preferences preferences;
 
-struct WiFiNetwork {
-  char ssid[MAX_WIFI_SSID];
-  char password[MAX_WIFI_PASS];
-};
-
 struct DictResult {
   char word[MAX_WORD_LENGTH];
   char phonetic[MAX_WORD_LENGTH];
@@ -41,10 +31,6 @@ struct DictResult {
 
 char ssid[32] = "";
 char password[64] = "";
-
-WiFiNetwork wifiNetworks[MAX_WIFI_NETWORKS];
-int wifiNetworkCount = 0;
-int currentWiFiIndex = 0;
 
 DictResult dictResult;
 bool dictDataValid = false;

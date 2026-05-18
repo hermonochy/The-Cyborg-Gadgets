@@ -21,7 +21,12 @@ Preferences preferences;
 #define totalFunctions 12
 #define numSettings 5
 
-const char *Functions[] = {"Outputs", "Maths", "Random", "Score", "Games", "Metronome", "Notes", "Calendar", "WiFi Menu", "WiFi Funcs","Shell", "Settings"};
+#define MAX_WIFI_NETWORKS 5
+#define MAX_WIFI_SSID 32
+#define MAX_WIFI_PASS 64
+
+
+const char *Functions[] = {"Outputs", "Maths", "Random", "Score", "Games", "Metronome", "Notes", "Calendar", "WiFi Menu", "WiFi Tools","Shell", "Settings"};
 const char *settingFuncs[] = {"Button Offset", "Func1 Settings", "Func2 Settings", "Func3 Settings", "Display Settings"};
 
 const byte buttonPin = 2;
@@ -60,6 +65,18 @@ int selectedFunction = 1;
 
 bool wifiConnected = false;
 
+struct WiFiNetwork {
+  char ssid[MAX_WIFI_SSID];
+  char password[MAX_WIFI_PASS];
+};
+
+WiFiNetwork wifiNetworks[MAX_WIFI_NETWORKS];
+int wifiNetworkCount = 0;
+int currentWiFiIndex = 0;
+
+unsigned long lastNavTime = 0;
+const unsigned long NAV_DEBOUNCE = 120;
+
 bool button_is_pressed(int btnVal, bool onlyOnce = false) {
   int pinVal = analogRead(buttonPin) - buttonOffset;
   int errorVal = pinVal - btnVal;
@@ -83,19 +100,47 @@ bool button_is_pressed(int btnVal, bool onlyOnce = false) {
 bool a_button_is_pressed(){
   return (analogRead(buttonPin) != 4095);
 }
-/*
-void deepSleep(){
-  display.ssd1306_command(SSD1306_DISPLAYOFF);
-  esp_deep_sleep_start();
-  display.ssd1306_command(SSD1306_DISPLAYON);
-}
 
-void lightSleep(){
-  display.ssd1306_command(SSD1306_DISPLAYOFF);
-  esp_light_sleep_start();
-  display.ssd1306_command(SSD1306_DISPLAYON);
+void drawMainUI() {
+  display.clearDisplay();
+  
+  display.drawLine(0, 0, SCREEN_WIDTH, 0, SSD1306_WHITE);
+  display.setTextSize(1);
+  display.setTextColor(SSD1306_WHITE);
+  display.setCursor(3, 2);
+  display.print("Watch 5.0");
+  
+  if (wifiConnected) {
+    display.setCursor(80, 2);
+    display.print("W");
+  }
+  
+  display.setCursor(100, 2);
+  display.print("[");
+  if (selectedFunction < 10) display.print("0");
+  display.print(selectedFunction);
+  display.print("]");
+  
+  display.drawLine(0, 10, SCREEN_WIDTH, 10, SSD1306_WHITE);
+  
+  display.drawRect(5, 20, SCREEN_WIDTH - 10, 25, SSD1306_WHITE);
+  display.setTextSize(2);
+  int titleLen = strlen(Functions[selectedFunction - 1]);
+  int titleX = (SCREEN_WIDTH - (titleLen * 12)) / 2;
+  display.setCursor(titleX, 26);
+  display.print(Functions[selectedFunction - 1]);
+  
+  display.drawLine(0, 48, SCREEN_WIDTH, 48, SSD1306_WHITE);
+  display.setTextSize(1);
+  display.setCursor(40, 51);
+  display.print("< SEL >");
+  
+  int barWidth = (selectedFunction - 1) * SCREEN_WIDTH / totalFunctions;
+  display.drawRect(0, 60, SCREEN_WIDTH, 4, SSD1306_WHITE);
+  display.fillRect(0, 60, barWidth, 4, SSD1306_WHITE);
+  
+  display.display();
 }
-*/
 
 void saveBtnVals() {
   preferences.begin("btns", false);
@@ -119,13 +164,96 @@ void loadBtnVals(){
   preferences.end();
 }
 
+void timeSyncAndUI() {
+  if (wifiNetworkCount == 0) {
+    delay(2000);
+    return;
+  }
+
+  int totalSteps = 100;
+  int currentStep = 0;
+  unsigned long startTime = millis();
+  unsigned long timeout = 10000;
+
+  for (int wifiIndex = 0; wifiIndex < wifiNetworkCount; wifiIndex++) {
+    if (WiFi.status() == WL_CONNECTED) {
+      configTime(0, 0, "pool.ntp.org", "time.nist.gov");
+      break;
+    }
+
+    WiFi.begin(wifiNetworks[wifiIndex].ssid, wifiNetworks[wifiIndex].password);
+    
+    int attempts = 0;
+    while (WiFi.status() != WL_CONNECTED && attempts < 20) {
+      // Skip button allows early exit
+      if (button_is_pressed(btn6)) {
+        WiFi.disconnect();
+        return;
+      }
+
+      delay(500);
+      attempts++;
+      currentStep = min(totalSteps - 10, (int)((millis() - startTime) * totalSteps / timeout));
+
+      display.clearDisplay();
+      display.setTextSize(1);
+      display.setTextColor(SSD1306_WHITE);
+      
+      display.setCursor(35, 8);
+      display.print("WATCH 5.0");
+      
+      display.setCursor(30, 22);
+      display.print("INITIALIZING");
+      
+      int dotCount = (attempts / 2) % 4;
+      display.setCursor(100, 22);
+      for (int i = 0; i < dotCount; i++) display.print(".");
+      
+      int barWidth = (currentStep * (SCREEN_WIDTH - 10)) / totalSteps;
+      display.drawRect(5, 40, SCREEN_WIDTH - 10, 8, SSD1306_WHITE);
+      display.fillRect(6, 41, barWidth, 6, SSD1306_WHITE);
+      
+      display.setCursor(5, 52);
+      display.print(currentStep);
+      display.print("%");
+      
+      display.display();
+    }
+
+    if (WiFi.status() == WL_CONNECTED) {
+      wifiConnected = true;
+      configTime(0, 0, "pool.ntp.org", "time.nist.gov");
+      break;
+    }
+  }
+  // This needs to be programmed more cleanly:
+  display.clearDisplay();
+  display.setTextSize(1);
+  display.setTextColor(SSD1306_WHITE);
+  
+  display.setCursor(35, 8);
+  display.print("WATCH 5.0");
+  
+  display.setCursor(30, 22);
+  display.print("INITIALIZING");
+  display.print(".");
+  
+  int barWidth = SCREEN_WIDTH - 12;
+  display.drawRect(5, 40, SCREEN_WIDTH - 10, 8, SSD1306_WHITE);
+  display.fillRect(6, 41, barWidth, 6, SSD1306_WHITE);
+  
+  display.setCursor(5, 52);
+  display.print("100%");
+  
+  display.display();
+  delay(500);
+}
+
 void setup() {
   pinMode(buttonPin, INPUT_PULLUP);
   pinMode(Func1, OUTPUT);
   pinMode(Func2, OUTPUT);
   pinMode(Func3, OUTPUT);
-
-  //esp_sleep_enable_gpio_wakeup(2, FALLING);
 
   loadBtnVals();
   
@@ -138,29 +266,17 @@ void setup() {
     }
   }
 
-  display.clearDisplay();
-  display.setTextSize(2);
-  display.setTextColor(SSD1306_WHITE);
-  display.setCursor(7, 0);
-  display.print("Welcome to");
-  display.setCursor(20, 20);
-  display.print("Watch 0");
-  display.setCursor(30, 50);
-  display.print("Gen 5");
-  display.setTextSize(1);
-  display.setCursor(55, 40);
-  display.print("of");
-  display.display();
   Serial.begin(115200);
 
   initializeNotesNVS(); 
   loadWiFiNetworksFromNVS();
 
-  // Attempt to connect to WiFi for time sync
-  timeSync();
-  // give user time to press a button, in case the wifi connects instantly
+  // Sync time and display startup message
+  timeSyncAndUI();
+  
   delay(1000);
-  // If any button is pressed, no matter the value, enter button tuning
+  
+  // If any button is pressed, enter button tuning
   if (a_button_is_pressed()) {
     display.clearDisplay();
     display.display();
@@ -188,42 +304,21 @@ void loop() {
       Serial.read();
     }
   }
+  
   checkCalendarAlarms();
-  
-  display.clearDisplay();
-  
-  display.drawLine(0, 0, SCREEN_WIDTH, 0, SSD1306_WHITE);
-  
-  display.setTextSize(2);
-  display.setTextColor(SSD1306_WHITE);
-  int titleX = (SCREEN_WIDTH - (strlen(Functions[selectedFunction - 1]) * 12)) / 2;
-  display.setCursor(titleX, 20);
-  display.print(Functions[selectedFunction - 1]);
-  
-  display.setTextSize(1);
-  display.setCursor(90, 5);
-  display.print(selectedFunction);
-  display.print("/");
-  display.print(totalFunctions);
-  
-  if (wifiConnected) {
-    display.setCursor(3, 5);
-    display.print("W");
-  }
-  
-  display.drawLine(0, SCREEN_HEIGHT - 1, SCREEN_WIDTH, SCREEN_HEIGHT - 1, SSD1306_WHITE);
-  
-  display.display();
+  drawMainUI();
 
-  delay(150);
+  unsigned long now = millis();
   
-  if (button_is_pressed(btn2)) {
+  if (button_is_pressed(btn2) && (now - lastNavTime) > NAV_DEBOUNCE) {
     selectedFunction++;
     if (selectedFunction > totalFunctions) selectedFunction = 1;
+    lastNavTime = now;
   } 
-  else if (button_is_pressed(btn1)) {
+  else if (button_is_pressed(btn1) && (now - lastNavTime) > NAV_DEBOUNCE) {
     selectedFunction--;
     if (selectedFunction < 1) selectedFunction = totalFunctions;
+    lastNavTime = now;
   } 
   else if (button_is_pressed(btn6)) {
     switch (selectedFunction) {
