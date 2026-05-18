@@ -1,4 +1,4 @@
-  // Watch 5.0: Initial 5th gen watch - ESP32C3 with SSD1306 OLED display
+// Watch 5.0: Initial 5th gen watch - ESP32C3 with SSD1306 OLED display
 
 #include <Adafruit_GFX.h>
 #include <Adafruit_SSD1306.h>
@@ -199,10 +199,10 @@ void timeSyncAndUI() {
       display.setTextSize(1);
       display.setTextColor(SSD1306_WHITE);
       
-      display.setCursor(35, 8);
+      display.setCursor(35, 5);
       display.print("WATCH 5.0");
       
-      display.setCursor(30, 22);
+      display.setCursor(25, 22);
       display.print("INITIALIZING");
       
       int dotCount = (attempts / 2) % 4;
@@ -231,10 +231,10 @@ void timeSyncAndUI() {
   display.setTextSize(1);
   display.setTextColor(SSD1306_WHITE);
   
-  display.setCursor(35, 8);
+  display.setCursor(35, 5);
   display.print("WATCH 5.0");
   
-  display.setCursor(30, 22);
+  display.setCursor(25, 22);
   display.print("INITIALIZING");
   display.print(".");
   
@@ -246,6 +246,7 @@ void timeSyncAndUI() {
   display.print("100%");
   
   display.display();
+  WiFi.disconnect();
   delay(500);
 }
 
@@ -320,7 +321,8 @@ void loop() {
     if (selectedFunction < 1) selectedFunction = totalFunctions;
     lastNavTime = now;
   } 
-  else if (button_is_pressed(btn6)) {
+  else if (button_is_pressed(btn3)) {
+    delay(100);
     switch (selectedFunction) {
       case 1:
         watchFuncs();

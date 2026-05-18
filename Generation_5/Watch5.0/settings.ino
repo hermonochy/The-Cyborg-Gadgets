@@ -225,6 +225,8 @@ void debug() {
 }
 
 void btnSettings(){
+  display.clearDisplay();
+  display.setCursor(5, 20);
   display.println("1. Save Btn Vals");
   display.println("2. Revert Btn Vals");
   display.display();

@@ -7,9 +7,27 @@ extern int btn1, btn2, btn3, btn4, btn5, btn6;
 #define SCREEN_WIDTH 128
 #define SCREEN_HEIGHT 64
 
+#define MAX_COUNT_NUMS 6
+#define SOLUTION_DISPLAY_STEPS 4   // how many lines of steps per page
+
+struct CountdownStep {
+    int a, b;
+    char op; // '+','-','*','/','^','r'
+    int res;
+    CountdownStep(): a(0), b(0), op(0), res(0) {}
+    CountdownStep(int A, int B, char O, int R): a(A), b(B), op(O), res(R) {}
+};
+
+struct CountdownSolution {
+    int result;
+    int nsteps;
+    CountdownStep steps[64];
+};
+
+
 void games() {
   int selected = 0;
-  const char* gameList[] = {"Shooter", "Snake", "Flappy Bird", "Geometry Dash", "Pac-Man"};
+  const char* gameList[] = {"Arcade Games", "Maths Games"};
   
   while (true) {
     display.clearDisplay();
@@ -19,6 +37,57 @@ void games() {
     display.setTextSize(1);
     display.setCursor(2, 2);
     display.print("Games");
+    
+    display.setTextSize(1);
+    for (int i = 0; i < 2; i++) {
+      display.setCursor(15, 18 + (i * 9));
+      if (i == selected) {
+        display.setTextColor(SSD1306_BLACK);
+        display.fillRect(10, 17 + (i * 9), 108, 10, SSD1306_WHITE);
+        display.print(gameList[i]);
+        display.setTextColor(SSD1306_WHITE);
+      } else {
+        display.print(gameList[i]);
+      }
+    }
+    
+    display.display();
+    delay(50);
+    
+    if (button_is_pressed(btn2)) {
+      selected = (selected + 1) % 2;
+      delay(100);
+    }
+    else if (button_is_pressed(btn1)) {
+      selected = (selected - 1 + 2) % 2;
+      delay(100);
+    }
+    else if (button_is_pressed(btn3)) {
+      switch (selected) {
+        case 0:
+          arcadeGames();
+          break;
+        case 1:
+          mathsGames();
+          break;
+      }
+    }
+    else if (button_is_pressed(btn6, true)) return;
+  }
+}
+
+void arcadeGames() {
+  int selected = 0;
+  const char* gameList[] = {"Shooter", "Snake", "Flappy Bird", "Geometry Dash", "3D Flight"};
+  
+  while (true) {
+    display.clearDisplay();
+    display.drawLine(0, 0, SCREEN_WIDTH, 0, SSD1306_WHITE);
+    display.drawLine(0, 10, SCREEN_WIDTH, 10, SSD1306_WHITE);
+    
+    display.setTextSize(1);
+    display.setCursor(2, 2);
+    display.print("Arcade Games");
     
     display.setTextSize(1);
     for (int i = 0; i < 5; i++) {
@@ -59,13 +128,62 @@ void games() {
           geometryDash();
           break;
         case 4:
-          pacman();
+          flying3D();
           break;
       }
     }
-    else if (button_is_pressed(btn6)) return;
+    else if (button_is_pressed(btn6, true)) return;
   }
 }
+
+void mathsGames() {
+  int selected = 0;
+  const char* gameList[] = {"Countdown"};
+  
+  while (true) {
+    display.clearDisplay();
+    display.drawLine(0, 0, SCREEN_WIDTH, 0, SSD1306_WHITE);
+    display.drawLine(0, 10, SCREEN_WIDTH, 10, SSD1306_WHITE);
+    
+    display.setTextSize(1);
+    display.setCursor(2, 2);
+    display.print("Maths Games");
+    
+    display.setTextSize(1);
+    for (int i = 0; i < 1; i++) {
+      display.setCursor(15, 18 + (i * 9));
+      if (i == selected) {
+        display.setTextColor(SSD1306_BLACK);
+        display.fillRect(10, 17 + (i * 9), 108, 10, SSD1306_WHITE);
+        display.print(gameList[i]);
+        display.setTextColor(SSD1306_WHITE);
+      } else {
+        display.print(gameList[i]);
+      }
+    }
+    
+    display.display();
+    delay(50);
+    
+    if (button_is_pressed(btn2)) {
+      selected = (selected + 1) % 1;
+      delay(100);
+    }
+    else if (button_is_pressed(btn1)) {
+      selected = (selected - 1 + 1) % 1;
+      delay(100);
+    }
+    else if (button_is_pressed(btn3)) {
+      switch (selected) {
+        case 0:
+          countdown();
+          break;
+      }
+    }
+    else if (button_is_pressed(btn6, true)) return;
+  }
+}
+
 
 void shooter() {
   int playerX = 60;
@@ -305,8 +423,9 @@ void snake(void) {
   display.print("Score: ");
   display.print(score);
   display.display();
-  delay(3000);
+  while(!a_button_is_pressed()){}
 }
+
 void flappyBird(void) {
   int birdY = 30;
   int birdVelocity = 0;
@@ -607,314 +726,454 @@ void geometryDash(void) {
   }
 }
 
-void generateMaze(int maze[8][16]) {
-  for (int y = 0; y < 8; y++) {
-    for (int x = 0; x < 16; x++) {
-      maze[y][x] = 1;
-    }
-  }
-  
-  bool visited[8][16];
-  for (int y = 0; y < 8; y++) {
-    for (int x = 0; x < 16; x++) {
-      visited[y][x] = false;
-    }
-  }
-  
-  maze[1][1] = 0;
-  visited[1][1] = true;
-  
-  int stackX[128], stackY[128];
-  int stackPtr = 0;
-  stackX[stackPtr] = 1;
-  stackY[stackPtr] = 1;
-  stackPtr++;
-  
-  while (stackPtr > 0) {
-    int x = stackX[stackPtr - 1];
-    int y = stackY[stackPtr - 1];
-    
-    int dx[] = {0, 0, -2, 2};
-    int dy[] = {-2, 2, 0, 0};
-    int directions[4] = {0, 1, 2, 3};
-    
-    for (int i = 0; i < 4; i++) {
-      int r = random(0, 4);
-      int temp = directions[i];
-      directions[i] = directions[r];
-      directions[r] = temp;
-    }
-    
-    bool foundUnvisited = false;
-    for (int i = 0; i < 4; i++) {
-      int dir = directions[i];
-      int nx = x + dx[dir];
-      int ny = y + dy[dir];
-      
-      if (nx > 0 && nx < 15 && ny > 0 && ny < 7 && !visited[ny][nx]) {
-        visited[ny][nx] = true;
-        maze[ny][nx] = 0;
-        
-        maze[y + dy[dir] / 2][x + dx[dir] / 2] = 0;
-        
-        stackX[stackPtr] = nx;
-        stackY[stackPtr] = ny;
-        stackPtr++;
-        foundUnvisited = true;
-        break;
-      }
-    }
-    
-    if (!foundUnvisited) {
-      stackPtr--;
-    }
-  }
-  
-  for (int y = 1; y < 7; y++) {
-    for (int x = 1; x < 15; x++) {
-      if (maze[y][x] == 0) {
-        maze[y][x] = 2;
-      }
-    }
-  }
-  
-  for (int y = 1; y < 3; y++) {
-    for (int x = 1; x < 4; x++) {
-      if (maze[y][x] == 2) {
-        maze[y][x] = 3;
-        break;
-      }
-    }
-  }
-  
-  for (int y = 1; y < 3; y++) {
-    for (int x = 13; x > 11; x--) {
-      if (maze[y][x] == 2) {
-        maze[y][x] = 3;
-        break;
-      }
-    }
-  }
-  
-  for (int y = 6; y > 4; y--) {
-    for (int x = 1; x < 4; x++) {
-      if (maze[y][x] == 2) {
-        maze[y][x] = 3;
-        break;
-      }
-    }
-  }
-  
-  for (int y = 6; y > 4; y--) {
-    for (int x = 13; x > 11; x--) {
-      if (maze[y][x] == 2) {
-        maze[y][x] = 3;
-        break;
-      }
-    }
-  }
-}
-void pacman(void) {
-  int maze[8][16];
-  generateMaze(maze);
-  
-  int pacmanX = 1, pacmanY = 1;
-  int pacmanDir = 1;
+void flying3D() {
+  const int horizonY = 14;
+  const int horizonX = 64;
+  const int shipSize = 5;
+  const int minX = 8, maxX = 120, minY = 13, maxY = 60;
+  const int num_coins = 4;
+  float tunnel_length = 2.8f;
+
+  const int coinMinX = 10, coinMaxX = 118;
+  const int coinMinY = 14, coinMaxY = 60;
+
+  float shipX = 64;
+  float shipY = 50;
+
+  float shipSpeed = 0.045f;
   int score = 0;
-  int lives = 3;
-  bool gameOver = false;
-  bool powerMode = false;
-  unsigned long powerModeStart = 0;
-  const int powerModeDuration = 8000;
-  
-  struct Ghost {
-    int x;
-    int y;
-    int dirX;
-    int dirY;
-    int type;
+
+  struct Coin {
+    float z;
+    int x, y;
+    bool active;
   };
-  
-  Ghost ghosts[4];
-  ghosts[0] = {13, 3, -1, 0, 0};
-  ghosts[1] = {13, 4, -1, 0, 1};
-  ghosts[2] = {13, 5, -1, 0, 2};
-  ghosts[3] = {13, 6, -1, 0, 3};
-  
-  unsigned long lastGhostMove = 0;
-  unsigned long lastPacMove = 0;
-  int pelletsRemaining = 0;
-  
-  for (int y = 0; y < 8; y++) {
-    for (int x = 0; x < 16; x++) {
-      if (maze[y][x] == 2 || maze[y][x] == 3) pelletsRemaining++;
-    }
+
+  Coin coins[num_coins];
+  for (int i = 0; i < num_coins; ++i) {
+    coins[i].z = 1.1f + i * (tunnel_length / num_coins);
+    coins[i].x = random(coinMinX, coinMaxX);
+    coins[i].y = random(coinMinY, coinMaxY);
+    coins[i].active = true;
   }
-  
-  while (!gameOver && lives > 0 && pelletsRemaining > 0) {
-    unsigned long now = millis();
-    
-    if (button_is_pressed(btn1, false)) pacmanDir = 0;
-    if (button_is_pressed(btn3, false)) pacmanDir = 1;
-    if (button_is_pressed(btn5, false)) pacmanDir = 2;
-    if (button_is_pressed(btn2, false)) pacmanDir = 3;
+
+  while (true) {
+    // Controls
+    if (button_is_pressed(btn1, false) && shipX > minX)    shipX -= 2;
+    if (button_is_pressed(btn3, false) && shipX < maxX)    shipX += 2;
+    if (button_is_pressed(btn2, false) && shipY > minY)    shipY -= 2;
+    if (button_is_pressed(btn5, false) && shipY < maxY)    shipY += 2;
     if (button_is_pressed(btn6)) return;
-    
-    if (now - lastPacMove > 150) {
-      int nextX = pacmanX;
-      int nextY = pacmanY;
-      
-      if (pacmanDir == 0) nextX--;
-      if (pacmanDir == 1) nextX++;
-      if (pacmanDir == 2) nextY++;
-      if (pacmanDir == 3) nextY--;
-      
-      if (nextX >= 1 && nextX < 15 && nextY >= 1 && nextY < 7 && maze[nextY][nextX] != 1) {
-        pacmanX = nextX;
-        pacmanY = nextY;
+
+    for (int i = 0; i < num_coins; ++i) {
+      if (!coins[i].active) continue;
+      coins[i].z -= shipSpeed;
+      if (coins[i].z < 0.13f) {
+        coins[i].z = tunnel_length;
+        coins[i].x = random(coinMinX, coinMaxX);
+        coins[i].y = random(coinMinY, coinMaxY);
       }
-      
-      if (maze[pacmanY][pacmanX] == 2) {
-        maze[pacmanY][pacmanX] = 0;
-        score += 10;
-        pelletsRemaining--;
-      } else if (maze[pacmanY][pacmanX] == 3) {
-        maze[pacmanY][pacmanX] = 0;
-        score += 50;
-        powerMode = true;
-        powerModeStart = now;
-        pelletsRemaining--;
-      }
-      
-      lastPacMove = now;
     }
-    
-    if (now - lastGhostMove > 300) {
-      for (int g = 0; g < 4; g++) {
-        int bestX = ghosts[g].x;
-        int bestY = ghosts[g].y;
-        int bestDist = 9999;
-        
-        int tryX[] = {ghosts[g].x - 1, ghosts[g].x + 1, ghosts[g].x, ghosts[g].x};
-        int tryY[] = {ghosts[g].y, ghosts[g].y, ghosts[g].y - 1, ghosts[g].y + 1};
-        
-        for (int d = 0; d < 4; d++) {
-          if (tryX[d] >= 1 && tryX[d] < 15 && tryY[d] >= 1 && tryY[d] < 7 && maze[tryY[d]][tryX[d]] != 1) {
-            int dx = abs(tryX[d] - pacmanX);
-            int dy = abs(tryY[d] - pacmanY);
-            int dist = dx + dy;
-            
-            if (ghosts[g].type == 0 && !powerMode) {
-              if (dist < bestDist) {
-                bestDist = dist;
-                bestX = tryX[d];
-                bestY = tryY[d];
-              }
-            } else if (powerMode || ghosts[g].type == 3) {
-              if (dist > bestDist) {
-                bestDist = dist;
-                bestX = tryX[d];
-                bestY = tryY[d];
-              }
-            } else {
-              if (random(0, 3) == 0 && dist < bestDist) {
-                bestDist = dist;
-                bestX = tryX[d];
-                bestY = tryY[d];
-              }
-            }
-          }
-        }
-        
-        ghosts[g].x = bestX;
-        ghosts[g].y = bestY;
-      }
-      lastGhostMove = now;
-    }
-    
-    for (int g = 0; g < 4; g++) {
-      if (ghosts[g].x == pacmanX && ghosts[g].y == pacmanY) {
-        if (powerMode) {
-          ghosts[g].x = 13;
-          ghosts[g].y = 3 + g;
-          score += 200;
-        } else {
-          lives--;
-          pacmanX = 1;
-          pacmanY = 1;
+
+    for (int i = 0; i < num_coins; ++i) {
+      if (!coins[i].active) continue;
+      if (coins[i].z < 0.38f && coins[i].z > 0.13f) {
+        float scale = 1.4f / coins[i].z;
+        int coin_x = horizonX + int((coins[i].x - horizonX) * scale);
+        int coin_y = horizonY + int((coins[i].y - horizonY) * scale);
+        int coin_r = 3 + int(2.0f * scale);
+
+        int dx = int(shipX) - coin_x;
+        int dy = int(shipY) - coin_y;
+        int dist2 = dx*dx + dy*dy;
+        if (dist2 < (coin_r + 7)*(coin_r + 7)) {
+          score++;
+          coins[i].z = tunnel_length;
+          coins[i].x = random(coinMinX, coinMaxX);
+          coins[i].y = random(coinMinY, coinMaxY);
         }
       }
     }
-    
-    if (powerMode && now - powerModeStart > powerModeDuration) {
-      powerMode = false;
-    }
-    
+
+    if (score && (score % 20 == 0) && shipSpeed < 0.13f)
+      shipSpeed += 0.008f;
+
     display.clearDisplay();
-    
-    for (int y = 0; y < 8; y++) {
-      for (int x = 0; x < 16; x++) {
-        int pixelX = x * 8;
-        int pixelY = y * 8;
-        
-        if (maze[y][x] == 1) {
-          display.fillRect(pixelX + 1, pixelY + 1, 6, 6, SSD1306_WHITE);
-        } else if (maze[y][x] == 2) {
-          display.drawPixel(pixelX + 3, pixelY + 3, SSD1306_WHITE);
-          display.drawPixel(pixelX + 4, pixelY + 3, SSD1306_WHITE);
-        } else if (maze[y][x] == 3) {
-          display.fillRect(pixelX + 2, pixelY + 2, 4, 4, SSD1306_WHITE);
-        }
-      }
+    for (int i = -2; i <= 2; ++i)
+      display.drawLine(horizonX, horizonY, horizonX + i * 20, 63, SSD1306_WHITE);
+
+    for (int i = 0; i < num_coins; ++i) {
+      if (!coins[i].active) continue;
+      float scale = 1.4f / coins[i].z;
+      int coin_x = horizonX + int((coins[i].x - horizonX) * scale);
+      int coin_y = horizonY + int((coins[i].y - horizonY) * scale);
+      int coin_r = 3 + int(2.0f * scale);
+      display.drawCircle(coin_x, coin_y, coin_r, SSD1306_WHITE);
+      display.setCursor(coin_x - 2, coin_y - 3);
+      display.print("C");
     }
-    
-    display.fillRect(pacmanX * 8 + 2, pacmanY * 8 + 2, 4, 4, SSD1306_WHITE);
-    display.drawPixel(pacmanX * 8 + 6, pacmanY * 8 + 3, SSD1306_WHITE);
-    
-    for (int g = 0; g < 4; g++) {
-      if (powerMode) {
-        display.drawRect(ghosts[g].x * 8 + 2, ghosts[g].y * 8 + 2, 4, 4, SSD1306_WHITE);
-      } else {
-        display.fillRect(ghosts[g].x * 8 + 2, ghosts[g].y * 8 + 2, 4, 4, SSD1306_WHITE);
-      }
-    }
-    
+
+    int x0 = int(shipX), y0 = int(shipY);
+    display.fillTriangle(x0 - shipSize, y0 + shipSize + 2,
+                        x0 + shipSize, y0 + shipSize + 2,
+                        x0, y0 - shipSize + 1, SSD1306_WHITE);
+    display.drawPixel(x0, y0 - 2, SSD1306_WHITE);
+
     display.setTextSize(1);
-    display.setCursor(116, 0);
-    display.print("S");
-    display.setCursor(116, 10);
-    display.print(score / 100);
-    
-    display.setCursor(116, 25);
-    display.print("L");
-    display.setCursor(116, 35);
-    display.print(lives);
-    
-    display.setCursor(116, 50);
-    display.print("P");
-    display.setCursor(116, 58);
-    display.print(pelletsRemaining / 10);
-    
+    display.setCursor(2, 2);  display.print("3D COINS");
+    display.setCursor(88, 2); display.print("Score:");
+    display.print(score);
+
     display.display();
-    delay(40);
-  }
-  
-  display.clearDisplay();
-  display.setTextSize(2);
-  display.setCursor(15, 0);
-  if (pelletsRemaining == 0) {
-    display.print("YOU WIN!");
-  } else {
-    display.print("GAME OVER");
-  }
-  
-  display.setTextSize(1);
-  display.setCursor(20, 35);
-  display.print("Score: ");
-  display.print(score);
-  display.display();
-  
-  while (!button_is_pressed(btn3)) {
-    delay(50);
+    delay(26);
   }
 }
+
+void countdown() {
+    const int bigNums[4] = {25, 50, 75, 100};
+    const int smallNums[10] = {1,2,3,4,5,6,7,8,9,10};
+    int selectedCount = 6;
+    int numbers[6];
+    int target = 0;
+    bool readyForNewRound = true;
+
+    while (true) {
+        // --- NUMBER SELECTION SCREEN ---
+        while (readyForNewRound) {
+            display.clearDisplay();
+            display.setTextSize(1);
+            display.setCursor(0, 0);
+            display.print("COUNTDOWN MATHS");
+
+            display.setCursor(0, 15);
+            display.print("Select # of numbers:");
+            display.setTextSize(2);
+            display.setCursor(54, 38);
+            display.print(selectedCount);
+
+            display.setTextSize(1);
+            display.setCursor(0, 55);
+            display.print("1/3:< >  5:Start  6:Exit");
+            display.display();
+
+            if (button_is_pressed(btn1, false) && selectedCount > 2) {
+                selectedCount--;
+                delay(180);
+            } else if (button_is_pressed(btn3, false) && selectedCount < 6) {
+                selectedCount++;
+                delay(180);
+            } else if (button_is_pressed(btn5, true)) {
+                readyForNewRound = false;
+            } else if (button_is_pressed(btn6)) {
+                return; // exit to menu
+            }
+            delay(30);
+        }
+
+        // --- GENERATE NUMBERS ---
+        // Shuffle small and big arrays for uniqueness
+        int bigTaken[4] = {0,0,0,0}, smallTaken[10] = {0,0,0,0,0,0,0,0,0,0};
+        int i = 0;
+        while (i < selectedCount) {
+            if (random(0, 2)) { // 0=small, 1=big
+                int idx = random(0, 10);
+                if (!smallTaken[idx]) {
+                    numbers[i++] = smallNums[idx];
+                    smallTaken[idx] = 1;
+                }
+            } else {
+                int idx = random(0, 4);
+                if (!bigTaken[idx]) {
+                    numbers[i++] = bigNums[idx];
+                    bigTaken[idx] = 1;
+                }
+            }
+        }
+        // Generate target number 100–999
+        target = random(100, 1000);
+
+        // --- MAIN GAME DISPLAY ---
+        while (true) {
+            display.clearDisplay();
+            display.setTextSize(1);
+            display.setCursor(0, 0);
+            display.print("TARGET:");
+            display.setTextSize(2);
+            display.setCursor(64, 0);
+            display.print(target);
+
+            display.setTextSize(1);
+            display.setCursor(0, 22);
+            display.print("Numbers: ");
+            for (int j = 0; j < selectedCount; j++) {
+                display.print(numbers[j]);
+                if (j != selectedCount-1) display.print(", ");
+            }
+
+            display.setCursor(0, 52);
+            display.print("1: Solve 5:New");
+            display.display();
+
+            if (button_is_pressed(btn5, true)) {
+                readyForNewRound = true;
+                break; // show new problem
+            }
+            // else if (button_is_pressed(btn1)) countdownSolver();
+            if (button_is_pressed(btn6)) return;
+
+            delay(80);
+        }
+    }
+}
+/*
+int intPow(int base, int exp) {
+    int res = 1;
+    for (int i = 0; i < exp; ++i) res *= base;
+    return res;
+}
+
+// integerRoot returns the n-th root of value if exact, else -1
+int integerRoot(int value, int rootN) {
+    if (rootN <= 1 || value < 0) return -1;
+    int guess = 1;
+    while (true) {
+        int powRes = intPow(guess, rootN);
+        if (powRes == value) return guess;
+        if (powRes > value) return -1;
+        ++guess;
+    }
+    return -1;
+}
+
+bool solveCountdownRecursive(int numbers[], int numCount, int target, CountdownStep steps[], int nsteps, CountdownSolution &best, int &bestDiff) {
+    // Check if any current number is exact target
+    for (int i = 0; i < numCount; ++i) {
+        if (numbers[i] == target) {
+            if (abs(target - best.result) < bestDiff) {
+                best.result = numbers[i];
+                best.nsteps = nsteps;
+                for (int s = 0; s < nsteps; ++s) best.steps[s] = steps[s];
+                bestDiff = 0;
+            }
+            return true; // Found exact!
+        }
+    }
+    bool foundExact = false;
+
+    for (int i = 0; i < numCount; ++i) {
+        for (int j = 0; j < numCount; ++j) {
+            if (i == j) continue;
+            int a = numbers[i], b = numbers[j];
+            int remain[MAX_COUNT_NUMS];
+            int pos = 0;
+            for (int k = 0; k < numCount; ++k)
+                if (k != i && k != j)
+                    remain[pos++] = numbers[k];
+
+            // --- Try all operators ---
+            for (int opidx = 0; opidx < 6; ++opidx) {
+                int res = 0;
+                char op = 0;
+
+                // 0: +   1: -   2: *   3:/   4: ^    5: r
+                if (opidx == 0) { res = a + b; op = '+'; }
+                if (opidx == 1) { res = a - b; op = '-'; }
+                if (opidx == 2) { res = a * b; op = '*'; }
+                if (opidx == 3) {
+                    if (b == 0 || a % b != 0) continue;
+                    res = a / b; op = '/';
+                }
+                if (opidx == 4) { // POWER: a^b, only b>=1, result <= 1000000 (avoid overflow)
+                    if (b <= 1 || a==1 || a==0) continue; // Skip for degenerate powers
+                    if (b > 8 || abs(a) > 200) continue; // Avoid huge numbers
+                    res = intPow(a, b); op = '^';
+                    if (res == a || res == b || abs(res) > 1000000 || res < 0) continue;
+                }
+                if (opidx == 5) { // ROOT: a r b (b-th root of a)
+                    if (b <= 1 || a <= 0) continue;
+                    int root = integerRoot(a, b);
+                    if (root == -1 || root == a || root == b) continue;
+                    res = root; op = 'r';
+                }
+
+                // Exclude duplicate/dangerous cases
+                if ((op == '-' || op == '/' || op == '^' || op == 'r') && i < j) continue;
+
+                remain[pos] = res;
+                steps[nsteps] = CountdownStep(a, b, op, res);
+
+                int diff = abs(res - target);
+                if (diff < bestDiff) {
+                    best.result = res;
+                    best.nsteps = nsteps + 1;
+                    for (int s = 0; s <= nsteps; ++s) best.steps[s] = steps[s];
+                    bestDiff = diff;
+                }
+                if (diff == 0) {
+                    return true;
+                }
+
+                if (pos + 1 > 1)
+                  if (solveCountdownRecursive(remain, pos+1, target, steps, nsteps+1, best, bestDiff))
+                      return true;
+            }
+        }
+    }
+    return foundExact;
+}
+
+
+// Utilities for data entry
+int enterIntInput(const char *prompt, int initial, int minv, int maxv) {
+    int val = initial;
+    while (true) {
+        display.clearDisplay();
+        display.setTextSize(1);
+        display.setCursor(0, 8);
+        display.print(prompt);
+        display.setTextSize(2);
+        display.setCursor(40, 32);
+        display.print(val);
+        display.setTextSize(1);
+        display.setCursor(0, 56);
+        display.print("1/3: < >   5:OK   6:Exit");
+        display.display();
+
+        if (button_is_pressed(btn1, false) && val > minv) {
+            val--;
+            delay(120);
+        } else if (button_is_pressed(btn3, false) && val < maxv) {
+            val++;
+            delay(120);
+        } else if (button_is_pressed(btn5, true)) {
+            return val;
+        } else if (button_is_pressed(btn6)) {
+            return -1;
+        }
+        delay(30);
+    }
+}
+
+// ----------- Main countdown solver game -----------
+void countdownSolver() {
+    int target = 100;
+    int nCount = 6;
+    int numbers[MAX_COUNT_NUMS];
+
+    // Step 1: Target entry
+    int entry = enterIntInput("Target (100-999):", target, 100, 999);
+    if (entry == -1) return;
+    target = entry;
+
+    // Step 2: # numbers to use
+    entry = enterIntInput("# numbers (2-6):", nCount, 2, 6);
+    if (entry == -1) return;
+    nCount = entry;
+
+    // Step 3: Enter numbers
+    for (int i = 0; i < nCount; ++i) {
+        char buf[22]; sprintf(buf, "Num %d (1-100):", i+1);
+        entry = enterIntInput(buf, 10, 1, 100);
+        if (entry == -1) return;
+        numbers[i] = entry;
+    }
+
+    // Show entered data
+    while (true) {
+        display.clearDisplay();
+        display.setTextSize(1);
+        display.setCursor(0,0);
+        display.print("Target: "); display.print(target);
+        display.setCursor(0, 12);
+        display.print("Numbers: ");
+        for (int i = 0; i < nCount; ++i) {
+            display.print(numbers[i]);
+            if (i != nCount-1) display.print(", ");
+        }
+        display.setCursor(0, 30);
+        display.print("5:Solve   6:Exit");
+        display.display();
+
+        if (button_is_pressed(btn5, true)) break;
+        if (button_is_pressed(btn6)) return;
+        delay(60);
+    }
+
+    // Step 4: Solve!
+    CountdownStep steps[64];
+    CountdownSolution best;
+    best.result = 0; best.nsteps = 0;
+    int bestDiff = 9999999;
+    display.clearDisplay();
+    display.setTextSize(2);
+    display.setCursor(14, 24); display.print("SOLVING...");
+    display.display();
+
+    solveCountdownRecursive(numbers, nCount, target, steps, 0, best, bestDiff);
+
+    // Step 5: Display solution
+    int page = 0;
+    int totalPages = (best.nsteps + SOLUTION_DISPLAY_STEPS - 1) / SOLUTION_DISPLAY_STEPS;
+    if (best.nsteps == 0) totalPages = 1;
+
+    while (true) {
+        display.clearDisplay();
+        display.setTextSize(1);
+        display.setCursor(0,0);
+        display.print("Target: "); display.print(target);
+        display.setCursor(83, 0);
+        display.print("Best: "); display.print(best.result);
+
+        if (best.nsteps == 0) {
+            display.setCursor(0, 18);
+            display.print("No solution found.");
+        } else {
+            display.setCursor(0, 12);
+            for (int i = 0; i < SOLUTION_DISPLAY_STEPS; ++i) {
+                int idx = page * SOLUTION_DISPLAY_STEPS + i;
+                if (idx >= best.nsteps) break;
+                CountdownStep &st = best.steps[idx];
+                char line[28];
+                if (st.op == '^')
+                    sprintf(line, "%d ^ %d = %d", st.a, st.b, st.res);
+                else if (st.op == 'r')
+                    sprintf(line, "%d r %d = %d", st.a, st.b, st.res);
+                else
+                    sprintf(line, "%d %c %d = %d", st.a, st.op, st.b, st.res);
+                display.setCursor(0, 19 + 11 * i);
+                display.print(line);
+            }
+        }
+        display.setCursor(0, 58);
+        if (totalPages > 1)
+            display.print("1/3:< > 5:More  6:Exit");
+        else
+            display.print("5:Again  6:Exit");
+        display.display();
+
+        if (best.nsteps > 0 && totalPages > 1) {
+            if (button_is_pressed(btn1, false) && page > 0) {
+                page--;
+                delay(130);
+            }
+            if (button_is_pressed(btn3, false) && page < totalPages-1) {
+                page++;
+                delay(130);
+            }
+        }
+        if (button_is_pressed(btn5, true)) {
+            if (best.nsteps == 0 || totalPages == 1)
+                return countdownSolver(); // Start again
+            else if (page < totalPages-1) {
+                page++;
+            } else {
+                page = 0;
+            }
+            delay(130);
+        }
+        if (button_is_pressed(btn6))
+            return;
+        delay(60);
+    }
+}
+*/
