@@ -54,7 +54,7 @@ void games() {
     display.display();
     delay(50);
     
-    if (button_is_pressed(btn2)) {
+    if (button_is_pressed(btn4)) {
       selected = (selected + 1) % 2;
       delay(100);
     }
@@ -105,7 +105,7 @@ void arcadeGames() {
     display.display();
     delay(50);
     
-    if (button_is_pressed(btn2)) {
+    if (button_is_pressed(btn4)) {
       selected = (selected + 1) % 5;
       delay(100);
     }
@@ -165,7 +165,7 @@ void mathsGames() {
     display.display();
     delay(50);
     
-    if (button_is_pressed(btn2)) {
+    if (button_is_pressed(btn4)) {
       selected = (selected + 1) % 1;
       delay(100);
     }
@@ -838,7 +838,6 @@ void countdown() {
     bool readyForNewRound = true;
 
     while (true) {
-        // --- NUMBER SELECTION SCREEN ---
         while (readyForNewRound) {
             display.clearDisplay();
             display.setTextSize(1);
@@ -865,17 +864,15 @@ void countdown() {
             } else if (button_is_pressed(btn5, true)) {
                 readyForNewRound = false;
             } else if (button_is_pressed(btn6)) {
-                return; // exit to menu
+                return; 
             }
             delay(30);
         }
 
-        // --- GENERATE NUMBERS ---
-        // Shuffle small and big arrays for uniqueness
         int bigTaken[4] = {0,0,0,0}, smallTaken[10] = {0,0,0,0,0,0,0,0,0,0};
         int i = 0;
         while (i < selectedCount) {
-            if (random(0, 2)) { // 0=small, 1=big
+            if (random(0, 2)) { 
                 int idx = random(0, 10);
                 if (!smallTaken[idx]) {
                     numbers[i++] = smallNums[idx];
@@ -889,10 +886,8 @@ void countdown() {
                 }
             }
         }
-        // Generate target number 100–999
         target = random(100, 1000);
 
-        // --- MAIN GAME DISPLAY ---
         while (true) {
             display.clearDisplay();
             display.setTextSize(1);
@@ -916,7 +911,7 @@ void countdown() {
 
             if (button_is_pressed(btn5, true)) {
                 readyForNewRound = true;
-                break; // show new problem
+                break;
             }
             // else if (button_is_pressed(btn1)) countdownSolver();
             if (button_is_pressed(btn6)) return;

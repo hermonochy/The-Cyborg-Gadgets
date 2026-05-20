@@ -135,7 +135,7 @@ void drawMainUI() {
   display.setCursor(40, 51);
   display.print("< SEL >");
   
-  int barWidth = (selectedFunction - 1) * SCREEN_WIDTH / totalFunctions;
+  int barWidth = (selectedFunction - 1) * SCREEN_WIDTH / (totalFunctions-1);
   display.drawRect(0, 60, SCREEN_WIDTH, 4, SSD1306_WHITE);
   display.fillRect(0, 60, barWidth, 4, SSD1306_WHITE);
   
@@ -199,14 +199,14 @@ void timeSyncAndUI() {
       display.setTextSize(1);
       display.setTextColor(SSD1306_WHITE);
       
-      display.setCursor(35, 5);
+      display.setCursor(34, 5);
       display.print("WATCH 5.0");
       
       display.setCursor(25, 22);
       display.print("INITIALIZING");
       
       int dotCount = (attempts / 2) % 4;
-      display.setCursor(100, 22);
+      display.setCursor(96, 22);
       for (int i = 0; i < dotCount; i++) display.print(".");
       
       int barWidth = (currentStep * (SCREEN_WIDTH - 10)) / totalSteps;
@@ -221,7 +221,7 @@ void timeSyncAndUI() {
     }
 
     if (WiFi.status() == WL_CONNECTED) {
-      wifiConnected = true;
+      wifiConnected = true; // This is not strictly necessary, it is just done for consistency and in case the loop breaks somehow
       configTime(0, 0, "pool.ntp.org", "time.nist.gov");
       break;
     }
@@ -246,6 +246,7 @@ void timeSyncAndUI() {
   display.print("100%");
   
   display.display();
+  wifiConnected = false;
   WiFi.disconnect();
   delay(500);
 }

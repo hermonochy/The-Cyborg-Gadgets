@@ -83,7 +83,7 @@ void timeSync() {
       totAttempts++;
       attempts++;
       // If there are no wifi's nearby you can just skip this function.
-      if (button_is_pressed(btn6)) return;
+      if (button_is_pressed(btn6, true)) return;
     }
   }
 }
@@ -195,7 +195,7 @@ void addWiFiNetworkOnWatch() {
       delay(2000);
       return;
     }
-    if (button_is_pressed(btn6)) {
+    if (button_is_pressed(btn6, true)) {
       display.clearDisplay();
       display.setTextSize(1);
       display.setCursor(0, 20);
@@ -262,7 +262,7 @@ bool inputStringOnWatch(const char* label, char* buffer, int maxLen) {
       buffer[0] = '\0';
       delay(150);
     }
-    else if (button_is_pressed(btn6)) {
+    else if (button_is_pressed(btn6, true)) {
       if (strlen(buffer) > 0) {
         return true;
       } else {
@@ -346,7 +346,7 @@ void wifiNetworkMenu() {
       delay(200);
     }
     
-    if (button_is_pressed(btn6)) {
+    if (button_is_pressed(btn6, true)) {
       return;
     }
     delay(50);
@@ -382,7 +382,7 @@ void deleteWiFiNetwork(int idx) {
       delay(1000);
       return;
     }
-    if (button_is_pressed(btn6)) {
+    if (button_is_pressed(btn6, true)) {
       return;
     }
     delay(50);
@@ -506,13 +506,13 @@ void scanWiFiNetworks() {
           }
           return;
         }
-        if (button_is_pressed(btn6)) {
+        if (button_is_pressed(btn6, true)) {
           return;
         }
         delay(50);
       }
     }
-    else if (button_is_pressed(btn6)) {
+    else if (button_is_pressed(btn6, true)) {
       return;
     }
     
@@ -555,7 +555,7 @@ void disconnectWiFi() {
       delay(1500);
       return;
     }
-    if (button_is_pressed(btn6)) {
+    if (button_is_pressed(btn6, true)) {
       return;
     }
     delay(50);
@@ -596,15 +596,15 @@ void wifiMenu(void) {
       scanWiFiNetworks();
       delay(200);
     }
-    else if (button_is_pressed(btn3)) {
+    else if (button_is_pressed(btn3, true)) {
       wifiNetworkMenu();
       delay(200);
     }
-    else if (button_is_pressed(btn5)) {
+    else if (button_is_pressed(btn5, true)) {
       disconnectWiFi();
       delay(200);
     }
-    else if (button_is_pressed(btn6)) {
+    else if (button_is_pressed(btn6, true)) {
       return;
     }
     delay(50);
@@ -881,7 +881,7 @@ void serialWiFiMenu(void) {
 }
 
 void wifiFuncs(){
-  while (!button_is_pressed(btn6)) {
+  while (!button_is_pressed(btn6, true)) {
     display.clearDisplay();
     display.setTextSize(1);
     display.setCursor(0, 20);
@@ -913,69 +913,120 @@ void getWeather(void) {
         wifiNetworkMenu();
         break;
       }
-      else if (button_is_pressed(btn6)) return;
+      else if (button_is_pressed(btn6, true)) return;
     }
   }
-  
+
+  // Select target forecast hour (0 = now, 23 = 23 hours from now)
+  int hourOffset = 0;
+  while (true) {
+    display.clearDisplay();
+    display.setTextSize(1);
+    display.setCursor(5, 5);
+    display.print("Weather forecast");
+    display.setCursor(0, 24);
+    display.print("Hour: +");
+    display.print(hourOffset);
+    display.print("h");
+    display.setCursor(0, 56);
+    display.print("1/2:-/+  3:OK  6:Exit");
+    display.display();
+
+    if (button_is_pressed(btn1)) {
+      hourOffset = max(0, hourOffset - 1);
+      delay(120);
+    }
+    else if (button_is_pressed(btn2)) {
+      hourOffset = min(23, hourOffset + 1);
+      delay(120);
+    }
+    else if (button_is_pressed(btn3)) break;
+    else if (button_is_pressed(btn6, true)) return;
+    delay(30);
+  }
+
   display.clearDisplay();
   display.setTextSize(1);
   display.setCursor(0, 0);
   display.print("Fetching weather...");
   display.display();
-  
+
+  // Open-Meteo API for hourly forecast of the next 24 hours (change coordinates as needed)
+  String url = "https://api.open-meteo.com/v1/forecast?latitude=51.752&longitude=-1.258"
+               "&hourly=temperature_2m,weather_code,relative_humidity_2m,wind_speed_10m"
+               "&forecast_days=1&timezone=auto";
   HTTPClient http;
-  String url = "https://api.open-meteo.com/v1/forecast?latitude=51.752&longitude=-1.258&current=temperature_2m,weather_code,relative_humidity_2m,wind_speed_10m&timezone=auto";
   http.begin(url);
   int httpCode = http.GET();
-  
+
   if (httpCode == 200) {
     String payload = http.getString();
-    
-    DynamicJsonDocument doc(1024);
+    DynamicJsonDocument doc(8192);
     deserializeJson(doc, payload);
-    
-    float temp = doc["current"]["temperature_2m"];
-    int weatherCode = doc["current"]["weather_code"];
-    int humidity = doc["current"]["relative_humidity_2m"];
-    float windSpeed = doc["current"]["wind_speed_10m"];
-    
-    display.clearDisplay();
-    display.setTextSize(1);
-    display.setCursor(0, 0);
-    display.print("Weather");
-    
-    display.setCursor(0, 20);
-    display.print("Temp: ");
-    display.print((int)temp);
-    display.print("C");
-    
-    display.setCursor(0, 30);
+
+    // Get arrays for the 24 forecast hours starting at the current hour
+    JsonArray tempArr = doc["hourly"]["temperature_2m"];
+    JsonArray codeArr = doc["hourly"]["weather_code"];
+    JsonArray humidityArr = doc["hourly"]["relative_humidity_2m"];
+    JsonArray windArr = doc["hourly"]["wind_speed_10m"];
+    JsonArray timeArr = doc["hourly"]["time"];
+    int nHours = tempArr.size();
+
+    // Defensive: clamp hourOffset if not enough data
+    if (hourOffset >= nHours) hourOffset = nHours - 1;
+
+    // Parse the selected hour's weather
+    float temp = tempArr[hourOffset];
+    int weatherCode = codeArr[hourOffset];
+    int humidity = humidityArr[hourOffset];
+    float windSpeed = windArr[hourOffset];
+    const char* timeStr = timeArr[hourOffset];
+
+    // Weather code to description
     const char* weatherDesc;
     if (weatherCode == 0) weatherDesc = "Sunny";
     else if (weatherCode == 1) weatherDesc = "Clear";
     else if (weatherCode < 3) weatherDesc = "Cloudy";
     else if (weatherCode < 50) weatherDesc = "Drizzle";
-    else if (weatherCode < 60) weatherDesc = "Heavy Rain";
+    else if (weatherCode < 60) weatherDesc = "Rain";
     else if (weatherCode < 80) weatherDesc = "Snow";
     else if (weatherCode < 100) weatherDesc = "Thunder";
     else weatherDesc = "Unknown";
-    
-    display.print("Condition: ");
+
+    // Display forecast
+    display.clearDisplay();
+    display.setTextSize(1);
+    display.setCursor(0, 0);
+    display.print("Weather @ ");
+
+    // Print forecasted time (HH:MM only for brevity)
+    if (strlen(timeStr) > 11)
+      display.printf("%c%c:%c%c", timeStr[11], timeStr[12], timeStr[14], timeStr[15]);
+    else
+      display.print(timeStr);
+
+    display.setCursor(0, 20);
+    display.print("Temp: ");
+    display.print((int)temp);
+    display.print("C");
+
+    display.setCursor(0, 30);
+    display.print("Cond: ");
     display.print(weatherDesc);
-    
+
     display.setCursor(0, 40);
     display.print("Humidity: ");
     display.print(humidity);
     display.print("%");
-    
+
     display.setCursor(0, 50);
     display.print("Wind: ");
     display.print((int)windSpeed);
-    display.print(" km/h");
-    
+    display.print("km/h");
+
     display.display();
     while (true) {
-      if(button_is_pressed(btn6)) break;  
+      if (button_is_pressed(btn6, true)) break;
     }
   } else {
     display.clearDisplay();
@@ -985,7 +1036,6 @@ void getWeather(void) {
     display.display();
     delay(2000);
   }
-  
   http.end();
 }
 
@@ -1120,7 +1170,7 @@ void timeSettingsMenu() {
             if (timeOffset > 12) timeOffset = 12;
             delay(150);
           }
-          else if (button_is_pressed(btn6)) {
+          else if (button_is_pressed(btn6, true)) {
             setTimeOffset(timeOffset);
             break;
           }
@@ -1155,7 +1205,7 @@ void timeSettingsMenu() {
             if (dstOffset > 2) dstOffset = 2;
             delay(150);
           }
-          else if (button_is_pressed(btn6)) {
+          else if (button_is_pressed(btn6, true)) {
             setDSTOffset(dstOffset);
             break;
           }
@@ -1163,7 +1213,7 @@ void timeSettingsMenu() {
         }
       }
     }
-    else if (button_is_pressed(btn6)) {
+    else if (button_is_pressed(btn6, true)) {
       return;
     }
     
@@ -1237,7 +1287,7 @@ void displayTime(void) {
       dstOffset = getDSTOffset();
       delay(100);
     }
-    else if (button_is_pressed(btn6)) {
+    else if (button_is_pressed(btn6, true)) {
       return;
     }
     
@@ -1487,7 +1537,7 @@ void dictionary(void) {
       }
       delay(200);
     }
-    else if (button_is_pressed(btn6)) {
+    else if (button_is_pressed(btn6, true)) {
       return;
     }
     

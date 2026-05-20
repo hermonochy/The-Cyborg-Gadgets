@@ -14,10 +14,21 @@ extern int buttonOffset;
 
 #define MAX_NUMBER_LENGTH 64
 
-#define totalMathsFunctions 4
+#define totalMathsFunctions 6
 
-const char *mathsFuncs[] = {"Calculator", "Unit Converter", "Base Converter", "Graph Plotter"};
+// Equation Solver
+#define MAX_VARS 5
+#define MAX_EQ_LEN 64
+
+// Matrix Calc
+#define MAX_MATRIX_SIZE 3
+#define MAT_Y_STEP 12
+#define MAT_X_STEP 22
+
+const char *mathsFuncs[] = {"Calculator", "Unit Converter", "Base Converter", "Graph Plotter", "Matrix Calculator", "Prime Factorisation"};
 int selectedMathsFunction = 1;
+
+void matrixCalculator();
 
 void maths(void) {
   while(true){
@@ -57,6 +68,12 @@ void maths(void) {
           break;
         case 4:
           graphPlotter();
+          break;
+        case 5:
+          matrixCalculator();
+          break;
+        case 6:
+          primeFactorisation();
           break;
       }
     }
@@ -824,5 +841,559 @@ void convertAndDisplay(const char* number, int sourceBase, int targetBase) {
       return;
     }
     delay(50);
+  }
+}
+
+float matrixA[MAX_MATRIX_SIZE][MAX_MATRIX_SIZE];
+float matrixB[MAX_MATRIX_SIZE][MAX_MATRIX_SIZE];
+int rowsA = 2, colsA = 2;
+int rowsB = 2, colsB = 2;
+float matrixRes[MAX_MATRIX_SIZE][MAX_MATRIX_SIZE];
+int rowsRes = 0, colsRes = 0;
+float scalarVal = 1;
+
+void drawMatrix(float m[MAX_MATRIX_SIZE][MAX_MATRIX_SIZE], int rows, int cols, int x, int y) {
+  for (int i = 0; i < rows; i++) {
+    display.setCursor(x, y + i * MAT_Y_STEP);
+    for (int j = 0; j < cols; j++) {
+      display.printf("%g", m[i][j]);
+      if (j < cols - 1) display.print(" ");
+    }
+  }
+}
+
+void inputMatrix(float m[MAX_MATRIX_SIZE][MAX_MATRIX_SIZE], int &rows, int &cols, char name) {
+  rows = 2; cols = 2;
+  int stage = 0;
+  static const char* sizes[] = {"2x2", "2x3", "3x2", "3x3"};
+  static int sizeOpts[4][2] = {{2,2},{2,3},{3,2},{3,3}};
+  int sel = 0;
+
+  while (true) {
+    display.clearDisplay();
+    display.setCursor(0,0); display.print("Edit Matrix "); display.print(name);
+    display.setCursor(0,22); display.print("Size: ");
+    for (int i=0;i<4;i++) {
+      display.setCursor(36,i*12+22);
+      if (sel==i) display.print(">");
+      display.print(sizes[i]);
+    }
+    display.setCursor(0,56); display.print("1/2:Up/Dn 3:Sel 6:Back");
+    display.display();
+    if (button_is_pressed(btn1)) { sel=(sel-1+4)%4; delay(120);}
+    else if (button_is_pressed(btn2)) { sel=(sel+1)%4; delay(120);}
+    else if (button_is_pressed(btn3)) { rows=sizeOpts[sel][0]; cols=sizeOpts[sel][1]; break;}
+    else if (button_is_pressed(btn6)) return;
+    delay(30);
+  }
+
+  int currI=0, currJ=0;
+  while (true) {
+    display.clearDisplay();
+    display.setCursor(0,0); display.printf("Matrix %c [%dx%d]",name,rows,cols);
+    float entry = m[currI][currJ];
+    for (int i=0;i<rows;i++) {
+      int yy = 22 + i*MAT_Y_STEP;
+      for (int j=0;j<cols;j++) {
+        int xx = 4 + j*MAT_X_STEP;
+        display.setCursor(xx,yy);
+        if (i==currI&&j==currJ) display.print("["); else display.print(" ");
+        display.print(m[i][j],1);
+        if (i==currI&&j==currJ) display.print("]"); else display.print(" ");
+      }
+    }
+    display.setCursor(60,56); display.print("3:Edit 6:Done");
+    display.display();
+    if (button_is_pressed(btn1)) { currI=(currI-1+rows)%rows; delay(120);}
+    else if (button_is_pressed(btn2)) { currI=(currI+1)%rows; delay(120);}
+    else if (button_is_pressed(btn4)) { currJ=(currJ-1+cols)%cols; delay(120);}
+    else if (button_is_pressed(btn5)) { currJ=(currJ+1)%cols; delay(120);}
+    else if (button_is_pressed(btn3)) {
+      float val = m[currI][currJ];
+      int dec = 0;
+      int digit = (int)(val);
+      while (true) {
+        display.clearDisplay();
+        display.setCursor(0,0); display.printf("Matrix %c[%d,%d]",name,currI+1,currJ+1);
+        display.setCursor(0,22); display.print("Val: "); display.print(val,1);
+        display.setCursor(0,56); display.print("1/2:-/+ 3:OK 6:Cancel");
+        display.display();
+        if (button_is_pressed(btn1)) { val -= 1; delay(120);}
+        else if (button_is_pressed(btn2)) { val += 1; delay(120);}
+        else if (button_is_pressed(btn4)) { val -= 0.1; delay(100);}
+        else if (button_is_pressed(btn5)) { val += 0.1; delay(100);}
+        else if (button_is_pressed(btn3)) { m[currI][currJ]=val; break;}
+        else if (button_is_pressed(btn6)) break;
+        delay(25);
+      }
+    } else if (button_is_pressed(btn6)) break;
+    delay(30);
+  }
+}
+
+void showResultMatrix(const char* op, float m[MAX_MATRIX_SIZE][MAX_MATRIX_SIZE], int rows, int cols, float scalar=0) {
+  display.clearDisplay();
+  display.setCursor(0,0); display.print("Res: "); display.print(op);
+  for (int i=0;i<rows;i++)
+    for (int j=0;j<cols;j++) {
+      int xx = 14+j*MAT_X_STEP;
+      int yy = 22+i*MAT_Y_STEP;
+      display.setCursor(xx,yy); display.print(m[i][j],1);
+    }
+  if (scalar!=0) {
+    display.setCursor(0,56);
+    display.print("Scalar: "); display.print(scalar,2);
+  } else {
+    display.setCursor(0,56);
+    display.print("6:Back");
+  }
+  display.display();
+  while(!button_is_pressed(btn6)) delay(90);
+}
+
+void showScalarMenu(float &scalar) {
+  while (true) {
+    display.clearDisplay();
+    display.setCursor(0,0); display.print("Scalar Value:");
+    display.setCursor(0,22); display.print(scalar,2);
+    display.setCursor(0,56); display.print("1/2:-/+ 3:OK 6:Back");
+    display.display();
+    if (button_is_pressed(btn1)) { scalar-=1; delay(90);}
+    else if (button_is_pressed(btn2)) { scalar+=1; delay(90);}
+    else if (button_is_pressed(btn4)) { scalar-=0.1f; delay(70);}
+    else if (button_is_pressed(btn5)) { scalar+=0.1f; delay(70);}
+    else if (button_is_pressed(btn3)) return;
+    else if (button_is_pressed(btn6)) break;
+    delay(20);
+  }
+}
+
+void setIdentity(float m[MAX_MATRIX_SIZE][MAX_MATRIX_SIZE], int n) {
+  for(int i=0;i<n;i++) for(int j=0;j<n;j++) m[i][j]=i==j?1:0;
+}
+
+void copyMatrix(float src[MAX_MATRIX_SIZE][MAX_MATRIX_SIZE], float dest[MAX_MATRIX_SIZE][MAX_MATRIX_SIZE], int rows, int cols) {
+  for(int i=0;i<rows;i++) for(int j=0;j<cols;j++) dest[i][j]=src[i][j];
+}
+
+void matrixAdd(float a[MAX_MATRIX_SIZE][MAX_MATRIX_SIZE], float b[MAX_MATRIX_SIZE][MAX_MATRIX_SIZE], float out[MAX_MATRIX_SIZE][MAX_MATRIX_SIZE], int rows, int cols) {
+  for(int i=0;i<rows;i++) for(int j=0;j<cols;j++) out[i][j]=a[i][j]+b[i][j];
+}
+
+void matrixSub(float a[MAX_MATRIX_SIZE][MAX_MATRIX_SIZE], float b[MAX_MATRIX_SIZE][MAX_MATRIX_SIZE], float out[MAX_MATRIX_SIZE][MAX_MATRIX_SIZE], int rows, int cols) {
+  for(int i=0;i<rows;i++) for(int j=0;j<cols;j++) out[i][j]=a[i][j]-b[i][j];
+}
+
+void matrixMul(float a[MAX_MATRIX_SIZE][MAX_MATRIX_SIZE], int aR, int aC, float b[MAX_MATRIX_SIZE][MAX_MATRIX_SIZE], int bR, int bC, float out[MAX_MATRIX_SIZE][MAX_MATRIX_SIZE], int &outR, int &outC) {
+  outR=aR; outC=bC;
+  for(int i=0;i<aR;i++) for(int j=0;j<bC;j++) {
+    float sum=0;
+    for(int k=0;k<aC;k++) sum+=a[i][k]*b[k][j];
+    out[i][j]=sum;
+  }
+}
+
+void matrixScalar(float a[MAX_MATRIX_SIZE][MAX_MATRIX_SIZE], int rows, int cols, float factor, float out[MAX_MATRIX_SIZE][MAX_MATRIX_SIZE]) {
+  for(int i=0;i<rows;i++) for(int j=0;j<cols;j++) out[i][j]=a[i][j]*factor;
+}
+
+void matrixTranspose(float in[MAX_MATRIX_SIZE][MAX_MATRIX_SIZE], int rows, int cols, float out[MAX_MATRIX_SIZE][MAX_MATRIX_SIZE]) {
+  for(int i=0;i<rows;i++) for(int j=0;j<cols;j++) out[j][i]=in[i][j];
+}
+
+float matrixDet(float m[MAX_MATRIX_SIZE][MAX_MATRIX_SIZE], int n) {
+  if (n==1) return m[0][0];
+  if (n==2) return m[0][0]*m[1][1] - m[0][1]*m[1][0];
+  if (n==3)
+    return m[0][0]*(m[1][1]*m[2][2]-m[1][2]*m[2][1]) 
+         -m[0][1]*(m[1][0]*m[2][2]-m[1][2]*m[2][0])
+         +m[0][2]*(m[1][0]*m[2][1]-m[1][1]*m[2][0]);
+  return 0;
+}
+
+bool matrixInverse(float m[MAX_MATRIX_SIZE][MAX_MATRIX_SIZE], int n, float out[MAX_MATRIX_SIZE][MAX_MATRIX_SIZE]) {
+  float det = matrixDet(m, n);
+  if (fabs(det) < 1e-6) return false;
+  if (n == 2) {
+    out[0][0] =  m[1][1] / det;
+    out[0][1] = -m[0][1] / det;
+    out[1][0] = -m[1][0] / det;
+    out[1][1] =  m[0][0] / det;
+    return true;
+  }
+  if (n == 3) {
+    for (int i = 0; i < 3; i++) for (int j = 0; j < 3; j++) {
+      float minorWork[MAX_MATRIX_SIZE][MAX_MATRIX_SIZE];
+      int mi = 0;
+      for (int ii = 0; ii < 3; ii++) if (ii != i) {
+        int mj = 0;
+        for (int jj = 0; jj < 3; jj++) if (jj != j)
+          minorWork[mi][mj++] = m[ii][jj];
+        mi++;
+      }
+      float cofactor = ((i + j) % 2 == 0 ? 1 : -1) * matrixDet(minorWork, 2);
+      out[j][i] = cofactor / det;
+    }
+    return true;
+  }
+  return false;
+}
+
+void matrixCalculator() {
+  setIdentity(matrixA,MAX_MATRIX_SIZE);
+  setIdentity(matrixB,MAX_MATRIX_SIZE);
+  rowsA=2; colsA=2;
+  rowsB=2; colsB=2;
+  scalarVal = 1;
+  const char* ops[] = {
+    "Edit A", "Edit B", "A+B","A-B", "B-A","A*B","B*A",
+    "A*x","B*x","TranspA","TranspB","DetA","DetB","InvA","InvB","Swap","ClearAll","Exit"};
+  const int nops=sizeof(ops)/sizeof(ops[0]);
+  int sel=0;
+
+  while (true) {
+    display.clearDisplay();
+    display.setCursor(0,0); display.print("Matrix Calculator");
+    for (int i=0;i<6;i++) {
+      int y = 20 + i * 8;
+      display.setCursor(0,y);
+      if (sel==i) display.print(">"); else display.print(" ");
+      display.print(ops[i]);
+    }
+    if (sel>=6) {
+      for(int i=0;i<6&&i+6<nops;i++) {
+        int y = 68+i*8;
+        if(y>=56) break;
+        display.setCursor(70,20+(i*8));
+        if (sel==i+6) display.print(">"); else display.print(" ");
+        display.print(ops[i+6]);
+      }
+    }
+    display.setCursor(0,56);
+    display.print("1/2:UpDn 3:Sel 6:Exit");
+    display.display();
+    if (button_is_pressed(btn1)) { sel=(sel-1+nops)%nops; delay(120);}
+    else if (button_is_pressed(btn2)) { sel=(sel+1)%nops; delay(120);}
+    else if (button_is_pressed(btn3)) {
+      switch(sel) {
+        case 0: inputMatrix(matrixA,rowsA,colsA,'A'); break;
+        case 1: inputMatrix(matrixB,rowsB,colsB,'B'); break;
+        case 2: // A+B
+          if(rowsA==rowsB&&colsA==colsB){
+            matrixAdd(matrixA,matrixB,matrixRes,rowsA,colsA);
+            showResultMatrix("A+B",matrixRes,rowsA,colsA);
+          }
+          break;
+        case 3: //A-B
+          if(rowsA==rowsB&&colsA==colsB){
+            matrixSub(matrixA,matrixB,matrixRes,rowsA,colsA);
+            showResultMatrix("A-B",matrixRes,rowsA,colsA);
+          }
+          break;
+        case 4: //B-A
+          if(rowsA==rowsB&&colsA==colsB){
+            matrixSub(matrixB,matrixA,matrixRes,rowsA,colsA);
+            showResultMatrix("B-A",matrixRes,rowsA,colsA);
+          }
+          break;
+        case 5: //A*B
+          if (colsA==rowsB) {
+            matrixMul(matrixA,rowsA,colsA,matrixB,rowsB,colsB,matrixRes,rowsRes,colsRes);
+            showResultMatrix("A*B",matrixRes,rowsRes,colsRes);
+          }
+          break;
+        case 6: //B*A
+          if (colsB==rowsA) {
+            matrixMul(matrixB,rowsB,colsB,matrixA,rowsA,colsA,matrixRes,rowsRes,colsRes);
+            showResultMatrix("B*A",matrixRes,rowsRes,colsRes);
+          }
+          break;
+        case 7:
+          showScalarMenu(scalarVal);
+          matrixScalar(matrixA,rowsA,colsA,scalarVal,matrixRes);
+          showResultMatrix("A*x",matrixRes,rowsA,colsA,scalarVal);
+          break;
+        case 8: 
+          showScalarMenu(scalarVal);
+          matrixScalar(matrixB,rowsB,colsB,scalarVal,matrixRes);
+          showResultMatrix("B*x",matrixRes,rowsB,colsB,scalarVal);
+          break;
+        case 9:
+          matrixTranspose(matrixA,rowsA,colsA,matrixRes);
+          showResultMatrix("TA",matrixRes,colsA,rowsA);
+          break;
+        case 10: 
+          matrixTranspose(matrixB,rowsB,colsB,matrixRes);
+          showResultMatrix("TB",matrixRes,colsB,rowsB);
+          break;
+        case 11: 
+          if(rowsA==colsA) {
+            float d=matrixDet(matrixA,rowsA);
+            display.clearDisplay();
+            display.setCursor(0,0); display.print("Det(A)="); display.print(d,3);
+            display.setCursor(0,56); display.print("6:Back");
+            display.display();
+            while(!button_is_pressed(btn6)) delay(70);
+          }
+          break;
+        case 12: 
+          if(rowsB==colsB) {
+            float d=matrixDet(matrixB,rowsB);
+            display.clearDisplay();
+            display.setCursor(0,0); display.print("Det(B)="); display.print(d,3);
+            display.setCursor(0,56); display.print("6:Back");
+            display.display();
+            while(!button_is_pressed(btn6)) delay(70);
+          }
+          break;
+        case 13: 
+          if(rowsA==colsA&&rowsA>=2&&rowsA<=3) {
+            if(matrixInverse(matrixA,rowsA,matrixRes))
+              showResultMatrix("invA",matrixRes,rowsA,colsA);
+            else {
+              display.clearDisplay(); display.setCursor(0,22);
+              display.print("A not invertible");
+              display.setCursor(0,56); display.print("6:Back");
+              display.display(); while(!button_is_pressed(btn6)) delay(70);
+            }
+          }
+          break;
+        case 14:
+          if(rowsB==colsB&&rowsB>=2&&rowsB<=3) {
+            if(matrixInverse(matrixB,rowsB,matrixRes))
+              showResultMatrix("invB",matrixRes,rowsB,colsB);
+            else {
+              display.clearDisplay(); display.setCursor(0,22);
+              display.print("B not invertible");
+              display.setCursor(0,56); display.print("6:Back");
+              display.display(); while(!button_is_pressed(btn6)) delay(70);
+            }
+          }
+          break;
+        case 15:
+          {
+            float temp[MAX_MATRIX_SIZE][MAX_MATRIX_SIZE];
+            int tr=rowsA,tc=colsA;
+            copyMatrix(matrixA,temp,rowsA,colsA);
+            copyMatrix(matrixB,matrixA,rowsB,colsB);
+            copyMatrix(temp,matrixB,tr,tc);
+            int trr=rowsA,tcc=colsA;
+            rowsA=rowsB;colsA=colsB;rowsB=tr;colsB=tc;
+          }
+          break;
+        case 16:
+          setIdentity(matrixA,MAX_MATRIX_SIZE);setIdentity(matrixB,MAX_MATRIX_SIZE);
+          rowsA=2;colsA=2;rowsB=2;colsB=2;
+          break;
+        case 17: return; 
+      }
+      delay(100);
+    } else if (button_is_pressed(btn6)) return;
+    delay(40);
+  }
+}
+
+void primeFactorisation() {
+  char inputBuffer[32] = "";
+  int inputLen = 0;
+  bool showingResult = false;
+  char resultBuffer[128] = "";
+  int resultLen = 0;
+  
+  const char* digits[] = {"0","1","2","3","4","5","6","7","8","9"};
+  const int digitCount = 10;
+  
+  int selectedDigit = 0;
+  
+  while (true) {
+    display.clearDisplay();
+    display.setTextSize(1);
+    display.setCursor(0, 0);
+    display.print("Prime Factorisation");
+    
+    display.setCursor(0, 18);
+    display.print("Input: ");
+    if (inputLen > 0) {
+      display.print(inputBuffer);
+    } else {
+      display.print("_");
+    }
+    
+    if (showingResult) {
+      display.setCursor(0, 30);
+      display.print("Result:");
+      
+      int maxChars = 20;
+      if (resultLen > maxChars) {
+        for (int i = 0; i < maxChars && i < resultLen; i++) {
+          display.write(resultBuffer[i]);
+        }
+        if (resultLen > maxChars) display.print("...");
+      } else {
+        display.print(resultBuffer);
+      }
+    }
+    
+    int y = 40;
+    int x = 0;
+    int spacing = 25;
+    for (int i = 0; i < digitCount; i++) {
+      if (i == selectedDigit) {
+        display.fillRect(x-1, y-1, spacing, 12, SSD1306_WHITE);
+        display.setTextColor(SSD1306_BLACK);
+        display.setCursor(x, y);
+        display.print(digits[i]);
+        display.setTextColor(SSD1306_WHITE);
+      } else {
+        display.setCursor(x, y);
+        display.print(digits[i]);
+      }
+      x += spacing;
+      if ((i + 1) % 5 == 0) {
+        y += 12;
+        x = 0;
+      }
+    }
+    
+    display.display();
+    
+    if (button_is_pressed(btn1)) {
+      selectedDigit = (selectedDigit - 1 + digitCount) % digitCount;
+      delay(100);
+    }
+    else if (button_is_pressed(btn2)) {
+      selectedDigit = (selectedDigit + 1) % digitCount;
+      delay(100);
+    }
+    else if (button_is_pressed(btn3)) {
+      if (inputLen < 30) {
+        inputBuffer[inputLen++] = digits[selectedDigit][0];
+        inputBuffer[inputLen] = '\0';
+        showingResult = false;
+        delay(120);
+      }
+    }
+    else if (button_is_pressed(btn4)) {
+      if (inputLen > 0) {
+        inputBuffer[--inputLen] = '\0';
+        showingResult = false;
+        delay(120);
+      }
+    }
+    else if (button_is_pressed(btn5)) {
+      if (inputLen > 0) {
+        unsigned long number = 0;
+        bool valid = true;
+        for (int i = 0; i < inputLen; i++) {
+          if (inputBuffer[i] >= '0' && inputBuffer[i] <= '9') {
+            number = number * 10 + (inputBuffer[i] - '0');
+          } else {
+            valid = false;
+            break;
+          }
+        }
+        
+        if (valid && number > 1) {
+          resultBuffer[0] = '\0';
+          resultLen = 0;
+          
+          unsigned long temp = number;
+          bool first = true;
+          
+          auto appendFactor = [&](unsigned long factor, int count) {
+            if (resultLen >= 127) return;
+            
+            if (!first) {
+              resultBuffer[resultLen++] = '*';
+            }
+            
+            char numStr[12];
+            int numLen = 0;
+            unsigned long n = factor;
+            if (n == 0) {
+              numStr[numLen++] = '0';
+            } else {
+              while (n > 0 && numLen < 11) {
+                numStr[numLen++] = (n % 10) + '0';
+                n /= 10;
+              }
+            }
+            for (int j = 0; j < numLen / 2; j++) {
+              char t = numStr[j];
+              numStr[j] = numStr[numLen - 1 - j];
+              numStr[numLen - 1 - j] = t;
+            }
+            numStr[numLen] = '\0';
+            
+            for (int j = 0; j < numLen && resultLen < 127; j++) {
+              resultBuffer[resultLen++] = numStr[j];
+            }
+            
+            if (count > 1) {
+              if (resultLen < 127) resultBuffer[resultLen++] = '^';
+              
+              char expStr[12];
+              int expLen = 0;
+              unsigned long e = count;
+              if (e == 0) {
+                expStr[expLen++] = '0';
+              } else {
+                while (e > 0 && expLen < 11) {
+                  expStr[expLen++] = (e % 10) + '0';
+                  e /= 10;
+                }
+              }
+              for (int j = 0; j < expLen / 2; j++) {
+                char t = expStr[j];
+                expStr[j] = expStr[expLen - 1 - j];
+                expStr[expLen - 1 - j] = t;
+              }
+              expStr[expLen] = '\0';
+              
+              for (int j = 0; j < expLen && resultLen < 127; j++) {
+                resultBuffer[resultLen++] = expStr[j];
+              }
+            }
+            first = false;
+          };
+
+          int count2 = 0;
+          while (temp % 2 == 0) {
+            count2++;
+            temp /= 2;
+          }
+          if (count2 > 0) {
+            appendFactor(2, count2);
+          }
+          
+          for (unsigned long i = 3; i * i <= temp; i += 2) {
+            int count = 0;
+            while (temp % i == 0) {
+              count++;
+              temp /= i;
+            }
+            if (count > 0) {
+              appendFactor(i, count);
+            }
+          }
+          
+          if (temp > 1) {
+            appendFactor(temp, 1);
+          }
+          
+          resultBuffer[resultLen] = '\0';
+          showingResult = true;
+        } else {
+          strcpy(resultBuffer, "Error!");
+          resultLen = strlen(resultBuffer);
+          showingResult = true;
+        }
+        delay(300);
+      }
+    }
+    else if (button_is_pressed(btn6)) {
+      return;
+    }
+    delay(40);
   }
 }
