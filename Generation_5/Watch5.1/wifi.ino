@@ -1,6 +1,7 @@
 // Includes: WiFi connection, Weather data, Time display, Serial WiFi Menu, Multi-network support, Time Sync
 
-#include "Watch5.1.h"
+#include <HTTPClient.h>
+#include <ArduinoJson.h>
 
 // Clock:
 #define TIME_SETTINGS "time_settings"
@@ -17,6 +18,16 @@ extern bool button_is_pressed(int btnVal, bool onlyOnce);
 extern int btn1, btn2, btn3, btn4, btn5, btn6;
 extern bool wifiConnected;
 extern Preferences preferences;
+
+struct DictResult {
+  char word[MAX_WORD_LENGTH];
+  char phonetic[MAX_WORD_LENGTH];
+  char partOfSpeech[16];
+  char definition[256];
+  char example[256];
+  int definitionCount;
+  int currentDefinition;
+};
 
 char ssid[32] = "";
 char password[64] = "";
@@ -289,6 +300,8 @@ void wifiNetworkMenu() {
         } else {
           display.print("  ");
         }
+        display.print(i + 1);
+        display.print(": ");
         display.print(wifiNetworks[i].ssid);
         
         if (wifiConnected && i == currentWiFiIndex) {
@@ -562,9 +575,10 @@ void wifiMenu(void) {
     } else {
       display.print("Networks: ");
       display.print(wifiNetworkCount);
-      display.print("/5");
+      display.println("/5");
       display.setCursor(0, 30);
-      display.print(wifiNetworks[currentWiFiIndex].ssid);
+      display.print("Cur: ");
+      display.println(wifiNetworks[currentWiFiIndex].ssid);
       display.setCursor(0, 45);
       display.print(WiFi.RSSI());
       display.print(" dBm");
@@ -691,14 +705,23 @@ void deleteWiFiNetworkSerial() {
   }
   
   int idx = netNum - 1;
-  Serial.print("Deleting ");
+  Serial.print("Delete '");
   Serial.print(wifiNetworks[idx].ssid);
-  for (int i = idx; i < wifiNetworkCount - 1; i++) {
+  Serial.print("'? (y/n): ");
+  while (!Serial.available()) delay(10);
+  char response = Serial.read();
+  Serial.println(response);
+  
+  if (response == 'y' || response == 'Y') {
+    for (int i = idx; i < wifiNetworkCount - 1; i++) {
       wifiNetworks[i] = wifiNetworks[i + 1];
+    }
+    wifiNetworkCount--;
+    saveWiFiNetworksToNVS();
+    Serial.println("✓ Network deleted!");
+  } else {
+    Serial.println("Cancelled");
   }
-  wifiNetworkCount--;
-  saveWiFiNetworksToNVS();
-  Serial.println("✓ Network deleted!");
 }
 
 void connectWiFiSerial() {

@@ -1,12 +1,4 @@
-// Includes: Settings, tuneButtonVals, Prefs, Debug, save btn vals, chip stats
-
-#include "Watch5.1.h"
-#include <esp_system.h>
-#include <esp_cpu.h>
-#include <esp_chip_info.h>
-#include <esp_flash.h>
-#include <esp_spi_flash.h>
-#include <rom/rtc.h>
+// Includes: Settings, tuneButtonVals, Prefs, Debug
 
 extern Adafruit_GC9A01A display;
 extern void loadBtnVals();
@@ -16,6 +8,11 @@ extern int btn1, btn2, btn3, btn4, btn5, btn6;
 extern const int defBtn1, defBtn2,defBtn3,defBtn4,defBtn5,defBtn6;
 extern byte Func1, Func2, Func3;
 
+int *btnRefs[] = {&btn1, &btn2, &btn3, &btn4, &btn5, &btn6};
+const int *defBtnRefs[] = {&defBtn1, &defBtn2, &defBtn3, &defBtn4, &defBtn5, &defBtn6};
+
+const char *labels[] = {"Btn 1", "Btn 2", "Btn 3", "Btn 4", "Btn 5", "Btn 6"};
+
 void settings() {
   while (true) {
     display.fillScreen(GC9A01A_BLACK);
@@ -24,17 +21,15 @@ void settings() {
     display.println("1. Tune Btns");
     display.println("2. Preferences");
     display.println("3. Debug");
-    display.println("4. System Info");
-    display.println("5. Btn Settings");
+    display.println("4. Btn Settings");
     
     delay(50);
     
     if (button_is_pressed(btn1)) tuneButtonVals();
     else if (button_is_pressed(btn2)) prefs();
     else if (button_is_pressed(btn3)) debug();
-    else if (button_is_pressed(btn4)) chipStats();
-    else if (button_is_pressed(btn5)) btnSettings();
-    else if (button_is_pressed(btn6, true)) return;
+    else if (button_is_pressed(btn4)) btnSettings();
+    else if (button_is_pressed(btn6)) return;
   }
 }
 
@@ -222,86 +217,10 @@ void debug() {
     }
     
     // TODO: an alternative needs to be found here:
-    if (button_is_pressed(btn6, true)) {
+    if (button_is_pressed(btn6)) {
       return;
     }
     delay(100);
-  }
-}
-
-void chipStats() {
-  char lines[12][36];
-  int n = 0;
-  snprintf(lines[n++], 36, "ESP32C3 Chip Info:");
-  snprintf(lines[n++], 36, "Board: %s", ARDUINO_BOARD);
-  snprintf(lines[n++], 36, "CPU MHz: %d", getCpuFrequencyMhz());
-  snprintf(lines[n++], 36, "Flash: %luKB", ESP.getFlashChipSize() / 1024);
-  snprintf(lines[n++], 36, "Sketch: %luKB", ESP.getSketchSize() / 1024);
-  snprintf(lines[n++], 36, "Free Sketch: %luKB", ESP.getFreeSketchSpace() / 1024);
-
-  uint64_t mac64 = ESP.getEfuseMac();
-  snprintf(lines[n++], 36,
-    "MAC: %02X:%02X:%02X:%02X:%02X:%02X",
-    (uint8_t)(mac64>>40), (uint8_t)(mac64>>32), (uint8_t)(mac64>>24),
-    (uint8_t)(mac64>>16), (uint8_t)(mac64>>8), (uint8_t)mac64);
-
-  snprintf(lines[n++], 36, "Heap: %lu", ESP.getFreeHeap());
-  snprintf(lines[n++], 36, "Min Heap: %lu", ESP.getMinFreeHeap());
-  snprintf(lines[n++], 36, "Chip Rev: %d", ESP.getChipRevision());
-  snprintf(lines[n++], 36, "SDK: %s", ESP.getSdkVersion());
-
-  int scroll = 0;
-  while (true) {
-    display.fillScreen(GC9A01A_BLACK);
-    display.setTextSize(1);
-    for (int i = 0; i < 5 && i + scroll < n; i++) {
-      int y = 8 + i * 12;
-      if (y >= 10 && y < 18) y = 20; // skip gap
-      display.setCursor(0, y);
-      display.print(lines[i + scroll]);
-    }
-    display.setCursor(0, 0); display.print("System Info");
-    
-    if (button_is_pressed(btn1)) { if (scroll > 0) scroll--; delay(120); }
-    else if (button_is_pressed(btn2)) { if (scroll < n - 5) scroll++; delay(120); }
-    else if (button_is_pressed(btn3)) runtimeStats();
-    else if (button_is_pressed(btn6, true)) break;
-    delay(40);
-  }
-}
-
-void runtimeStats() {
-  while (true) {
-    unsigned long seconds = millis() / 1000;
-    unsigned long days = seconds / 86400;
-    unsigned long hrs = (seconds % 86400) / 3600;
-    unsigned long mins = (seconds % 3600) / 60;
-    unsigned long secs = seconds % 60;
-
-    display.fillScreen(GC9A01A_BLACK);
-    display.setTextSize(1);
-    int y=8;
-    display.setCursor(0,0); display.print("ESP32-C3 Runtime");
-    display.setCursor(0,y); display.printf("Uptime: %lud %luh%lum%lus", days, hrs, mins, secs); y+=12;
-    if (y >= 10 && y < 18) y = 20;
-    display.setCursor(0,y); display.printf("Heap: %lu", ESP.getFreeHeap()); y+=12;
-    if (y >= 10 && y < 18) y = 20;
-    display.setCursor(0,y); display.printf("MinHeap: %lu", ESP.getMinFreeHeap()); y+=12;
-    if (y >= 10 && y < 18) y = 20;
-    display.setCursor(0,y); display.printf("CPU MHz: %d", getCpuFrequencyMhz()); y+=12;
-    if (y >= 10 && y < 18) y = 20;
-    display.setCursor(0,y); display.print("Sketch: ");
-    display.print(ESP.getSketchSize()/1024); display.print("KB");
-    y+=12; if (y >= 10 && y < 18) y = 20;
-    display.setCursor(0,y); display.print("SketchFree: ");
-    display.print(ESP.getFreeSketchSpace()/1024); display.print("KB");
-    
-
-    unsigned long ref = millis();
-    while (millis() - ref < 950) {
-      if (button_is_pressed(btn6, true)) return;
-      delay(20);
-    }
   }
 }
 
@@ -318,6 +237,6 @@ void btnSettings(){
         *btnRefs[i] = *defBtnRefs[i];
       }
     }
-    else if (button_is_pressed(btn6, true)) return;
+    else if (button_is_pressed(btn6)) return;
   }
 }

@@ -1,5 +1,4 @@
 // Includes: Watch Funcs, Counter, Random Num, Metronome, Notes storage, Serial Notes Menu
-#include "Watch5.1.h"
 
 #define MAX_NOTES 5
 #define MAX_NOTE_LENGTH 64
@@ -10,6 +9,11 @@ extern int btn1, btn2, btn3, btn4, btn5, btn6;
 extern byte Func1, Func2, Func3;
 extern int blinkTime1, blinkTime2, blinkTime3;
 extern Preferences preferences;
+
+struct Note {
+  char text[MAX_NOTE_LENGTH];
+  bool used;
+};
 
 Note notes[MAX_NOTES];
 
@@ -40,7 +44,7 @@ void activateFunc(byte func, int blinkTime = 500){
       blink = !blink;
       if (blink) keepOn = false;
     }
-    else if (button_is_pressed(btn6, true)){
+    else if (button_is_pressed(btn6)){
       return;
     }
     
@@ -78,7 +82,7 @@ void watchFuncs(void) {
     if (button_is_pressed(btn1)) activateFunc(Func1, blinkTime1);
     else if (button_is_pressed(btn2)) activateFunc(Func2, blinkTime2);
     else if (button_is_pressed(btn3)) activateFunc(Func3, blinkTime3);
-    else if (button_is_pressed(btn6, true)) return;
+    else if (button_is_pressed(btn6)) return;
   }
 }
 
@@ -118,7 +122,7 @@ void counter(void){
       --score2;
       delay(150);
     }
-    else if (button_is_pressed(btn6, true)){
+    else if (button_is_pressed(btn6)){
       return;
     }
     delay(50);
@@ -310,7 +314,7 @@ void metronome_time_signature_menu() {
     else if (button_is_pressed(btn3)) {
       return;
     }
-    else if (button_is_pressed(btn6, true)) {
+    else if (button_is_pressed(btn6)) {
       return;
     }
   }
@@ -351,7 +355,7 @@ void metronome_subdivision_menu() {
     else if (button_is_pressed(btn3)) {
       return;
     }
-    else if (button_is_pressed(btn6, true)) {
+    else if (button_is_pressed(btn6)) {
       return;
     }
   }
@@ -543,7 +547,7 @@ void notesFunction(void) {
         viewingMode = false;
         delay(200);
       }
-      else if (button_is_pressed(btn6, true)) {
+      else if (button_is_pressed(btn6)) {
         return;
       }
     } else {
@@ -621,7 +625,7 @@ void notesFunction(void) {
             selectingChar = false;
             delay(200);
           }
-          else if (button_is_pressed(btn6, true)) {
+          else if (button_is_pressed(btn6)) {
             selectingChar = false;
             delay(200);
           }
@@ -638,7 +642,7 @@ void notesFunction(void) {
         viewingMode = true;
         delay(200);
       }
-      else if (button_is_pressed(btn6, true)) {
+      else if (button_is_pressed(btn6)) {
         viewingMode = true;
         delay(200);
       }

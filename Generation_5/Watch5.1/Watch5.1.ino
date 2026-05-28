@@ -1,11 +1,3 @@
-<<<<<<< Updated upstream
-#include "Watch5.1.h"
-
-#define DC  8
-#define RST 9
-#define CS 10
-
-=======
 // Watch 5.1: 5th gen watch - ESP32C3 with GC9A01A TFT display
 
 #include <Adafruit_GFX.h>
@@ -32,25 +24,17 @@
 
 Adafruit_GC9A01A display(TFT_CS, TFT_DC, TFT_RST);
 Preferences preferences;
->>>>>>> Stashed changes
 
 #define totalFunctions 12
 #define numSettings 5
 
-<<<<<<< Updated upstream
-Adafruit_GC9A01A display(CS, DC, RST);
-Preferences preferences;
-=======
 #define MAX_WIFI_NETWORKS 5
 #define MAX_WIFI_SSID 32
 #define MAX_WIFI_PASS 64
->>>>>>> Stashed changes
 
 const char *Functions[] = {"Outputs", "Maths", "Random", "Score", "Games", "Metronome", "Notes", "Calendar", "WiFi Menu", "WiFi Tools","Shell", "Settings"};
 const char *settingFuncs[] = {"Button Offset", "Func1 Settings", "Func2 Settings", "Func3 Settings", "Display Settings"};
 
-<<<<<<< Updated upstream
-=======
 const byte buttonPin = 2;
 
 // Default button resistance values (Ordered by frequency used)
@@ -80,7 +64,6 @@ int blinkTime2 = 1;
 int blinkTime3 = 10000;
 
 int selectedFunction = 1;
-int prevSelectedFunction = 0; 
 
 bool wifiConnected = false;
 
@@ -89,24 +72,21 @@ struct WiFiNetwork {
   char password[MAX_WIFI_PASS];
 };
 
->>>>>>> Stashed changes
 WiFiNetwork wifiNetworks[MAX_WIFI_NETWORKS];
 int wifiNetworkCount = 0;
 int currentWiFiIndex = 0;
 
-<<<<<<< Updated upstream
-=======
 unsigned long lastNavTime = 0;
 const unsigned long NAV_DEBOUNCE = 120;
 
-// Helper to check if a point is within the visible circle
-bool inCircle(int x, int y) {
-  int dx = x - SCREEN_CENTER_X;
-  int dy = y - SCREEN_CENTER_Y;
-  return (dx*dx + dy*dy) <= (SCREEN_RADIUS-2)*(SCREEN_RADIUS-2);
-}
+// PARTIAL REDRAW STATE (for flicker-free UI)
+bool staticUIdrawn = false;
+int prevFuncShown = -1;
+int oldFuncShown = -1;
+int oldSelectedFunction = -1;
+bool prevWifiConnected = false;
 
->>>>>>> Stashed changes
+// BUTTONS
 bool button_is_pressed(int btnVal, bool onlyOnce = false) {
   int pinVal = analogRead(buttonPin) - buttonOffset;
   int errorVal = pinVal - btnVal;
@@ -131,80 +111,223 @@ bool a_button_is_pressed(){
   return (analogRead(buttonPin) != 4095);
 }
 
+// MAIN UI (flicker-free, round, modern)
 void drawMainUI() {
-  display.fillScreen(GC9A01A_BLACK);
-
-  display.fillCircle(SCREEN_CENTER_X, SCREEN_CENTER_Y, SCREEN_RADIUS, GC9A01A_BLACK);
-
-  display.drawCircle(SCREEN_CENTER_X, SCREEN_CENTER_Y, SCREEN_RADIUS-1, GC9A01A_WHITE);
-  display.drawCircle(SCREEN_CENTER_X, SCREEN_CENTER_Y, SCREEN_RADIUS-2, GC9A01A_DARKGREY);
-
-  int headerY = 42;
   int headerR = SCREEN_RADIUS-24;
-  display.drawCircle(SCREEN_CENTER_X, SCREEN_CENTER_Y, headerR, GC9A01A_NAVY);
 
-  display.setTextColor(GC9A01A_WHITE);
-  display.setTextSize(2);
-  int16_t x1, y1;
-  uint16_t w, h;
+  // --- Draw static UI only once ---
+  if (!staticUIdrawn) {
+    display.fillScreen(GC9A01A_BLACK);
+    display.fillCircle(SCREEN_CENTER_X, SCREEN_CENTER_Y, SCREEN_RADIUS, GC9A01A_BLACK);
+    display.drawCircle(SCREEN_CENTER_X, SCREEN_CENTER_Y, SCREEN_RADIUS-1, GC9A01A_WHITE);
+    display.drawCircle(SCREEN_CENTER_X, SCREEN_CENTER_Y, SCREEN_RADIUS-2, GC9A01A_DARKGREY);
+    display.drawCircle(SCREEN_CENTER_X, SCREEN_CENTER_Y, headerR, GC9A01A_NAVY);
+    display.setTextSize(2);
+    display.setTextColor(GC9A01A_WHITE);
+    int16_t x1, y1; uint16_t w, h;
+    String title = "Watch 5.1";
+    display.getTextBounds(title, 0, 0, &x1, &y1, &w, &h);
+    display.setCursor(SCREEN_CENTER_X - w/2, 20);
+    display.print(title);
+    // "< SEL >" label
+    display.setTextSize(1);
+    display.setTextColor(GC9A01A_WHITE);
+    display.getTextBounds("< SEL >", 0,0, &x1,&y1,&w,&h);
+    display.setCursor(SCREEN_CENTER_X - w/2, SCREEN_HEIGHT-25);
+    display.print("< SEL >");
+    staticUIdrawn = true;
+    prevWifiConnected = !wifiConnected; // force first WiFi draw
+    prevFuncShown = -1;
+    oldFuncShown = -1;
+    oldSelectedFunction = -1;
+  }
 
-  if (wifiConnected) {
+  // --- Dynamic: WiFi indicator ---
+  if (wifiConnected != prevWifiConnected) {
+    display.fillRect(SCREEN_CENTER_X + headerR - 30, 18, 38, 10, GC9A01A_BLACK); // erase old
     display.setTextSize(1);
     display.setCursor(SCREEN_CENTER_X + headerR - 30, 18);
-    display.setTextColor(GC9A01A_GREEN);
-    display.print("WiFi");
+    display.setTextColor(wifiConnected ? GC9A01A_GREEN : GC9A01A_BLACK);
+    if (wifiConnected) display.print("WiFi");
+    prevWifiConnected = wifiConnected;
   }
 
-  display.setTextColor(GC9A01A_CYAN);
-  display.setTextSize(1);
-  display.setCursor(SCREEN_CENTER_X - 12, 150);
-  display.print("[");
-  if (selectedFunction < 10) display.print("0");
-  display.print(selectedFunction);
-  display.print("]");
-  display.setTextColor(GC9A01A_WHITE);
+  // --- Dynamic: Function number bar ---
+  if (selectedFunction != prevFuncShown) {
+    display.fillRect(SCREEN_CENTER_X - headerR + 12, 18, 35, 10, GC9A01A_BLACK); // erase
+    display.setTextSize(1);
+    display.setTextColor(GC9A01A_CYAN);
+    display.setCursor(SCREEN_CENTER_X - headerR + 12, 18);
+    display.print("[");
+    if (selectedFunction < 10) display.print("0");
+    display.print(selectedFunction);
+    display.print("]");
+    prevFuncShown = selectedFunction;
+  }
 
-  // Draw function title in the "middle"
-  display.setTextSize(2);
-  display.getTextBounds(Functions[selectedFunction-1], 0, 0, &x1, &y1, &w, &h);
-  display.setCursor(SCREEN_CENTER_X - w/2, 120);
-  display.setTextColor(GC9A01A_WHITE);
-  display.print(Functions[selectedFunction-1]);
+  // --- Dynamic: Function name (center) ---
+  if (oldFuncShown != selectedFunction) {
+    display.fillRect(10, 76, SCREEN_WIDTH-20, 22, GC9A01A_BLACK);
+    String fname = Functions[selectedFunction-1];
+    display.setTextSize(2);
+    int16_t x1, y1;
+    uint16_t w, h;
+    display.getTextBounds(fname, 0, 0, &x1, &y1, &w, &h);
+    display.setCursor(SCREEN_CENTER_X - w/2, 76);
+    display.setTextColor(GC9A01A_WHITE);
+    display.print(fname);
+    oldFuncShown = selectedFunction;
+  }
 
-  // Draw selector bar at bottom (with arc)
-  int barY = SCREEN_HEIGHT - 40;
-  int barW = 120;
-  int barH = 28;
-
-  // Draw arc to represent current function position
-  float arcStart = -120.0;
-  float arcEnd   = 120.0;
-  float arcSpan  = arcEnd - arcStart;
-
-  for (int i=0; i<totalFunctions; i++) {
-    float angle = (arcStart + arcSpan * i/(float)(totalFunctions-1)) * 3.1416 / 180.0;
+  // --- Dynamic: Selector bar (arcs/circles along bottom) ---
+  if (selectedFunction != oldSelectedFunction) {
+    float arcStart = -120.0;
+    float arcEnd = 120.0;
+    float arcSpan = arcEnd - arcStart;
+    for (int i=0; i<totalFunctions; i++) {
+      float angle = (arcStart + arcSpan * i/(float)(totalFunctions-1)) * 3.1416 / 180.0;
+      int cx = SCREEN_CENTER_X + cos(angle)*(headerR-8);
+      int cy = SCREEN_CENTER_Y + sin(angle)*(headerR-8);
+      display.fillCircle(cx, cy, 8, GC9A01A_BLACK); // erase previous
+      display.drawCircle(cx, cy, 5, GC9A01A_DARKGREY); // draw all as grey
+    }
+    // Draw highlight
+    float angle = (arcStart + arcSpan * (selectedFunction-1)/(float)(totalFunctions-1)) * 3.1416 / 180.0;
     int cx = SCREEN_CENTER_X + cos(angle)*(headerR-8);
     int cy = SCREEN_CENTER_Y + sin(angle)*(headerR-8);
-    if (i+1 == selectedFunction)
-      display.fillCircle(cx, cy, 7, GC9A01A_YELLOW);
-    else
-      display.drawCircle(cx, cy, 5, GC9A01A_DARKGREY);
+    display.fillCircle(cx, cy, 7, GC9A01A_YELLOW);
+    oldSelectedFunction = selectedFunction;
   }
-  
-  // Draw selector
-  display.setTextSize(1);
-  display.setTextColor(GC9A01A_WHITE);
-  display.getTextBounds("< SEL >", 0,0, &x1, &y1, &w, &h);
-  display.setCursor(SCREEN_CENTER_X - w/2, SCREEN_HEIGHT-15);
-  display.print("< SEL >");
 }
 
-void updateMainUI() {
-  if (selectedFunction != prevSelectedFunction) {
-    drawMainUI();
-    prevSelectedFunction = selectedFunction;
+// FLICKER-FREE ROUND LOADING UI
+void timeSyncAndUI() {
+  if (wifiNetworkCount == 0) {
+    delay(2000);
+    return;
   }
+
+  display.fillScreen(GC9A01A_BLACK);
+  display.fillCircle(SCREEN_CENTER_X, SCREEN_CENTER_Y, SCREEN_RADIUS, GC9A01A_BLACK);
+  display.setTextSize(1);
+  display.setTextColor(GC9A01A_WHITE);
+  String msg = "INITIALIZING";
+  int16_t x1, y1; uint16_t w, h;
+  display.getTextBounds(msg, 0, 0, &x1, &y1, &w, &h);
+  display.setCursor(SCREEN_CENTER_X - w / 2, SCREEN_CENTER_Y - 34);
+  display.print(msg);
+
+  for (int wifiIndex = 0; wifiIndex < wifiNetworkCount; wifiIndex++) {
+    if (WiFi.status() == WL_CONNECTED) {
+      configTime(0, 0, "pool.ntp.org", "time.nist.gov");
+      break;
+    }
+
+    WiFi.begin(wifiNetworks[wifiIndex].ssid, wifiNetworks[wifiIndex].password);
+
+    int totalSteps = 100;
+    int currentStep = 0;
+    int attempts = 0;
+    unsigned long startTime = millis();
+    unsigned long timeout = 10000;
+    int lastPercentDrawn = -1;
+
+    while (WiFi.status() != WL_CONNECTED && attempts < 20) {
+      if (button_is_pressed(btn6)) {
+        WiFi.disconnect();
+        return;
+      }
+      delay(500);
+      attempts++;
+      currentStep = min(totalSteps - 10, (int)((millis() - startTime) * totalSteps / timeout));
+
+      // Only redraw if changed!
+      if (currentStep != lastPercentDrawn) {
+        // Erase dots, arc, percent area only
+        display.fillRect(SCREEN_CENTER_X-30, SCREEN_CENTER_Y-16, 60, 10, GC9A01A_BLACK);
+
+        int dotCount = (attempts / 2) % 4;
+        display.setTextSize(1);
+        display.setTextColor(GC9A01A_WHITE);
+        display.setCursor(SCREEN_CENTER_X-12, SCREEN_CENTER_Y - 16);
+        for (int i = 0; i < dotCount; i++) display.print(".");
+
+        // Erase & redraw progress arc
+        const int arc_radius = SCREEN_RADIUS - 12;
+        const int arc_thickness = 10;
+        const float start_angle = 200.0, end_angle = -20.0;
+        float percent = currentStep * 1.0 / totalSteps;
+        float prog_end = start_angle + (end_angle - start_angle) * percent;
+
+        // Erase arc+percent area
+        display.fillRect(SCREEN_CENTER_X-62, SCREEN_HEIGHT-54, 124, 40, GC9A01A_BLACK);
+
+        // Arc background
+        for (float a = start_angle; a >= end_angle; a -= 2) {
+          float rad = a * 3.14159 / 180.0;
+          int x1a = SCREEN_CENTER_X + cos(rad) * (arc_radius - arc_thickness/2);
+          int y1a = SCREEN_CENTER_Y + sin(rad) * (arc_radius - arc_thickness/2);
+          int x2a = SCREEN_CENTER_X + cos(rad) * (arc_radius + arc_thickness/2);
+          int y2a = SCREEN_CENTER_Y + sin(rad) * (arc_radius + arc_thickness/2);
+          display.drawLine(x1a, y1a, x2a, y2a, GC9A01A_DARKGREY);
+        }
+        // Progress arc
+        for (float a = start_angle; a >= prog_end; a -= 2) {
+          float rad = a * 3.14159 / 180.0;
+          int x1a = SCREEN_CENTER_X + cos(rad) * (arc_radius - arc_thickness / 2);
+          int y1a = SCREEN_CENTER_Y + sin(rad) * (arc_radius - arc_thickness / 2);
+          int x2a = SCREEN_CENTER_X + cos(rad) * (arc_radius + arc_thickness / 2);
+          int y2a = SCREEN_CENTER_Y + sin(rad) * (arc_radius + arc_thickness / 2);
+          display.drawLine(x1a, y1a, x2a, y2a, GC9A01A_CYAN);
+        }
+
+        // Redraw progress percent
+        char percentStr[8];
+        sprintf(percentStr, "%3d%%", currentStep);
+        display.setTextSize(2);
+        display.setTextColor(GC9A01A_WHITE);
+        display.getTextBounds(percentStr, 0, 0, &x1, &y1, &w, &h);
+        display.setCursor(SCREEN_CENTER_X - w / 2, SCREEN_HEIGHT - 38);
+        display.print(percentStr);
+
+        lastPercentDrawn = currentStep;
+      }
+    }
+    if (WiFi.status() == WL_CONNECTED) {
+      wifiConnected = true;
+      configTime(0, 0, "pool.ntp.org", "time.nist.gov");
+      break;
+    }
+  }
+
+  // Draw 100% arc and label
+  display.fillRect(SCREEN_CENTER_X-62, SCREEN_HEIGHT-54, 124, 40, GC9A01A_BLACK);
+  const int arc_radius = SCREEN_RADIUS - 12;
+  const int arc_thickness = 10;
+  const float start_angle = 200.0;
+  const float end_angle = -20.0;
+  for (float a = start_angle; a >= end_angle; a -= 2) {
+    float rad = a * 3.14159 / 180.0;
+    int x1a = SCREEN_CENTER_X + cos(rad) * (arc_radius - arc_thickness / 2);
+    int y1a = SCREEN_CENTER_Y + sin(rad) * (arc_radius - arc_thickness / 2);
+    int x2a = SCREEN_CENTER_X + cos(rad) * (arc_radius + arc_thickness / 2);
+    int y2a = SCREEN_CENTER_Y + sin(rad) * (arc_radius + arc_thickness / 2);
+    display.drawLine(x1a, y1a, x2a, y2a, GC9A01A_CYAN);
+  }
+  char percentStr[8];
+  sprintf(percentStr, "%3d%%", 100);
+  display.setTextSize(2);
+  display.setTextColor(GC9A01A_WHITE);
+  display.getTextBounds(percentStr, 0, 0, &x1, &y1, &w, &h);
+  display.setCursor(SCREEN_CENTER_X - w / 2, SCREEN_HEIGHT - 38);
+  display.print(percentStr);
+
+  wifiConnected = false;
+  WiFi.disconnect();
+  delay(500);
 }
+
+// --- BUTTON CALIBRATION AND STORAGE ---
 
 void saveBtnVals() {
   preferences.begin("btns", false);
@@ -237,141 +360,6 @@ void randomiseMac(){
   esp_wifi_set_mac(WIFI_IF_STA, mac);
 }
 
-void timeSyncAndUI() {
-  if (wifiNetworkCount == 0) {
-    delay(2000);
-    return;
-  }
-
-  int totalSteps = 100;
-  int currentStep = 0;
-  unsigned long startTime = millis();
-  unsigned long timeout = 10000;
-
-  for (int wifiIndex = 0; wifiIndex < wifiNetworkCount; wifiIndex++) {
-    if (WiFi.status() == WL_CONNECTED) {
-      configTime(0, 0, "pool.ntp.org", "time.nist.gov");
-      break;
-    }
-
-    WiFi.begin(wifiNetworks[wifiIndex].ssid, wifiNetworks[wifiIndex].password);
-
-    int attempts = 0;
-    while (WiFi.status() != WL_CONNECTED && attempts < 20) {
-<<<<<<< Updated upstream
-      if (button_is_pressed(btn6, true)) {
-=======
-      // Allow escape if a skip button is pressed
-      if (button_is_pressed(btn6)) {
->>>>>>> Stashed changes
-        WiFi.disconnect();
-        return;
-      }
-
-      delay(500);
-      attempts++;
-      currentStep = min(totalSteps - 10, (int)((millis() - startTime) * totalSteps / timeout));
-
-      display.fillScreen(GC9A01A_BLACK);
-      display.fillCircle(SCREEN_CENTER_X, SCREEN_CENTER_Y, SCREEN_RADIUS, GC9A01A_BLACK);
-
-      display.setTextSize(1);
-      display.setTextColor(GC9A01A_WHITE);
-
-      String msg = "INITIALIZING";
-      int16_t x1, y1;
-      uint16_t w, h;
-      display.getTextBounds(msg, 0, 0, &x1, &y1, &w, &h);
-      display.setCursor(SCREEN_CENTER_X - w / 2, SCREEN_CENTER_Y - 34);
-      display.print(msg);
-
-      int dotCount = (attempts / 2) % 4;
-      display.setCursor(SCREEN_CENTER_X - 12, SCREEN_CENTER_Y - 16);
-      for (int i = 0; i < dotCount; i++) display.print(".");
-
-      const int arc_radius = SCREEN_RADIUS - 12;
-      const int arc_thickness = 10;
-      const float start_angle = 200.0;   // left bottom, degrees
-      const float end_angle = -20.0;     // right bottom, degrees
-
-      for (float a = start_angle; a >= end_angle; a -= 2) {
-        float rad = a * 3.14159 / 180.0;
-        int x1a = SCREEN_CENTER_X + cos(rad) * (arc_radius - arc_thickness / 2);
-        int y1a = SCREEN_CENTER_Y + sin(rad) * (arc_radius - arc_thickness / 2);
-        int x2a = SCREEN_CENTER_X + cos(rad) * (arc_radius + arc_thickness / 2);
-        int y2a = SCREEN_CENTER_Y + sin(rad) * (arc_radius + arc_thickness / 2);
-        display.drawLine(x1a, y1a, x2a, y2a, GC9A01A_DARKGREY);
-      }
-
-      float percent = currentStep * 1.0 / totalSteps;
-      float prog_end = start_angle + (end_angle - start_angle) * percent;
-      for (float a = start_angle; a >= prog_end; a -= 2) {
-        float rad = a * 3.14159 / 180.0;
-        int x1a = SCREEN_CENTER_X + cos(rad) * (arc_radius - arc_thickness / 2);
-        int y1a = SCREEN_CENTER_Y + sin(rad) * (arc_radius - arc_thickness / 2);
-        int x2a = SCREEN_CENTER_X + cos(rad) * (arc_radius + arc_thickness / 2);
-        int y2a = SCREEN_CENTER_Y + sin(rad) * (arc_radius + arc_thickness / 2);
-        display.drawLine(x1a, y1a, x2a, y2a, GC9A01A_CYAN);
-      }
-
-      char percentStr[8];
-      sprintf(percentStr, "%3d%%", currentStep);
-      display.setTextSize(2);
-      display.setTextColor(GC9A01A_WHITE);
-      display.getTextBounds(percentStr, 0, 0, &x1, &y1, &w, &h);
-      display.setCursor(SCREEN_CENTER_X - w / 2, SCREEN_HEIGHT - 38);
-      display.print(percentStr);
-    }
-
-    if (WiFi.status() == WL_CONNECTED) {
-      wifiConnected = true;
-      configTime(0, 0, "pool.ntp.org", "time.nist.gov");
-      break;
-    }
-  }
-
-  display.fillScreen(GC9A01A_BLACK);
-  display.fillCircle(SCREEN_CENTER_X, SCREEN_CENTER_Y, SCREEN_RADIUS, GC9A01A_BLACK);
-
-  display.setTextSize(1);
-  display.setTextColor(GC9A01A_WHITE);
-
-  String msg = "INITIALIZING";
-  int16_t x1, y1;
-  uint16_t w, h;
-  display.getTextBounds(msg, 0, 0, &x1, &y1, &w, &h);
-  display.setCursor(SCREEN_CENTER_X - w / 2, SCREEN_CENTER_Y - 12);
-  display.print(msg);
-  display.print(".");
-
-  // Progress arc (full)
-  const int arc_radius = SCREEN_RADIUS - 12;
-  const int arc_thickness = 10;
-  const float start_angle = 200.0;
-  const float end_angle = -20.0;
-  for (float a = start_angle; a >= end_angle; a -= 2) {
-    float rad = a * 3.14159 / 180.0;
-    int x1a = SCREEN_CENTER_X + cos(rad) * (arc_radius - arc_thickness / 2);
-    int y1a = SCREEN_CENTER_Y + sin(rad) * (arc_radius - arc_thickness / 2);
-    int x2a = SCREEN_CENTER_X + cos(rad) * (arc_radius + arc_thickness / 2);
-    int y2a = SCREEN_CENTER_Y + sin(rad) * (arc_radius + arc_thickness / 2);
-    display.drawLine(x1a, y1a, x2a, y2a, GC9A01A_CYAN);
-  }
-
-  char percentStr[8];
-  sprintf(percentStr, "%3d%%", 100);
-  display.setTextSize(2);
-  display.setTextColor(GC9A01A_WHITE);
-  display.getTextBounds(percentStr, 0, 0, &x1, &y1, &w, &h);
-  display.setCursor(SCREEN_CENTER_X - w / 2, SCREEN_HEIGHT - 38);
-  display.print(percentStr);
-  // ---------------------------------------------------------
-
-  wifiConnected = false;
-  WiFi.disconnect();
-  delay(500);
-}
-
 void setup() {
   pinMode(buttonPin, INPUT_PULLUP);
   pinMode(Func1, OUTPUT);
@@ -399,8 +387,8 @@ void setup() {
     tuneButtonVals();
   }
 
+  // Draw main UI at the start
   drawMainUI();
-  prevSelectedFunction = selectedFunction;
 }
 
 void loop() {
@@ -425,24 +413,22 @@ void loop() {
 
   checkCalendarAlarms();
 
-  updateMainUI();
+  drawMainUI(); // only updates what is needed
 
   unsigned long now = millis();
 
-  if (button_is_pressed(btn4) && (now - lastNavTime) > NAV_DEBOUNCE) {
+  if (button_is_pressed(btn2) && (now - lastNavTime) > NAV_DEBOUNCE) {
     selectedFunction++;
     if (selectedFunction > totalFunctions) selectedFunction = 1;
     lastNavTime = now;
   } 
-  else if (button_is_pressed(btn6) && (now - lastNavTime) > NAV_DEBOUNCE) {
+  else if (button_is_pressed(btn1) && (now - lastNavTime) > NAV_DEBOUNCE) {
     selectedFunction--;
     if (selectedFunction < 1) selectedFunction = totalFunctions;
     lastNavTime = now;
   } 
-  else if (button_is_pressed(btn5, true)) {
+  else if (button_is_pressed(btn3)) {
     delay(100);
-    int prevSel = selectedFunction;
-    bool prevWifi = wifiConnected;
     switch (selectedFunction) {
       case 1: watchFuncs(); break;
       case 2: maths(); break;
@@ -457,5 +443,6 @@ void loop() {
       case 11: shell(); break;
       case 12: settings(); break;
     }
+    staticUIdrawn = false; // force redraw when returning to UI
   }
 }

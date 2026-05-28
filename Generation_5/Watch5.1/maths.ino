@@ -1,6 +1,5 @@
 // Includes: Calculator, Unit Converter, Graph Plotter
 
-#include "Watch5.1.h"
 #include "tinyexpr.h"
 
 extern Adafruit_GC9A01A display;
@@ -10,12 +9,9 @@ extern const byte buttonPin;
 extern byte Func1;
 extern int buttonOffset;
 
-<<<<<<< Updated upstream
-=======
 #define SCREEN_WIDTH 128
 #define SCREEN_HEIGHT 64
 
->>>>>>> Stashed changes
 #define MAX_NUMBER_LENGTH 64
 
 #define totalMathsFunctions 6
@@ -57,23 +53,10 @@ void maths(void) {
     else if (button_is_pressed(btn1)) {
       selectedMathsFunction--;
       if (selectedMathsFunction < 1) selectedMathsFunction = totalMathsFunctions;
-<<<<<<< Updated upstream
-      lastSelected = -999;
-    } else if (button_is_pressed(btn6, true)) return;
-=======
     } 
     else if (button_is_pressed(btn6)) return;
->>>>>>> Stashed changes
     else if (button_is_pressed(btn3)) {
       switch (selectedMathsFunction) {
-<<<<<<< Updated upstream
-        case 1: calculator(); break;
-        case 2: unitConverter(); break;
-        case 3: baseConverter(); break;
-        case 4: graphPlotter(); break;
-        case 5: //matrixCalculator(); break;
-        case 6: primeFactorisation(); break;
-=======
         case 1:
           calculator();
           break;
@@ -92,7 +75,6 @@ void maths(void) {
         case 6:
           primeFactorisation();
           break;
->>>>>>> Stashed changes
       }
     }
   }
@@ -186,12 +168,8 @@ void calculator() {
       onScreen1 = !onScreen1;
       selected = 0;
       delay(120);
-<<<<<<< Updated upstream
-    } else if (button_is_pressed(btn6, true)) {
-=======
     }
     else if (button_is_pressed(btn6)) {
->>>>>>> Stashed changes
       if (showResult) return;
       int err;
       te_variable vars[] = {};
@@ -211,165 +189,6 @@ void calculator() {
   }
 }
 
-<<<<<<< Updated upstream
-// -------------------------------------- UNIT CONVERTER --------------------------------------
-void unitConverter(void) {
-  const char* types[] = {
-    "cm->in", "in->cm", "C->F", "F->C", "kg->lb", "lb->kg", "km->mi", "mi->km", "g->oz", "oz->g", "L->gal", "gal->L"
-  };
-  enum { LEN = 0,
-         LEN2,
-         TEMP,
-         TEMP2,
-         WT,
-         WT2,
-         KM_MI,
-         MI_KM,
-         G_OZ,
-         OZ_G,
-         L_GAL,
-         GAL_L };
-  const int numTypes = sizeof(types) / sizeof(types[0]);
-  int selectedType = 0;
-  float inputValue = 0;
-  bool enteringValue = true;
-  float result = 0;
-
-  while (true) {
-    display.fillScreen(COLOR_BG);
-    display.drawCircle(SCREEN_CENTER_X, SCREEN_CENTER_Y, SCREEN_RADIUS - 8, COLOR_ACCENT);
-
-    // Type selector as radial dots
-    for (int i = 0; i < numTypes; i++) {
-      float angle = (2 * PI * i / numTypes) - PI / 2;
-      int rDots = SCREEN_RADIUS - 32;
-      int dotX = SCREEN_CENTER_X + (int)(rDots * cos(angle));
-      int dotY = SCREEN_CENTER_Y + (int)(rDots * sin(angle));
-      display.fillCircle(dotX, dotY, i == selectedType ? 7 : 4, i == selectedType ? COLOR_SELECTED : COLOR_UNSELECTED);
-    }
-
-    display.setTextColor(COLOR_FG);
-    display.setTextSize(2);
-    display.setCursor(SCREEN_CENTER_X - STR_W("UnitConv", 2) / 2, 40);
-    display.print("UnitConv");
-
-    display.setTextColor(COLOR_ACCENT);
-    display.setTextSize(1);
-    display.setCursor(SCREEN_CENTER_X - STR_W(types[selectedType], 1) / 2, 72);
-    display.print(types[selectedType]);
-
-    display.setTextColor(COLOR_FG);
-    display.setTextSize(1);
-    display.setCursor(SCREEN_CENTER_X - 40, SCREEN_CENTER_Y + 4);
-    display.print("In: ");
-    display.setTextSize(2);
-    display.print(inputValue, 2);
-
-    if (!enteringValue) {
-      display.setTextSize(1);
-      display.setCursor(SCREEN_CENTER_X - 40, SCREEN_CENTER_Y + 24);
-      display.print("= ");
-      display.setTextSize(2);
-      display.print(result, 4);
-    }
-
-    display.setTextColor(COLOR_ACCENT);
-    display.setTextSize(1);
-    const char* hint = "1/2:Type +/- 3:Conv 6:Back";
-    display.setCursor(SCREEN_CENTER_X - STR_W(hint, 1) / 2, SCREEN_HEIGHT - 28);
-    display.print(hint);
-
-    if (button_is_pressed(btn1)) {
-      selectedType = (selectedType - 1 + numTypes) % numTypes;
-      enteringValue = true;
-      delay(200);
-    } else if (button_is_pressed(btn2)) {
-      selectedType = (selectedType + 1) % numTypes;
-      enteringValue = true;
-      delay(200);
-    } else if (button_is_pressed(btn4)) {
-      if (enteringValue) inputValue--;
-      delay(100);
-    } else if (button_is_pressed(btn5)) {
-      if (enteringValue) inputValue++;
-      delay(100);
-    } else if (button_is_pressed(btn3)) {
-      switch (selectedType) {
-        case LEN: result = inputValue / 2.54; break;
-        case LEN2: result = inputValue * 2.54; break;
-        case TEMP: result = inputValue * 9.0 / 5.0 + 32.0; break;
-        case TEMP2: result = (inputValue - 32.0) * 5.0 / 9.0; break;
-        case WT: result = inputValue * 2.20462; break;
-        case WT2: result = inputValue / 2.20462; break;
-        case KM_MI: result = inputValue * 0.621371; break;
-        case MI_KM: result = inputValue / 0.621371; break;
-        case G_OZ: result = inputValue * 0.035274; break;
-        case OZ_G: result = inputValue / 0.035274; break;
-        case L_GAL: result = inputValue * 0.264172; break;
-        case GAL_L: result = inputValue / 0.264172; break;
-      }
-      enteringValue = false;
-      delay(300);
-    } else if (button_is_pressed(btn6, true)) {
-      return;
-    }
-    delay(30);
-  }
-}
-
-// -------------------------------------- BASE CONVERTER --------------------------------------
-const char* baseCharsets[] = {
-  "", "", "01", "012", "0123", "01234", "012345", "0123456", "01234567", "012345678", "0123456789", "0123456789A", "0123456789AB", "0123456789ABC", "0123456789ABCD", "0123456789ABCDE", "0123456789ABCDEF"
-};
-void inputNum(char* buffer, int maxLen, int base);
-void convertAndDisplay(const char* number, int sourceBase, int targetBase);
-
-void baseConverter(void) {
-  int sourceBase = 10;
-  int targetBase = 16;
-  char inputNumber[MAX_NUMBER_LENGTH] = "";
-
-  while (true) {
-    display.fillScreen(COLOR_BG);
-    display.drawCircle(SCREEN_CENTER_X, SCREEN_CENTER_Y, SCREEN_RADIUS - 8, COLOR_ACCENT);
-
-    display.setTextColor(COLOR_FG);
-    display.setTextSize(2);
-    display.setCursor(SCREEN_CENTER_X - STR_W("BaseConv", 2) / 2, 32);
-    display.print("BaseConv");
-
-    display.setTextColor(COLOR_ACCENT);
-    display.setTextSize(1);
-    char buf[20];
-    sprintf(buf, "%d -> %d", sourceBase, targetBase);
-    display.setCursor(SCREEN_CENTER_X - STR_W(buf, 1) / 2, 62);
-    display.print(buf);
-
-    display.setTextSize(1);
-    display.setTextColor(COLOR_FG);
-    display.setCursor(SCREEN_CENTER_X - 60, 90);
-    display.print("Num: ");
-    display.print(inputNumber[0] ? inputNumber : "_");
-
-    const char* hint = "3:SetBase 4:Conv 5:Input 6:Back";
-    display.setTextColor(COLOR_ACCENT);
-    display.setCursor(SCREEN_CENTER_X - STR_W(hint, 1) / 2, SCREEN_HEIGHT - 28);
-    display.print(hint);
-
-    if (button_is_pressed(btn3)) {
-      // Select base
-      int sel = 0, tmpSrc = sourceBase, tmpTgt = targetBase;
-      while (true) {
-        display.fillScreen(COLOR_BG);
-        display.setTextColor(COLOR_ACCENT);
-        display.setTextSize(2);
-        display.setCursor(SCREEN_CENTER_X - 52, 80);
-        display.print("SRC:");
-        display.print(tmpSrc);
-        display.setCursor(SCREEN_CENTER_X + 12, 80);
-        display.print("DST:");
-        display.print(tmpTgt);
-=======
 void unitConverter(void){
     const char* types[] ={
         "cm->in", "in->cm",
@@ -387,146 +206,10 @@ void unitConverter(void){
     float result = 0;
     int selMinus;
     int absSel;
->>>>>>> Stashed changes
 
     while (true){
         display.fillScreen(GC9A01A_BLACK);
         display.setTextSize(1);
-<<<<<<< Updated upstream
-        display.setCursor(SCREEN_CENTER_X - 70, SCREEN_CENTER_Y + 28);
-        display.print(sel == 0 ? "^      " : "       ");
-        display.setCursor(SCREEN_CENTER_X + 38, SCREEN_CENTER_Y + 28);
-        display.print(sel == 1 ? "^" : " ");
-        display.setCursor(SCREEN_CENTER_X - 64, SCREEN_HEIGHT - 28);
-        display.print("2/1:Sel 4/5:+- 3:Ok 6:Back");
-
-        if (button_is_pressed(btn2)) {
-          sel = (sel + 1) % 2;
-          delay(120);
-        } else if (button_is_pressed(btn1)) {
-          sel = (sel - 1 + 2) % 2;
-          delay(120);
-        } else if (button_is_pressed(btn4)) {
-          if (sel == 0) tmpSrc = tmpSrc > 2 ? tmpSrc - 1 : 16;
-          else tmpTgt = tmpTgt > 2 ? tmpTgt - 1 : 16;
-          delay(100);
-        } else if (button_is_pressed(btn5)) {
-          if (sel == 0) tmpSrc = tmpSrc < 16 ? tmpSrc + 1 : 2;
-          else tmpTgt = tmpTgt < 16 ? tmpTgt + 1 : 2;
-          delay(100);
-        } else if (button_is_pressed(btn3)) {
-          sourceBase = tmpSrc;
-          targetBase = tmpTgt;
-          break;
-        } else if (button_is_pressed(btn6, true)) break;
-        delay(20);
-      }
-    } else if (button_is_pressed(btn4)) {  // Convert!
-      if (strlen(inputNumber) > 0) convertAndDisplay(inputNumber, sourceBase, targetBase);
-      delay(200);
-    } else if (button_is_pressed(btn5)) {
-      inputNum(inputNumber, MAX_NUMBER_LENGTH, sourceBase);
-      delay(200);
-    } else if (button_is_pressed(btn6, true)) return;
-    delay(30);
-  }
-}
-
-void inputNum(char* buffer, int maxLen, int base) {
-  buffer[0] = '\0';
-  int charIndex = 0;
-  const char* charset = baseCharsets[base];
-  int charsetSize = strlen(charset);
-  while (true) {
-    display.fillScreen(COLOR_BG);
-    display.setTextColor(COLOR_FG);
-    display.setTextSize(2);
-    display.setCursor(SCREEN_CENTER_X - 44, 50);
-    display.print(">");
-    display.print(buffer[0] ? buffer : "_");
-    display.print("<");
-    display.setTextSize(1);
-    display.setTextColor(COLOR_ACCENT);
-    display.setCursor(SCREEN_CENTER_X - 34, 90);
-    display.printf("Add:%c", charset[charIndex]);
-    display.setCursor(SCREEN_CENTER_X - 52, SCREEN_HEIGHT - 32);
-    display.print("1/2:Digit 3:OK 4:DEL 5:CLR 6:Back");
-    if (button_is_pressed(btn1)) {
-      charIndex = (charIndex - 1 + charsetSize) % charsetSize;
-      delay(70);
-    } else if (button_is_pressed(btn2)) {
-      charIndex = (charIndex + 1) % charsetSize;
-      delay(70);
-    } else if (button_is_pressed(btn3)) {
-      int l = strlen(buffer);
-      if (l < maxLen - 1) {
-        buffer[l] = charset[charIndex];
-        buffer[l + 1] = '\0';
-      }
-      delay(100);
-    } else if (button_is_pressed(btn4)) {
-      int l = strlen(buffer);
-      if (l) buffer[l - 1] = '\0';
-      delay(90);
-    } else if (button_is_pressed(btn5)) {
-      buffer[0] = '\0';
-      delay(80);
-    } else if (button_is_pressed(btn6, true)) return;
-    delay(20);
-  }
-}
-
-void convertAndDisplay(const char* number, int sourceBase, int targetBase) {
-  unsigned long decimalValue = 0;
-  const char* charset = baseCharsets[sourceBase];
-  for (int i = 0; i < strlen(number); i++) {
-    char c = toupper(number[i]);
-    if (!strchr(charset, c)) {
-      display.fillScreen(COLOR_ERROR);
-      display.setTextColor(COLOR_FG);
-      display.setTextSize(2);
-      display.setCursor(SCREEN_CENTER_X - 64, SCREEN_CENTER_Y - 6);
-      display.print("Invalid");
-      delay(1200);
-      return;
-    }
-  }
-  for (int i = 0; i < strlen(number); i++) {
-    char c = toupper(number[i]);
-    int digit = (c >= '0' && c <= '9') ? (c - '0') : (c - 'A' + 10);
-    decimalValue = decimalValue * sourceBase + digit;
-  }
-  char result[MAX_NUMBER_LENGTH] = "";
-  if (decimalValue == 0) strcpy(result, "0");
-  else {
-    char temp[MAX_NUMBER_LENGTH] = "";
-    int idx = 0;
-    unsigned long val = decimalValue;
-    while (val) {
-      int rem = val % targetBase;
-      temp[idx++] = baseCharsets[targetBase][rem];
-      val /= targetBase;
-    }
-    for (int i = 0; i < idx; i++) result[i] = temp[idx - 1 - i];
-    result[idx] = '\0';
-  }
-  while (1) {
-    display.fillScreen(COLOR_BG);
-    display.setTextColor(COLOR_ACCENT);
-    display.setTextSize(1);
-    display.setCursor(SCREEN_CENTER_X - 64, 50);
-    display.print("Result: ");
-    display.setTextSize(2);
-    display.setCursor(SCREEN_CENTER_X - STR_W(result, 2) / 2, 70);
-    display.print(result);
-    display.setTextSize(1);
-    display.setCursor(SCREEN_CENTER_X - 42, SCREEN_HEIGHT - 32);
-    display.print("Any Btn:Back");
-    if (button_is_pressed(btn1) || button_is_pressed(btn2) || button_is_pressed(btn3) || button_is_pressed(btn4) || button_is_pressed(btn5) || button_is_pressed(btn6, true))
-      return;
-    delay(25);
-  }
-=======
         display.setCursor(0, 25);
         display.print("Type: ");
         display.print(types[selectedType]);
@@ -584,7 +267,6 @@ void convertAndDisplay(const char* number, int sourceBase, int targetBase) {
         }
         delay(50);
     }
->>>>>>> Stashed changes
 }
 
 void graphPlotter(void) {
@@ -669,26 +351,7 @@ void graphPlotter(void) {
           exprLen = strlen(equation);
         }
       }
-<<<<<<< Updated upstream
-      redraw = 1;
-      delay(80);
-    } else if (button_is_pressed(btn4)) {
-      int l = strlen(equation);
-      if (l) {
-        equation[l - 1] = '\0';
-        exprLen = strlen(equation);
-      }
-      redraw = 1;
-      delay(90);
-    } else if (button_is_pressed(btn5) && (exprLen > 0)) {
-      plotGraph(equation, xMin, xMax, yMin, yMax);
-      redraw = 1;
-      delay(200);
-    } else if (button_is_pressed(btn6, true)) {
-      return;
-=======
       delay(120);
->>>>>>> Stashed changes
     }
     else if (button_is_pressed(btn4)) {
       int len = strlen(equation);
@@ -762,12 +425,6 @@ bool plotGraph(char* equation, double xMin, double xMax, double yMin, double yMa
   }
   
   display.setTextSize(1);
-<<<<<<< Updated upstream
-  display.setCursor(10, SCREEN_HEIGHT - 22);
-  display.print("6:Back");
-  while (!button_is_pressed(btn6, true)) delay(50);
-  return 1;
-=======
   display.setCursor(0, 0);
   display.print("X:");
   display.print((int)xMin);
@@ -828,7 +485,6 @@ bool plotGraph(char* equation, double xMin, double xMax, double yMin, double yMa
     }
     delay(50);
   }
->>>>>>> Stashed changes
 }
 
 double evaluateEquation(char* equation, double x) {
@@ -858,10 +514,6 @@ double evaluateEquation(char* equation, double x) {
     return NAN;
   }
 }
-<<<<<<< Updated upstream
-/*
-=======
->>>>>>> Stashed changes
 
 const char* baseCharsets[] = {
   "",                                    // 0 (Not used)
@@ -1458,198 +1110,6 @@ void matrixCalculator() {
           break;
         case 7:
           showScalarMenu(scalarVal);
-<<<<<<< Updated upstream
-          matrixScalar(matrixA, rowsA, colsA, scalarVal, matrixRes);
-          showResultMatrix("A*x", matrixRes, rowsA, colsA);
-      }
-      break;
-      case 6:
-        matrixTranspose(matrixA, rowsA, colsA, matrixRes);
-        showResultMatrix("TA", matrixRes, colsA, rowsA);
-        break;
-      case 7:
-        if (rowsA == colsA) {
-          float d = matrixDet(matrixA, rowsA);
-          showMatrixDet(d);
-        }
-        break;
-      case 8:
-        if (rowsA == colsA && rowsA >= 2 && rowsA <= 3) {
-          if (matrixInverse(matrixA, rowsA, matrixRes)) showResultMatrix("invA", matrixRes, rowsA, colsA);
-          else showMatrixError("Not invertible");
-        }
-        break;
-      case 9:
-        setIdentity(matrixA, MAX_MATRIX_SIZE);
-        setIdentity(matrixB, MAX_MATRIX_SIZE);
-        rowsA = colsA = rowsB = colsB = 2;
-        break;
-      case 10: return;
-    }
-    redraw = 1;
-    delay(120);
-  }
-  else if (button_is_pressed(btn6, true)) {
-    return;
-  }
-  delay(25);
-}
-}
-
-void showResultMatrix(const char* op, float m[MAX_MATRIX_SIZE][MAX_MATRIX_SIZE], int rows, int cols, float scalar = 0) {
-  display.fillScreen(COLOR_BG);
-  display.setTextColor(COLOR_ACCENT);
-  display.setTextSize(2);
-  display.setCursor(SCREEN_CENTER_X - STR_W(op, 2) / 2, 24);
-  display.print(op);
-  drawMatrix(m, rows, cols, 76);
-  if (scalar != 0) {
-    display.setTextColor(COLOR_ACCENT);
-    display.setTextSize(1);
-    char buf[24];
-    snprintf(buf, sizeof(buf), "Scalar: %.2f", scalar);
-    display.setCursor(SCREEN_CENTER_X - STR_W(buf, 1) / 2, 52);
-    display.print(buf);
-  }
-  display.setTextColor(COLOR_ACCENT);
-  display.setTextSize(1);
-  display.setCursor(SCREEN_CENTER_X - 32, SCREEN_HEIGHT - 26);
-  display.print("Btn:Back");
-  while (!button_is_pressed(btn6, true)) delay(40);
-}
-
-void editMatrix(float m[MAX_MATRIX_SIZE][MAX_MATRIX_SIZE], int& rows, int& cols, char name) {
-  rows = 2;
-  cols = 2;
-  int sel = 0;
-  static const char* sizes[] = { "2x2", "2x3", "3x2", "3x3" };
-  static int sizeOpts[4][2] = { { 2, 2 }, { 2, 3 }, { 3, 2 }, { 3, 3 } };
-  while (1) {
-    display.fillScreen(COLOR_BG);
-    display.setTextColor(COLOR_ACCENT);
-    display.setTextSize(2);
-    display.setCursor(SCREEN_CENTER_X - 64, 26);
-    display.print("Edit Mat ");
-    display.print(name);
-    for (int i = 0; i < 4; i++) {
-      display.setTextSize(1);
-      display.setCursor(SCREEN_CENTER_X - (4 * 18) + i * 36, 70);
-      if (i == sel) display.setTextColor(COLOR_SELECTED);
-      else display.setTextColor(COLOR_FG);
-      display.print(sizes[i]);
-    }
-    display.setTextColor(COLOR_ACCENT);
-    display.setCursor(SCREEN_CENTER_X - 54, SCREEN_HEIGHT - 30);
-    display.print("L/R:+- 3:OK 6:Back");
-    if (button_is_pressed(btn2)) {
-      sel = (sel + 1) % 4;
-      delay(80);
-    } else if (button_is_pressed(btn1)) {
-      sel = (sel - 1 + 4) % 4;
-      delay(80);
-    } else if (button_is_pressed(btn3)) {
-      rows = sizeOpts[sel][0];
-      cols = sizeOpts[sel][1];
-      break;
-    } else if (button_is_pressed(btn6, true)) return;
-    delay(18);
-  }
-  // Now edit entry-by-entry
-  int i = 0, j = 0;
-  while (1) {
-    display.fillScreen(COLOR_BG);
-    display.setTextColor(COLOR_ACCENT);
-    display.setTextSize(2);
-    char buf[12];
-    sprintf(buf, "%c[%d,%d]", name, i + 1, j + 1);
-    display.setCursor(SCREEN_CENTER_X - STR_W(buf, 2) / 2, 40);
-    display.print(buf);
-    drawMatrix(m, rows, cols, 90);
-    display.setTextColor(COLOR_ACCENT);
-    display.setTextSize(1);
-    display.setCursor(SCREEN_CENTER_X - 38, SCREEN_HEIGHT - 26);
-    display.print("1/2:UP/DN 4/5:LF/RT 3:EDIT 6:Done");
-    if (button_is_pressed(btn1)) {
-      i = (i - 1 + rows) % rows;
-      delay(80);
-    } else if (button_is_pressed(btn2)) {
-      i = (i + 1) % rows;
-      delay(80);
-    } else if (button_is_pressed(btn4)) {
-      j = (j - 1 + cols) % cols;
-      delay(80);
-    } else if (button_is_pressed(btn5)) {
-      j = (j + 1) % cols;
-      delay(80);
-    } else if (button_is_pressed(btn3)) {
-      float val = m[i][j];
-      while (1) {
-        display.fillScreen(COLOR_BG);
-        display.setTextColor(COLOR_ACCENT);
-        display.setTextSize(2);
-        char bufval[20];
-        snprintf(bufval, sizeof(bufval), "%c[%d,%d]=%.2f", name, i + 1, j + 1, val);
-        display.setCursor(SCREEN_CENTER_X - STR_W(bufval, 2) / 2, SCREEN_CENTER_Y - 4);
-        display.print(bufval);
-        display.setTextSize(1);
-        display.setCursor(SCREEN_CENTER_X - 28, SCREEN_HEIGHT - 34);
-        display.print("4/5: -/+ 3:OK 6:Cancel");
-        if (button_is_pressed(btn4)) val -= 0.1;
-        else if (button_is_pressed(btn5)) val += 0.1;
-        else if (button_is_pressed(btn3)) {
-          m[i][j] = val;
-          break;
-        } else if (button_is_pressed(btn6, true)) break;
-        delay(15);
-      }
-    } else if (button_is_pressed(btn6, true)) break;
-    delay(18);
-  }
-}
-
-void showScalarMenu(float& scalar) {
-  while (1) {
-    display.fillScreen(COLOR_BG);
-    display.setTextColor(COLOR_ACCENT);
-    display.setTextSize(2);
-    display.setCursor(SCREEN_CENTER_X - 56, SCREEN_CENTER_Y - 16);
-    display.print("Scalar: ");
-    display.print(scalar, 2);
-    display.setTextColor(COLOR_ACCENT);
-    display.setTextSize(1);
-    display.setCursor(SCREEN_CENTER_X - 34, SCREEN_HEIGHT - 28);
-    display.print("4/5:-/+ 3:OK 6:Back");
-    if (button_is_pressed(btn4)) scalar -= 0.1;
-    else if (button_is_pressed(btn5)) scalar += 0.1;
-    else if (button_is_pressed(btn3)) return;
-    else if (button_is_pressed(btn6, true)) break;
-    delay(12);
-  }
-}
-
-void showMatrixDet(float det) {
-  display.fillScreen(COLOR_BG);
-  display.setTextColor(COLOR_ACCENT);
-  display.setTextSize(2);
-  char buf[30];
-  snprintf(buf, sizeof(buf), "Det=%.3f", det);
-  display.setCursor(SCREEN_CENTER_X - STR_W(buf, 2) / 2, SCREEN_CENTER_Y - 8);
-  display.print(buf);
-  display.setTextSize(1);
-  display.setCursor(SCREEN_CENTER_X - 32, SCREEN_HEIGHT - 28);
-  display.print("Any Btn:Back");
-  while (!button_is_pressed(btn6, true)) delay(40);
-}
-void showMatrixError(const char* msg) {
-  display.fillScreen(COLOR_ERROR);
-  display.setTextColor(COLOR_FG);
-  display.setTextSize(2);
-  display.setCursor(SCREEN_CENTER_X - STR_W(msg, 2) / 2, SCREEN_CENTER_Y - 8);
-  display.print(msg);
-  while (!button_is_pressed(btn6, true)) delay(35);
-}
-*/
-=======
           matrixScalar(matrixA,rowsA,colsA,scalarVal,matrixRes);
           showResultMatrix("A*x",matrixRes,rowsA,colsA,scalarVal);
           break;
@@ -1733,7 +1193,6 @@ void showMatrixError(const char* msg) {
   }
 }
 
->>>>>>> Stashed changes
 void primeFactorisation() {
   char inputBuffer[32] = "";
   int inputLen = 0;
@@ -1931,17 +1390,10 @@ void primeFactorisation() {
         }
         delay(300);
       }
-<<<<<<< Updated upstream
-      showingResult = true;
-      delay(180);
-    } else if (button_is_pressed(btn6, true)) return;
-    delay(16);
-=======
     }
     else if (button_is_pressed(btn6)) {
       return;
     }
     delay(40);
->>>>>>> Stashed changes
   }
 }
