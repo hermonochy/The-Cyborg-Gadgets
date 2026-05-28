@@ -1,0 +1,1501 @@
+// Includes: WiFi connection, Weather data, Time display, Serial WiFi Menu, Multi-network support, Time Sync
+
+#include <HTTPClient.h>
+#include <ArduinoJson.h>
+
+// Clock:
+#define TIME_SETTINGS "time_settings"
+#define DEFAULT_TIME_OFFSET 0
+#define DEFAULT_12_HOUR_MODE false
+#define DEFAULT_DST_OFFSET 0
+
+// Dictionary:
+#define MAX_WORD_LENGTH 32
+#define MAX_DEFINITIONS 5
+
+extern Adafruit_GC9A01A display;
+extern bool button_is_pressed(int btnVal, bool onlyOnce);
+extern int btn1, btn2, btn3, btn4, btn5, btn6;
+extern bool wifiConnected;
+extern Preferences preferences;
+
+struct DictResult {
+  char word[MAX_WORD_LENGTH];
+  char phonetic[MAX_WORD_LENGTH];
+  char partOfSpeech[16];
+  char definition[256];
+  char example[256];
+  int definitionCount;
+  int currentDefinition;
+};
+
+char ssid[32] = "";
+char password[64] = "";
+
+DictResult dictResult;
+bool dictDataValid = false;
+
+void saveWiFiNetworksToNVS() {
+  preferences.begin("wifi", false);
+  preferences.putInt("count", wifiNetworkCount);
+  for (int i = 0; i < wifiNetworkCount; i++) {
+    String keySSID = "ssid" + String(i);
+    String keyPASS = "pass" + String(i);
+    preferences.putString(keySSID.c_str(), wifiNetworks[i].ssid);
+    preferences.putString(keyPASS.c_str(), wifiNetworks[i].password);
+  }
+  preferences.end();
+}
+
+void loadWiFiNetworksFromNVS() {
+  preferences.begin("wifi", true);
+  wifiNetworkCount = preferences.getInt("count", 0);
+  for (int i = 0; i < wifiNetworkCount && i < MAX_WIFI_NETWORKS; i++) {
+    String keySSID = "ssid" + String(i);
+    String keyPASS = "pass" + String(i);
+    String storedSSID = preferences.getString(keySSID.c_str(), "");
+    String storedPASS = preferences.getString(keyPASS.c_str(), "");
+    strncpy(wifiNetworks[i].ssid, storedSSID.c_str(), MAX_WIFI_SSID - 1);
+    wifiNetworks[i].ssid[MAX_WIFI_SSID - 1] = '\0';
+    strncpy(wifiNetworks[i].password, storedPASS.c_str(), MAX_WIFI_PASS - 1);
+    wifiNetworks[i].password[MAX_WIFI_PASS - 1] = '\0';
+  }
+  preferences.end();
+  currentWiFiIndex = 0;
+}
+
+void timeSync() {
+  if (wifiNetworkCount == 0) {
+    delay(2000);
+    return;
+  }
+  int totAttempts;
+  int attempts;
+  for (int wifiIndex=0; wifiIndex<=wifiNetworkCount; wifiIndex++){
+    if (WiFi.status() == WL_CONNECTED) {
+      configTime(0, 0, "pool.ntp.org", "time.nist.gov");
+      break;
+    }
+    WiFi.begin(wifiNetworks[wifiIndex].ssid, wifiNetworks[wifiIndex].password);
+    attempts = 0;
+    while (WiFi.status() != WL_CONNECTED && attempts < 20) {
+      delay(500);
+      totAttempts++;
+      attempts++;
+      // If there are no wifi's nearby you can just skip this function.
+      if (button_is_pressed(btn6, true)) return;
+    }
+  }
+}
+
+void connectWiFi() {
+  if (wifiNetworkCount == 0) {
+    display.fillScreen(GC9A01A_BLACK);
+    display.setTextSize(1);
+    display.setCursor(0, 20);
+    display.println("No WiFi networks saved!");
+    delay(2000);
+    return;
+  }
+  
+  display.fillScreen(GC9A01A_BLACK);
+  display.setTextSize(1);
+  display.setCursor(0, 0);
+  display.print("Connecting to:");
+  display.setCursor(0, 20);
+  display.print(wifiNetworks[currentWiFiIndex].ssid);
+  
+  
+  WiFi.begin(wifiNetworks[currentWiFiIndex].ssid, wifiNetworks[currentWiFiIndex].password);
+  
+  int attempts = 0;
+  while (WiFi.status() != WL_CONNECTED && attempts < 20) {
+    delay(500);
+    display.setCursor(0, 30);
+    display.print(".");
+    attempts++;
+  }
+  
+  if (WiFi.status() == WL_CONNECTED) {
+    wifiConnected = true;
+    display.fillScreen(GC9A01A_BLACK);
+    display.setTextSize(1);
+    display.setCursor(0, 0);
+    display.print("Connected!");
+    display.setCursor(0, 20);
+    display.print("IP: ");
+    display.println(WiFi.localIP());
+    delay(2000);
+    configTime(0, 0, "pool.ntp.org", "time.nist.gov");
+  } else {
+    wifiConnected = false;
+    display.fillScreen(GC9A01A_BLACK);
+    display.setTextSize(1);
+    display.setCursor(0, 20);
+    display.print("Failed to connect");
+    delay(2000);
+  }
+}
+
+void addWiFiNetworkOnWatch() {
+  if (wifiNetworkCount >= MAX_WIFI_NETWORKS) {
+    display.fillScreen(GC9A01A_BLACK);
+    display.setTextSize(1);
+    display.setCursor(0, 20);
+    display.print("Max networks (5) reached!");
+    delay(2000);
+    return;
+  }
+  
+  char newSSID[MAX_WIFI_SSID] = "";
+  char newPassword[MAX_WIFI_PASS] = "";
+  
+  if (!inputStringOnWatch("SSID:", newSSID, MAX_WIFI_SSID)) return;
+  
+  if (!inputStringOnWatch("Password:", newPassword, MAX_WIFI_PASS)) return;
+  
+  display.fillScreen(GC9A01A_BLACK);
+  display.setTextSize(1);
+  display.setCursor(0, 0);
+  display.print("Confirm?");
+  display.setCursor(0, 20);
+  display.print("SSID: ");
+  display.println(newSSID);
+  display.setCursor(0, 35);
+  display.print("Pass: ");
+  for (int i = 0; i < strlen(newPassword); i++) display.print("*");
+  display.setCursor(0, 50);
+  display.print("3:Yes 6:Cancel");
+  
+  
+  while (true) {
+    if (button_is_pressed(btn3)) {
+      strncpy(wifiNetworks[wifiNetworkCount].ssid, newSSID, MAX_WIFI_SSID - 1);
+      wifiNetworks[wifiNetworkCount].ssid[MAX_WIFI_SSID - 1] = '\0';
+      strncpy(wifiNetworks[wifiNetworkCount].password, newPassword, MAX_WIFI_PASS - 1);
+      wifiNetworks[wifiNetworkCount].password[MAX_WIFI_PASS - 1] = '\0';
+      
+      wifiNetworkCount++;
+      saveWiFiNetworksToNVS();
+      
+      display.fillScreen(GC9A01A_BLACK);
+      display.setTextSize(1);
+      display.setCursor(0, 20);
+      display.print("Network added!");
+      display.setCursor(0, 35);
+      display.print("Total: ");
+      display.print(wifiNetworkCount);
+      display.print("/5");
+        delay(2000);
+      return;
+    }
+    if (button_is_pressed(btn6, true)) {
+      display.fillScreen(GC9A01A_BLACK);
+      display.setTextSize(1);
+      display.setCursor(0, 20);
+      display.print("Cancelled");
+        delay(1000);
+      return;
+    }
+    delay(50);
+  }
+}
+
+bool inputStringOnWatch(const char* label, char* buffer, int maxLen) {
+  int cursorPos = 0;
+  buffer[0] = '\0';
+  
+  char charset[] = "ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789.-_@";
+  int charsetSize = strlen(charset);
+  int charIndex = 0;
+  
+  while (true) {
+    display.fillScreen(GC9A01A_BLACK);
+    display.setTextSize(1);
+    display.setCursor(0, 0);
+    display.print(label);
+    
+    display.setCursor(0, 20);
+    display.print("> ");
+    display.print(buffer);
+    if (cursorPos == strlen(buffer)) {
+      display.print("_");
+    }
+    
+    display.setCursor(0, 30);
+    display.print("Char: ");
+    display.setTextSize(2);
+    display.setCursor(40, 28);
+    display.print(charset[charIndex]);
+    
+    
+    if (button_is_pressed(btn1)) {
+      charIndex = (charIndex - 1 + charsetSize) % charsetSize;
+      delay(100);
+    }
+    else if (button_is_pressed(btn2)) {
+      charIndex = (charIndex + 1) % charsetSize;
+      delay(100);
+    }
+    else if (button_is_pressed(btn3)) {
+      if (strlen(buffer) < maxLen - 1) {
+        buffer[strlen(buffer)] = charset[charIndex];
+        buffer[strlen(buffer) + 1] = '\0';
+      }
+      delay(150);
+    }
+    else if (button_is_pressed(btn4)) {
+      if (strlen(buffer) > 0) {
+        buffer[strlen(buffer) - 1] = '\0';
+      }
+      delay(150);
+    }
+    else if (button_is_pressed(btn5)) {
+      buffer[0] = '\0';
+      delay(150);
+    }
+    else if (button_is_pressed(btn6, true)) {
+      if (strlen(buffer) > 0) {
+        return true;
+      } else {
+        return false;
+      }
+    }
+    delay(30);
+  }
+}
+
+void wifiNetworkMenu() {
+  int selectedIdx = 0;
+  
+  while (true) {
+    display.fillScreen(GC9A01A_BLACK);
+    display.setTextSize(1);
+    display.setCursor(0, 0);
+    display.print("WiFi Networks (");
+    display.print(wifiNetworkCount);
+    display.print("/");
+    display.print(MAX_WIFI_NETWORKS);
+    display.println(")");
+    
+    if (wifiNetworkCount == 0) {
+      display.setCursor(0, 20);
+      display.println("No networks saved.");
+      display.setCursor(0, 35);
+      display.println("Button 4 to add");
+      display.println("a new network.");
+    } else {
+      for (int i = 0; i < wifiNetworkCount; i++) {
+        display.setCursor(0, 20 + i * 10);
+        if (i == selectedIdx) {
+          display.print("> ");
+        } else {
+          display.print("  ");
+        }
+        display.print(wifiNetworks[i].ssid);
+        
+        if (wifiConnected && i == currentWiFiIndex) {
+          display.setCursor(SCREEN_WIDTH - 18, 20 + i * 10);
+          display.print("[*]");
+        }
+      }
+    }
+    
+    
+    if (wifiNetworkCount > 0) {
+      if (button_is_pressed(btn1)) {
+        selectedIdx = (selectedIdx - 1 + wifiNetworkCount) % wifiNetworkCount;
+        delay(150);
+      }
+      else if (button_is_pressed(btn2)) {
+        selectedIdx = (selectedIdx + 1) % wifiNetworkCount;
+        delay(150);
+      }
+      else if (button_is_pressed(btn3)) {
+        currentWiFiIndex = selectedIdx;
+        connectWiFi();
+        delay(200);
+      }
+      else if (button_is_pressed(btn5)) {
+        deleteWiFiNetwork(selectedIdx);
+        if (selectedIdx >= wifiNetworkCount && wifiNetworkCount > 0) {
+          selectedIdx = wifiNetworkCount - 1;
+        }
+        delay(200);
+      }
+    } else {
+      if (button_is_pressed(btn4)) {
+        addWiFiNetworkOnWatch();
+        delay(200);
+      }
+    }
+    
+    if (wifiNetworkCount > 0 && button_is_pressed(btn4)) {
+      addWiFiNetworkOnWatch();
+      delay(200);
+    }
+    
+    if (button_is_pressed(btn6, true)) {
+      return;
+    }
+    delay(50);
+  }
+}
+
+void deleteWiFiNetwork(int idx) {
+  if (idx < 0 || idx >= wifiNetworkCount) return;
+  
+  display.fillScreen(GC9A01A_BLACK);
+  display.setTextSize(1);
+  display.setCursor(0, 0);
+  display.print("Delete?");
+  display.setCursor(0, 20);
+  display.print(wifiNetworks[idx].ssid);
+  display.setCursor(0, 50);
+  display.print("3:Yes 6:Cancel");
+  
+  
+  while (true) {
+    if (button_is_pressed(btn3)) {
+      for (int i = idx; i < wifiNetworkCount - 1; i++) {
+        wifiNetworks[i] = wifiNetworks[i + 1];
+      }
+      wifiNetworkCount--;
+      saveWiFiNetworksToNVS();
+      
+      display.fillScreen(GC9A01A_BLACK);
+      display.setTextSize(1);
+      display.setCursor(0, 20);
+      display.println("Network deleted!");
+        delay(1000);
+      return;
+    }
+    if (button_is_pressed(btn6, true)) {
+      return;
+    }
+    delay(50);
+  }
+}
+
+void scanWiFiNetworks() {
+  display.fillScreen(GC9A01A_BLACK);
+  display.setTextSize(1);
+  display.setCursor(0, 0);
+  display.print("Scanning networks...");
+  
+  
+  int numNetworks = WiFi.scanNetworks();
+  
+  if (numNetworks == 0) {
+    display.fillScreen(GC9A01A_BLACK);
+    display.setTextSize(1);
+    display.setCursor(0, 20);
+    display.print("No networks found");
+    delay(2000);
+    return;
+  }
+  
+  int indices[numNetworks];
+  for (int i = 0; i < numNetworks; i++) {
+    indices[i] = i;
+  }
+  
+  for (int i = 0; i < numNetworks - 1; i++) {
+    for (int j = 0; j < numNetworks - i - 1; j++) {
+      if (WiFi.RSSI(indices[j]) < WiFi.RSSI(indices[j + 1])) {
+        int temp = indices[j];
+        indices[j] = indices[j + 1];
+        indices[j + 1] = temp;
+      }
+    }
+  }
+  
+  int selectedIdx = 0;
+  
+  while (true) {
+    display.fillScreen(GC9A01A_BLACK);
+    display.setTextSize(2);
+    display.setCursor(0, 0);
+    display.print("Found: ");
+    display.println(numNetworks);
+
+    display.setTextSize(1);
+
+    int displayCount = min(5, numNetworks);
+    for (int i = 0; i < displayCount; i++) {
+      int idx = indices[i];
+      int rssi = WiFi.RSSI(idx);
+      
+      display.setCursor(0, 20 + i * 9);
+      if (i == selectedIdx) {
+        display.print("> ");
+      } else {
+        display.print("  ");
+      }
+      
+      String ssid = WiFi.SSID(idx);
+      if (ssid.length() > 12) {
+        ssid = ssid.substring(0, 12);
+      }
+      display.print(ssid);
+            
+      display.setCursor(110, 20 + i * 9);
+      display.print(rssi);
+    }
+    
+    
+    if (button_is_pressed(btn1)) {
+      selectedIdx = (selectedIdx - 1 + min(5, numNetworks)) % min(5, numNetworks);
+      delay(150);
+    }
+    else if (button_is_pressed(btn2)) {
+      selectedIdx = (selectedIdx + 1) % min(5, numNetworks);
+      delay(150);
+    }
+    else if (button_is_pressed(btn3)) {
+      int idx = indices[selectedIdx];
+      String selectedSSID = WiFi.SSID(idx);
+      
+      display.fillScreen(GC9A01A_BLACK);
+      display.setTextSize(1);
+      display.setCursor(0, 0);
+      display.print("SSID: ");
+      display.println(selectedSSID);
+      display.setCursor(0, 20);
+      display.println("Add to saved");
+      display.println("networks?");
+      display.setCursor(0, 45);
+      display.println("3:Yes 6:No");
+        
+      while (true) {
+        if (button_is_pressed(btn3)) {
+          if (wifiNetworkCount < MAX_WIFI_NETWORKS) {
+            strncpy(wifiNetworks[wifiNetworkCount].ssid, selectedSSID.c_str(), MAX_WIFI_SSID - 1);
+            wifiNetworks[wifiNetworkCount].ssid[MAX_WIFI_SSID - 1] = '\0';
+            
+            char newPassword[MAX_WIFI_PASS] = "";
+            if (inputStringOnWatch("Password:", newPassword, MAX_WIFI_PASS)) {
+              strncpy(wifiNetworks[wifiNetworkCount].password, newPassword, MAX_WIFI_PASS - 1);
+              wifiNetworks[wifiNetworkCount].password[MAX_WIFI_PASS - 1] = '\0';
+              
+              wifiNetworkCount++;
+              saveWiFiNetworksToNVS();
+              
+              display.fillScreen(GC9A01A_BLACK);
+              display.setTextSize(1);
+              display.setCursor(0, 20);
+              display.print("Network saved!");
+                        delay(1500);
+            }
+          }
+          return;
+        }
+        if (button_is_pressed(btn6, true)) {
+          return;
+        }
+        delay(50);
+      }
+    }
+    else if (button_is_pressed(btn6, true)) {
+      return;
+    }
+    
+    delay(50);
+  }
+}
+
+void disconnectWiFi() {
+  if (!wifiConnected) {
+    display.fillScreen(GC9A01A_BLACK);
+    display.setTextSize(1);
+    display.setCursor(0, 20);
+    display.print("Not connected");
+    delay(1500);
+    return;
+  }
+  
+  display.fillScreen(GC9A01A_BLACK);
+  display.setTextSize(1);
+  display.setCursor(0, 0);
+  display.print("Disconnect?");
+  display.setCursor(0, 20);
+  display.print("SSID: ");
+  display.println(WiFi.SSID());
+  display.setCursor(0, 45);
+  display.println("3:Yes 6:Cancel");
+  
+  
+  while (true) {
+    if (button_is_pressed(btn3)) {
+      WiFi.disconnect(true);
+      wifiConnected = false;
+      
+      display.fillScreen(GC9A01A_BLACK);
+      display.setTextSize(1);
+      display.setCursor(0, 20);
+      display.print("Disconnected!");
+        delay(1500);
+      return;
+    }
+    if (button_is_pressed(btn6, true)) {
+      return;
+    }
+    delay(50);
+  }
+}
+
+void wifiMenu(void) {
+  while (true) {
+    display.fillScreen(GC9A01A_BLACK);
+    display.setTextSize(1);
+    display.setCursor(0, 0);
+    display.print("WiFi Menu");
+    display.setCursor(0, 20);
+    
+    if (wifiNetworkCount == 0) {
+      display.println("No networks saved!");
+    } else {
+      display.print("Networks: ");
+      display.print(wifiNetworkCount);
+      display.print("/5");
+      display.setCursor(0, 30);
+      display.print(wifiNetworks[currentWiFiIndex].ssid);
+      display.setCursor(0, 45);
+      display.print(WiFi.RSSI());
+      display.print(" dBm");
+      display.setCursor(0, 56);
+      if (wifiConnected) {
+        display.print("Status: Connected");
+      } else {
+        display.print("Status: Offline");
+      }
+    }
+    
+    
+    if (button_is_pressed(btn4)) {
+      scanWiFiNetworks();
+      delay(200);
+    }
+    else if (button_is_pressed(btn3, true)) {
+      wifiNetworkMenu();
+      delay(200);
+    }
+    else if (button_is_pressed(btn5, true)) {
+      disconnectWiFi();
+      delay(200);
+    }
+    else if (button_is_pressed(btn6, true)) {
+      return;
+    }
+    delay(50);
+  }
+}
+
+void addWiFiNetworkSerial() {
+  if (wifiNetworkCount >= MAX_WIFI_NETWORKS) {
+    Serial.println("\n✗ Max WiFi networks (5) reached!");
+    return;
+  }
+  
+  Serial.println("\n--- Add New WiFi Network ---");
+  
+  Serial.print("Enter SSID: ");
+  while (!Serial.available()) delay(10);
+  String inputSSID = Serial.readStringUntil('\n');
+  inputSSID.trim();
+  
+  if (inputSSID.length() == 0) {
+    Serial.println("✗ SSID cannot be empty!");
+    return;
+  }
+  
+  if (inputSSID.length() > MAX_WIFI_SSID - 1) {
+    Serial.println("✗ SSID too long (max 31 characters)");
+    return;
+  }
+  
+  Serial.print("Enter Password: ");
+  while (!Serial.available()) delay(10);
+  String inputPassword = Serial.readStringUntil('\n');
+  inputPassword.trim();
+  
+  if (inputPassword.length() > MAX_WIFI_PASS - 1) {
+    Serial.println("✗ Password too long (max 63 characters)");
+    return;
+  }
+  
+  strncpy(wifiNetworks[wifiNetworkCount].ssid, inputSSID.c_str(), MAX_WIFI_SSID - 1);
+  wifiNetworks[wifiNetworkCount].ssid[MAX_WIFI_SSID - 1] = '\0';
+  strncpy(wifiNetworks[wifiNetworkCount].password, inputPassword.c_str(), MAX_WIFI_PASS - 1);
+  wifiNetworks[wifiNetworkCount].password[MAX_WIFI_PASS - 1] = '\0';
+  
+  wifiNetworkCount++;
+  saveWiFiNetworksToNVS();
+  
+  Serial.println("\n✓ Network added!");
+  Serial.print("  SSID: ");
+  Serial.println(inputSSID);
+  Serial.print("  Total networks: ");
+  Serial.print(wifiNetworkCount);
+  Serial.println("/5");
+  
+  display.fillScreen(GC9A01A_BLACK);
+  display.setTextSize(1);
+  display.setCursor(0, 20);
+  display.println("Network added via");
+  display.println("Serial!");
+  
+  delay(1500);
+}
+
+void listWiFiNetworksSerial() {
+  Serial.println("\n--- Saved WiFi Networks ---");
+  
+  if (wifiNetworkCount == 0) {
+    Serial.println("No networks saved.");
+  } else {
+    for (int i = 0; i < wifiNetworkCount; i++) {
+      Serial.print("  ");
+      Serial.print(i + 1);
+      Serial.print(". ");
+      Serial.println(wifiNetworks[i].ssid);
+    }
+  }
+}
+
+void deleteWiFiNetworkSerial() {
+  if (wifiNetworkCount == 0) {
+    Serial.println("\n✗ No networks to delete!");
+    return;
+  }
+  
+  Serial.println("\n--- Delete WiFi Network ---");
+  listWiFiNetworksSerial();
+  
+  Serial.print("\nEnter network number to delete (1-");
+  Serial.print(wifiNetworkCount);
+  Serial.print("): ");
+  while (!Serial.available()) delay(10);
+  int netNum = Serial.parseInt();
+  Serial.println(netNum);
+  
+  if (netNum < 1 || netNum > wifiNetworkCount) {
+    Serial.println("✗ Invalid network number!");
+    return;
+  }
+  
+  int idx = netNum - 1;
+  Serial.print("Deleting ");
+  Serial.print(wifiNetworks[idx].ssid);
+  for (int i = idx; i < wifiNetworkCount - 1; i++) {
+      wifiNetworks[i] = wifiNetworks[i + 1];
+  }
+  wifiNetworkCount--;
+  saveWiFiNetworksToNVS();
+  Serial.println("✓ Network deleted!");
+}
+
+void connectWiFiSerial() {
+  if (wifiNetworkCount == 0) {
+    Serial.println("\n✗ No WiFi networks saved!");
+    return;
+  }
+  
+  Serial.println("\n--- Connect to WiFi ---");
+  listWiFiNetworksSerial();
+  
+  Serial.print("\nEnter network number (1-");
+  Serial.print(wifiNetworkCount);
+  Serial.print("): ");
+  while (!Serial.available()) delay(10);
+  int netNum = Serial.parseInt();
+  Serial.println(netNum);
+  
+  if (netNum < 1 || netNum > wifiNetworkCount) {
+    Serial.println("✗ Invalid network number!");
+    return;
+  }
+  
+  currentWiFiIndex = netNum - 1;
+  Serial.print("\nConnecting to: ");
+  Serial.println(wifiNetworks[currentWiFiIndex].ssid);
+  
+  display.fillScreen(GC9A01A_BLACK);
+  display.setTextSize(1);
+  display.setCursor(0, 0);
+  display.println("Connecting WiFi");
+  display.println("via Serial...");
+  
+  
+  WiFi.begin(wifiNetworks[currentWiFiIndex].ssid, wifiNetworks[currentWiFiIndex].password);
+  
+  int attempts = 0;
+  while (WiFi.status() != WL_CONNECTED && attempts < 20) {
+    delay(500);
+    Serial.print(".");
+    attempts++;
+  }
+  
+  Serial.println();
+  
+  if (WiFi.status() == WL_CONNECTED) {
+    wifiConnected = true;
+    Serial.println("✓ Connected!");
+    Serial.print("  IP Address: ");
+    Serial.println(WiFi.localIP());
+    Serial.print("  Signal Strength: ");
+    Serial.print(WiFi.RSSI());
+    Serial.println(" dBm");
+    
+    display.fillScreen(GC9A01A_BLACK);
+    display.setTextSize(1);
+    display.setCursor(0, 0);
+    display.println("Connected!");
+    display.setCursor(0, 20);
+    display.print("IP: ");
+    display.println(WiFi.localIP());
+    delay(2000);
+    
+    configTime(0, 0, "pool.ntp.org", "time.nist.gov");
+    Serial.println("  Syncing time with NTP...");
+  } else {
+    wifiConnected = false;
+    Serial.println("✗ Failed to connect");
+    Serial.print("  WiFi Status: ");
+    Serial.println(WiFi.status());
+    
+    display.fillScreen(GC9A01A_BLACK);
+    display.setTextSize(1);
+    display.setCursor(0, 20);
+    display.println("Connection failed!");
+    delay(2000);
+  }
+}
+
+void serialDisconnectWiFi(void) {
+  WiFi.disconnect();
+  wifiConnected = false;
+  Serial.println("\n✓ Disconnected from WiFi");
+}
+
+void serialShowWiFiStatus(void) {
+  Serial.println("\n--- WiFi Status ---");
+  
+  if (wifiConnected && WiFi.status() == WL_CONNECTED) {
+    Serial.println("✓ Connected");
+    Serial.print("  SSID: ");
+    Serial.println(WiFi.SSID());
+    Serial.print("  IP Address: ");
+    Serial.println(WiFi.localIP());
+    Serial.print("  Signal Strength: ");
+    Serial.print(WiFi.RSSI());
+    Serial.println(" dBm");
+  } else {
+    Serial.println("✗ Not connected");
+  }
+  
+  Serial.print("\nSaved Networks: ");
+  Serial.print(wifiNetworkCount);
+  Serial.println("/5");
+  listWiFiNetworksSerial();
+}
+
+void serialWiFiMenu(void) {
+  while (true) {
+    Serial.println("\n========== WATCH 5.0 SERIAL WiFi MENU ==========");
+    Serial.println("1. Add WiFi Network");
+    Serial.println("2. List Networks");
+    Serial.println("3. Connect to Network");
+    Serial.println("4. Delete Network");
+    Serial.println("5. Show WiFi Status");
+    Serial.println("6. Disconnect WiFi");
+    Serial.println("7. Exit Menu");
+    Serial.println("================================================");
+    Serial.print("Enter option (1-7): ");
+    
+    while (!Serial.available()) delay(10);
+    char option = Serial.read();
+    Serial.println(option);
+    
+    while (Serial.available()) Serial.read();
+    
+    switch (option) {
+      case '1':
+        addWiFiNetworkSerial();
+        break;
+      case '2':
+        listWiFiNetworksSerial();
+        break;
+      case '3':
+        connectWiFiSerial();
+        break;
+      case '4':
+        deleteWiFiNetworkSerial();
+        break;
+      case '5':
+        serialShowWiFiStatus();
+        break;
+      case '6':
+        serialDisconnectWiFi();
+        break;
+      case '7':
+        Serial.println("\nExiting menu...");
+        return;
+      default:
+        Serial.println("✗ Invalid option");
+    }
+    
+    delay(500);
+  }
+}
+
+void wifiFuncs(){
+  while (!button_is_pressed(btn6, true)) {
+    display.fillScreen(GC9A01A_BLACK);
+    display.setTextSize(1);
+    display.setCursor(0, 20);
+    display.print("1. Weather");
+    display.setCursor(0, 30);
+    display.print("2. Time");
+    display.setCursor(0, 40);
+    display.print("3. Dictionary");
+    delay(50);
+    
+    if (button_is_pressed(btn1)) getWeather();
+    else if (button_is_pressed(btn2)) displayTime();
+    else if (button_is_pressed(btn3)) dictionary();
+  }
+}
+
+void getWeather(void) {
+  if (!wifiConnected) {
+    display.fillScreen(GC9A01A_BLACK);
+    display.setTextSize(1);
+    display.setCursor(0, 20);
+    display.print("WiFi not connected");
+    display.setCursor(0, 40);
+    display.print("Connect?");
+    while(true){
+      if(button_is_pressed(btn3)) {
+        wifiNetworkMenu();
+        break;
+      }
+      else if (button_is_pressed(btn6, true)) return;
+    }
+  }
+
+  // Select target forecast hour (0 = now, 23 = 23 hours from now)
+  int hourOffset = 0;
+  while (true) {
+    display.fillScreen(GC9A01A_BLACK);
+    display.setTextSize(1);
+    display.setCursor(5, 5);
+    display.print("Weather forecast");
+    display.setCursor(0, 24);
+    display.print("Hour: +");
+    display.print(hourOffset);
+    display.print("h");
+    display.setCursor(0, 56);
+    display.print("1/2:-/+  3:OK  6:Exit");
+
+    if (button_is_pressed(btn1)) {
+      hourOffset = max(0, hourOffset - 1);
+      delay(120);
+    }
+    else if (button_is_pressed(btn2)) {
+      hourOffset = min(23, hourOffset + 1);
+      delay(120);
+    }
+    else if (button_is_pressed(btn3)) break;
+    else if (button_is_pressed(btn6, true)) return;
+    delay(30);
+  }
+
+  display.fillScreen(GC9A01A_BLACK);
+  display.setTextSize(1);
+  display.setCursor(0, 0);
+  display.print("Fetching weather...");
+  
+
+  // Open-Meteo API for hourly forecast of the next 24 hours (change coordinates as needed)
+  String url = "https://api.open-meteo.com/v1/forecast?latitude=51.752&longitude=-1.258"
+               "&hourly=temperature_2m,weather_code,relative_humidity_2m,wind_speed_10m"
+               "&forecast_days=1&timezone=auto";
+  HTTPClient http;
+  http.begin(url);
+  int httpCode = http.GET();
+
+  if (httpCode == 200) {
+    String payload = http.getString();
+    DynamicJsonDocument doc(8192);
+    deserializeJson(doc, payload);
+
+    // Get arrays for the 24 forecast hours starting at the current hour
+    JsonArray tempArr = doc["hourly"]["temperature_2m"];
+    JsonArray codeArr = doc["hourly"]["weather_code"];
+    JsonArray humidityArr = doc["hourly"]["relative_humidity_2m"];
+    JsonArray windArr = doc["hourly"]["wind_speed_10m"];
+    JsonArray timeArr = doc["hourly"]["time"];
+    int nHours = tempArr.size();
+
+    // Defensive: clamp hourOffset if not enough data
+    if (hourOffset >= nHours) hourOffset = nHours - 1;
+
+    // Parse the selected hour's weather
+    float temp = tempArr[hourOffset];
+    int weatherCode = codeArr[hourOffset];
+    int humidity = humidityArr[hourOffset];
+    float windSpeed = windArr[hourOffset];
+    const char* timeStr = timeArr[hourOffset];
+
+    // Weather code to description
+    const char* weatherDesc;
+    if (weatherCode == 0) weatherDesc = "Sunny";
+    else if (weatherCode == 1) weatherDesc = "Clear";
+    else if (weatherCode < 3) weatherDesc = "Cloudy";
+    else if (weatherCode < 50) weatherDesc = "Drizzle";
+    else if (weatherCode < 60) weatherDesc = "Rain";
+    else if (weatherCode < 80) weatherDesc = "Snow";
+    else if (weatherCode < 100) weatherDesc = "Thunder";
+    else weatherDesc = "Unknown";
+
+    // Display forecast
+    display.fillScreen(GC9A01A_BLACK);
+    display.setTextSize(1);
+    display.setCursor(0, 0);
+    display.print("Weather @ ");
+
+    // Print forecasted time (HH:MM only for brevity)
+    if (strlen(timeStr) > 11)
+      display.printf("%c%c:%c%c", timeStr[11], timeStr[12], timeStr[14], timeStr[15]);
+    else
+      display.print(timeStr);
+
+    display.setCursor(0, 20);
+    display.print("Temp: ");
+    display.print((int)temp);
+    display.print("C");
+
+    display.setCursor(0, 30);
+    display.print("Cond: ");
+    display.print(weatherDesc);
+
+    display.setCursor(0, 40);
+    display.print("Humidity: ");
+    display.print(humidity);
+    display.print("%");
+
+    display.setCursor(0, 50);
+    display.print("Wind: ");
+    display.print((int)windSpeed);
+    display.print("km/h");
+
+    while (true) {
+      if (button_is_pressed(btn6, true)) break;
+    }
+  } else {
+    display.fillScreen(GC9A01A_BLACK);
+    display.setTextSize(1);
+    display.setCursor(0, 20);
+    display.print("Weather fetch failed");
+    delay(2000);
+  }
+  http.end();
+}
+
+void initializeTimeSettings() {
+  preferences.begin(TIME_SETTINGS, false);
+  
+  if (!preferences.isKey("offset")) {
+    preferences.putInt("offset", DEFAULT_TIME_OFFSET);
+  }
+  if (!preferences.isKey("12hour")) {
+    preferences.putBool("12hour", DEFAULT_12_HOUR_MODE);
+  }
+  if (!preferences.isKey("dst")) {
+    preferences.putInt("dst", DEFAULT_DST_OFFSET);
+  }
+  
+  preferences.end();
+}
+
+int getTimeOffset() {
+  preferences.begin(TIME_SETTINGS, true);
+  int offset = preferences.getInt("offset", DEFAULT_TIME_OFFSET);
+  preferences.end();
+  return offset;
+}
+
+void setTimeOffset(int offset) {
+  preferences.begin(TIME_SETTINGS, false);
+  preferences.putInt("offset", offset);
+  preferences.end();
+}
+
+bool get12HourMode() {
+  preferences.begin(TIME_SETTINGS, true);
+  bool mode = preferences.getBool("12hour", DEFAULT_12_HOUR_MODE);
+  preferences.end();
+  return mode;
+}
+
+void set12HourMode(bool mode) {
+  preferences.begin(TIME_SETTINGS, false);
+  preferences.putBool("12hour", mode);
+  preferences.end();
+}
+
+int getDSTOffset() {
+  preferences.begin(TIME_SETTINGS, true);
+  int dst = preferences.getInt("dst", DEFAULT_DST_OFFSET);
+  preferences.end();
+  return dst;
+}
+
+void setDSTOffset(int dst) {
+  preferences.begin(TIME_SETTINGS, false);
+  preferences.putInt("dst", dst);
+  preferences.end();
+}
+
+void timeSettingsMenu() {
+  int selectedOption = 0;
+  int timeOffset = getTimeOffset();
+  bool use12Hour = get12HourMode();
+  int dstOffset = getDSTOffset();
+  
+  while (true) {
+    display.fillScreen(GC9A01A_BLACK);
+    display.setTextSize(1);
+    display.setCursor(0, 0);
+    display.print("Time Settings");
+    display.drawLine(0, 10, SCREEN_WIDTH, 10, GC9A01A_WHITE);
+    
+    display.setCursor(0, 20);
+    if (selectedOption == 0) {
+      display.print("> ");
+    } else {
+      display.print("  ");
+    }
+    display.print("Offset: ");
+    display.print(timeOffset);
+    display.println(" hrs");
+    
+    display.setCursor(0, 35);
+    if (selectedOption == 1) {
+      display.print("> ");
+    } else {
+      display.print("  ");
+    }
+    display.print("12/24h: ");
+    display.println(use12Hour ? "12h" : "24h");
+    
+    display.setCursor(0, 50);
+    if (selectedOption == 2) {
+      display.print("> ");
+    } else {
+      display.print("  ");
+    }
+    display.print("DST: ");
+    display.print(dstOffset);
+    display.print(" hrs");
+    
+    
+    if (button_is_pressed(btn1)) {
+      selectedOption = (selectedOption - 1 + 3) % 3;
+      delay(150);
+    }
+    else if (button_is_pressed(btn2)) {
+      selectedOption = (selectedOption + 1) % 3;
+      delay(150);
+    }
+    else if (button_is_pressed(btn3)) {
+      if (selectedOption == 0) {
+        while (true) {
+          display.fillScreen(GC9A01A_BLACK);
+          display.setTextSize(1);
+          display.setCursor(0, 0);
+          display.print("Time Offset (hours)");
+          display.setCursor(0, 20);
+          display.print("1:Dec 2:Inc");
+          display.setCursor(0, 35);
+          display.setTextSize(2);
+          display.print(timeOffset);
+                
+          if (button_is_pressed(btn1)) {
+            timeOffset--;
+            if (timeOffset < -12) timeOffset = -12;
+            delay(150);
+          }
+          else if (button_is_pressed(btn2)) {
+            timeOffset++;
+            if (timeOffset > 12) timeOffset = 12;
+            delay(150);
+          }
+          else if (button_is_pressed(btn6, true)) {
+            setTimeOffset(timeOffset);
+            break;
+          }
+          delay(50);
+        }
+      }
+      else if (selectedOption == 1) {
+        use12Hour = !use12Hour;
+        set12HourMode(use12Hour);
+        delay(200);
+      }
+      else if (selectedOption == 2) {
+        while (true) {
+          display.fillScreen(GC9A01A_BLACK);
+          display.setTextSize(1);
+          display.setCursor(0, 0);
+          display.print("DST Offset (hours)");
+          display.setCursor(0, 20);
+          display.print("1:Dec 2:Inc");
+          display.setCursor(0, 35);
+          display.setTextSize(2);
+          display.print(dstOffset);
+                
+          if (button_is_pressed(btn1)) {
+            dstOffset--;
+            if (dstOffset < 0) dstOffset = 0;
+            delay(150);
+          }
+          else if (button_is_pressed(btn2)) {
+            dstOffset++;
+            if (dstOffset > 2) dstOffset = 2;
+            delay(150);
+          }
+          else if (button_is_pressed(btn6, true)) {
+            setDSTOffset(dstOffset);
+            break;
+          }
+          delay(50);
+        }
+      }
+    }
+    else if (button_is_pressed(btn6, true)) {
+      return;
+    }
+    
+    delay(50);
+  }
+}
+
+void displayTime(void) {
+  initializeTimeSettings();
+  
+  int timeOffset = getTimeOffset();
+  bool use12Hour = get12HourMode();
+  int dstOffset = getDSTOffset();
+  
+  while (true) {
+    time_t now = time(nullptr);
+    
+    now += (timeOffset + dstOffset) * 3600;
+    
+    struct tm* timeinfo = localtime(&now);
+    
+    display.fillScreen(GC9A01A_BLACK);
+    display.setTextSize(1);
+    display.setCursor(0, 0);
+    display.print("Time");
+    
+    // If the year is less than 2000, clearly the time is not correct, most likely because it is not synced.
+    if (timeinfo->tm_year + 1900 < 2000){
+      if (!wifiConnected) display.print(" (Not Synced!)");
+      // If WiFi is connected and the time is still impossible, something strange has happened.
+      else display.print(" Unknown Error!");
+    }
+    
+    display.setTextSize(2);
+    display.setCursor(10, 20);
+    
+    int hour = timeinfo->tm_hour;
+    const char* ampm = "";
+    
+    if (use12Hour) {
+      ampm = (hour >= 12) ? "PM" : "AM";
+      hour = hour % 12;
+      if (hour == 0) hour = 12;
+    }
+    
+    display.printf("%02d:%02d:%02d", hour, timeinfo->tm_min, timeinfo->tm_sec);
+    
+    if (use12Hour) {
+      display.setTextSize(1);
+      display.setCursor(100, 40);
+      display.print(ampm);
+    }
+    
+    display.setTextSize(1);
+    display.setCursor(0, 50);
+    display.printf("%s %d, %d", 
+      (timeinfo->tm_mon == 0 ? "Jan" : timeinfo->tm_mon == 1 ? "Feb" : timeinfo->tm_mon == 2 ? "Mar" : 
+       timeinfo->tm_mon == 3 ? "Apr" : timeinfo->tm_mon == 4 ? "May" : timeinfo->tm_mon == 5 ? "Jun" : 
+       timeinfo->tm_mon == 6 ? "Jul" : timeinfo->tm_mon == 7 ? "Aug" : timeinfo->tm_mon == 8 ? "Sep" : 
+       timeinfo->tm_mon == 9 ? "Oct" : timeinfo->tm_mon == 10 ? "Nov" : "Dec"),
+      timeinfo->tm_mday, timeinfo->tm_year + 1900);
+    
+    
+    if (button_is_pressed(btn1)) timeSync();
+
+    else if (button_is_pressed(btn4)) {
+      timeSettingsMenu();
+      timeOffset = getTimeOffset();
+      use12Hour = get12HourMode();
+      dstOffset = getDSTOffset();
+      delay(100);
+    }
+    else if (button_is_pressed(btn6, true)) {
+      return;
+    }
+    
+    delay(1000);
+  }
+}
+
+bool fetchWordDefinition(const char* word) {
+  if (!wifiConnected) {
+    display.fillScreen(GC9A01A_BLACK);
+    display.setTextSize(1);
+    display.setCursor(0, 20);
+    display.println("WiFi not connected");
+    delay(2000);
+    return false;
+  }
+
+  HTTPClient http;
+  char url[256];
+  snprintf(url, sizeof(url), "https://api.dictionaryapi.dev/api/v2/entries/en/%s", word);
+  
+  http.begin(url);
+  int httpCode = http.GET();
+  
+  if (httpCode != 200) {
+    http.end();
+    return false;
+  }
+  
+  String payload = http.getString();
+  http.end();
+  
+  DynamicJsonDocument doc(4096);
+  DeserializationError error = deserializeJson(doc, payload);
+  
+  if (error) {
+    return false;
+  }
+  
+  strncpy(dictResult.word, doc[0]["word"].as<const char*>(), MAX_WORD_LENGTH - 1);
+  dictResult.word[MAX_WORD_LENGTH - 1] = '\0';
+  
+  if (doc[0]["phonetic"].is<const char*>()) {
+    strncpy(dictResult.phonetic, doc[0]["phonetic"].as<const char*>(), MAX_WORD_LENGTH - 1);
+  } else {
+    strcpy(dictResult.phonetic, "");
+  }
+  dictResult.phonetic[MAX_WORD_LENGTH - 1] = '\0';
+  
+  // Get first meaning
+  if (doc[0]["meanings"].size() > 0) {
+    JsonObject meaning = doc[0]["meanings"][0];
+    strncpy(dictResult.partOfSpeech, meaning["partOfSpeech"].as<const char*>(), 15);
+    dictResult.partOfSpeech[15] = '\0';
+    
+    if (meaning["definitions"].size() > 0) {
+      strncpy(dictResult.definition, meaning["definitions"][0]["definition"].as<const char*>(), 255);
+      dictResult.definition[255] = '\0';
+    }
+    
+    if (meaning["definitions"][0]["example"].is<const char*>()) {
+      strncpy(dictResult.example, meaning["definitions"][0]["example"].as<const char*>(), 255);
+      dictResult.example[255] = '\0';
+    } else {
+      strcpy(dictResult.example, "");
+    }
+  }
+  
+  dictResult.definitionCount = min((int)doc[0]["meanings"].size(), MAX_DEFINITIONS);
+  dictResult.currentDefinition = 0;
+  dictDataValid = true;
+  return true;
+}
+
+void dictCharacterInput(char* buffer, int maxLen) {
+  buffer[0] = '\0';
+  int charIndex = 0;
+  const char charset[] = "abcdefghijklmnopqrstuvwxyz";
+  int charsetSize = strlen(charset);
+  
+  while (true) {
+    display.fillScreen(GC9A01A_BLACK);
+    display.setTextSize(1);
+    display.setCursor(0, 0);
+    display.println("Dictionary - Search");
+    display.drawLine(0, 10, SCREEN_WIDTH, 10, GC9A01A_WHITE);
+    
+    // Display input word with scrolling
+    display.setCursor(0, 15);
+    int wordLen = strlen(buffer);
+    if (wordLen > 18) {
+      display.print(&buffer[wordLen - 18]);
+    } else {
+      display.print(buffer);
+    }
+    display.print("_");
+    
+    // Display current character in large text
+    display.setTextSize(2);
+    display.setCursor(35, 35);
+    display.print(charset[charIndex]);
+    
+    // Display controls
+    display.setTextSize(1);
+    display.setCursor(0, 55);
+    display.print("1:< 2:> 3:Add 4:Del");
+    display.setCursor(0, 62);
+    display.print("5:Clr 6:Search");
+    
+    
+    if (button_is_pressed(btn1)) {
+      charIndex = (charIndex - 1 + charsetSize) % charsetSize;
+      delay(100);
+    }
+    else if (button_is_pressed(btn2)) {
+      charIndex = (charIndex + 1) % charsetSize;
+      delay(100);
+    }
+    else if (button_is_pressed(btn3)) {
+      if (strlen(buffer) < maxLen - 1) {
+        buffer[strlen(buffer)] = charset[charIndex];
+        buffer[strlen(buffer) + 1] = '\0';
+      }
+      delay(150);
+    }
+    else if (button_is_pressed(btn4)) {
+      if (strlen(buffer) > 0) {
+        buffer[strlen(buffer) - 1] = '\0';
+      }
+      delay(150);
+    }
+    else if (button_is_pressed(btn5)) {
+      buffer[0] = '\0';
+      delay(150);
+    }
+    else if (button_is_pressed(btn6, true)) {
+      if (strlen(buffer) > 0) {
+        display.fillScreen(GC9A01A_BLACK);
+        display.setTextSize(1);
+        display.setCursor(0, 25);
+        display.println("Searching...");
+            
+        if (fetchWordDefinition(buffer)) {
+          return;
+        } else {
+          display.fillScreen(GC9A01A_BLACK);
+          display.setTextSize(1);
+          display.setCursor(0, 20);
+          display.println("Word not found!");
+          display.setCursor(0, 35);
+          display.println("Try another word.");
+                delay(2000);
+        }
+      }
+      delay(200);
+    }
+    
+    delay(50);
+  }
+}
+
+void dictDisplayWord(int defIndex) {
+  if (defIndex < 0 || defIndex >= dictResult.definitionCount) return;
+  
+  display.fillScreen(GC9A01A_BLACK);
+  display.setTextSize(2);
+  display.setCursor(0, 0);
+  display.println(dictResult.word);
+  
+  display.setTextSize(1);
+  display.setCursor(0, 18);
+  display.print("(");
+  display.print(defIndex + 1);
+  display.print("/");
+  display.print(dictResult.definitionCount);
+  display.println(")");
+  
+  display.print(dictResult.partOfSpeech);
+  
+  display.setCursor(0, 30);
+  display.println(dictResult.definition);
+  
+  display.setCursor(0, 56);
+  display.print("1:< 2:> 6:Back");
+  
+  
+}
+
+void dictDisplayResult() {
+  if (!dictDataValid) return;
+  
+  while (true) {
+    dictDisplayWord(dictResult.currentDefinition);
+    
+    if (button_is_pressed(btn1)) {
+      if (dictResult.currentDefinition > 0) {
+        dictResult.currentDefinition--;
+      }
+      delay(200);
+    }
+    else if (button_is_pressed(btn2)) {
+      if (dictResult.currentDefinition < dictResult.definitionCount - 1) {
+        dictResult.currentDefinition++;
+      }
+      delay(200);
+    }
+    else if (button_is_pressed(btn6, true)) {
+      dictDataValid = false;
+      return;
+    }
+    
+    delay(50);
+  }
+}
+
+void dictionary(void) {
+  while (true) {
+    display.fillScreen(GC9A01A_BLACK);
+    display.setTextSize(1);
+    display.setCursor(0, 0);
+    display.println("Dictionary");
+    display.drawLine(0, 10, SCREEN_WIDTH, 10, GC9A01A_WHITE);
+    
+    display.setCursor(0, 20);
+    if (wifiConnected) {
+      display.println("WiFi: Connected");
+    } else {
+      display.println("WiFi: Offline");
+    }
+    
+    display.setCursor(0, 35);
+    display.println("1. Search Word");
+    display.setCursor(0, 45);
+    display.println("6. Back");
+    
+    
+    if (button_is_pressed(btn1)) {
+      char searchWord[MAX_WORD_LENGTH];
+      dictCharacterInput(searchWord, MAX_WORD_LENGTH);
+      if (dictDataValid) {
+        dictDisplayResult();
+      }
+      delay(200);
+    }
+    else if (button_is_pressed(btn6, true)) {
+      return;
+    }
+    
+    delay(50);
+  }
+}
