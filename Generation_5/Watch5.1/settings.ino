@@ -1,5 +1,6 @@
 // Includes: Settings, tuneButtonVals, Prefs, Debug, save btn vals, chip stats
 
+#include "Watch5.1.h"
 #include <esp_system.h>
 #include <esp_cpu.h>
 #include <esp_chip_info.h>
@@ -14,11 +15,6 @@ extern const byte buttonPin;
 extern int btn1, btn2, btn3, btn4, btn5, btn6;
 extern const int defBtn1, defBtn2,defBtn3,defBtn4,defBtn5,defBtn6;
 extern byte Func1, Func2, Func3;
-
-int *btnRefs[] = {&btn1, &btn2, &btn3, &btn4, &btn5, &btn6};
-const int *defBtnRefs[] = {&defBtn1, &defBtn2, &defBtn3, &defBtn4, &defBtn5, &defBtn6};
-
-const char *labels[] = {"Btn 1", "Btn 2", "Btn 3", "Btn 4", "Btn 5", "Btn 6"};
 
 void settings() {
   while (true) {
@@ -37,7 +33,7 @@ void settings() {
     else if (button_is_pressed(btn3)) debug();
     else if (button_is_pressed(btn4)) chipStats();
     else if (button_is_pressed(btn5)) btnSettings();
-    else if (button_is_pressed(btn6)) return;
+    else if (button_is_pressed(btn6, true)) return;
   }
 }
 
@@ -221,7 +217,7 @@ void debug() {
       display.print(")");
     }
     // TODO: an alternative needs to be found here:
-    if (button_is_pressed(btn6)) {
+    if (button_is_pressed(btn6, true)) {
       return;
     }
     delay(100);
@@ -315,6 +311,6 @@ void btnSettings(){
         *btnRefs[i] = *defBtnRefs[i];
       }
     }
-    else if (button_is_pressed(btn6)) return;
+    else if (button_is_pressed(btn6, true)) return;
   }
 }

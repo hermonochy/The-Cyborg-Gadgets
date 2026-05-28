@@ -1,91 +1,22 @@
-#include <Adafruit_GFX.h>
-#include <Adafruit_GC9A01A.h>
-#include <Preferences.h>
-#include <WiFi.h>
-#include <Wire.h>
-#include <time.h>
-#include <esp_sleep.h>
-#include <driver/gpio.h>
-#include <esp_wifi.h>
-#include <ctype.h>
-#include <math.h>
+#include "Watch5.1.h"
 
 #define DC  8
 #define RST 9
 #define CS 10
 
-Adafruit_GC9A01A display(CS, DC, RST);
-Preferences preferences;
-
-#define SCREEN_WIDTH 240
-#define SCREEN_HEIGHT 240
-#define SCREEN_CENTER_X (SCREEN_WIDTH/2)
-#define SCREEN_CENTER_Y (SCREEN_HEIGHT/2)
-#define SCREEN_RADIUS 120
 
 #define totalFunctions 12
 #define numSettings 5
 
-#define MAX_WIFI_NETWORKS 5
-#define MAX_WIFI_SSID 32
-#define MAX_WIFI_PASS 64
-
-uint16_t COLOR_BG        = 0x1908;
-uint16_t COLOR_ACCENT    = 0x053F;
-uint16_t COLOR_FG        = 0xFFFF;
-uint16_t COLOR_SELECTED  = 0xFDE0;
-uint16_t COLOR_UNSELECTED= 0x4208;
+Adafruit_GC9A01A display(CS, DC, RST);
+Preferences preferences;
 
 const char *Functions[] = {"Outputs", "Maths", "Random", "Score", "Games", "Metronome", "Notes", "Calendar", "WiFi Menu", "WiFi Tools","Shell", "Settings"};
 const char *settingFuncs[] = {"Button Offset", "Func1 Settings", "Func2 Settings", "Func3 Settings", "Display Settings"};
 
-const byte buttonPin = 2;
-
-const int defBtn1 = 1433;  // 4.7K
-const int defBtn2 = 812;   // 2.2K
-const int defBtn3 = 202;   // 470
-const int defBtn4 = 409;   // 1K
-const int defBtn5 = 95;    // 220
-const int defBtn6 = 2304;  // 10K
-
-int btn1;
-int btn2;
-int btn3;
-int btn4;
-int btn5;
-int btn6;
-
-int buttonOffset = 0;
-int buttonValRange = 30;
-
-byte Func1 = 3;
-byte Func2 = 0;
-byte Func3 = 1;
-
-int blinkTime1 = 500000;
-int blinkTime2 = 1;
-int blinkTime3 = 10000;
-
-int selectedFunction = 1;
-int lastSelectedFunction = -1;
-
-bool wifiConnected = false;
-
-struct WiFiNetwork {
-  char ssid[MAX_WIFI_SSID];
-  char password[MAX_WIFI_PASS];
-};
-
 WiFiNetwork wifiNetworks[MAX_WIFI_NETWORKS];
 int wifiNetworkCount = 0;
 int currentWiFiIndex = 0;
-
-unsigned long lastNavTime = 0;
-const unsigned long NAV_DEBOUNCE = 120;
-
-#define CHAR_W(sz) (6*(sz))
-#define CHAR_H(sz) (8*(sz))
-#define STR_W(text, sz) (strlen(text)*CHAR_W(sz))
 
 bool button_is_pressed(int btnVal, bool onlyOnce = false) {
   int pinVal = analogRead(buttonPin) - buttonOffset;
@@ -214,7 +145,7 @@ void timeSyncAndUI() {
 
     int attempts = 0;
     while (WiFi.status() != WL_CONNECTED && attempts < 20) {
-      if (button_is_pressed(btn6)) {
+      if (button_is_pressed(btn6, true)) {
         WiFi.disconnect();
         return;
       }

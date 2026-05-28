@@ -1,7 +1,6 @@
 // Includes: WiFi connection, Weather data, Time display, Serial WiFi Menu, Multi-network support, Time Sync
 
-#include <HTTPClient.h>
-#include <ArduinoJson.h>
+#include "Watch5.1.h"
 
 // Clock:
 #define TIME_SETTINGS "time_settings"
@@ -18,16 +17,6 @@ extern bool button_is_pressed(int btnVal, bool onlyOnce);
 extern int btn1, btn2, btn3, btn4, btn5, btn6;
 extern bool wifiConnected;
 extern Preferences preferences;
-
-struct DictResult {
-  char word[MAX_WORD_LENGTH];
-  char phonetic[MAX_WORD_LENGTH];
-  char partOfSpeech[16];
-  char definition[256];
-  char example[256];
-  int definitionCount;
-  int currentDefinition;
-};
 
 char ssid[32] = "";
 char password[64] = "";

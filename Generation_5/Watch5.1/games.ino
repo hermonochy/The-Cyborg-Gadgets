@@ -1,11 +1,10 @@
 // Includes: Shooter, Snake, Flappy Bird, Geometry Dash
 
+#include "Watch5.1.h"
+
 extern Adafruit_GC9A01A display;
 extern bool button_is_pressed(int btnVal, bool onlyOnce);
 extern int btn1, btn2, btn3, btn4, btn5, btn6;
-
-#define SCREEN_WIDTH 128
-#define SCREEN_HEIGHT 64
 
 #define MAX_COUNT_NUMS 6
 #define SOLUTION_DISPLAY_STEPS 4
@@ -221,7 +220,7 @@ void shooter() {
         }
       }
     }
-    if (button_is_pressed(btn6)) return;
+    if (button_is_pressed(btn6, true)) return;
 
     for (int i = 0; i < 8; i++) {
       if (bullets[i].active) {
@@ -354,7 +353,7 @@ void snake(void) {
     if (button_is_pressed(btn3, false) && dirX == 0) { nextDirX = 4; nextDirY = 0; }
     if (button_is_pressed(btn2, false) && dirY == 0) { nextDirX = 0; nextDirY = -4; }
     if (button_is_pressed(btn5, false) && dirY == 0) { nextDirX = 0; nextDirY = 4; }
-    if (button_is_pressed(btn6)) return;
+    if (button_is_pressed(btn6, true)) return;
     
     if (now - lastMove > 150) {
       dirX = nextDirX;
@@ -446,7 +445,7 @@ void flappyBird(void) {
       birdVelocity = flapPower;
       lastFlap = millis();
     }
-    if (button_is_pressed(btn6)) return;
+    if (button_is_pressed(btn6, true)) return;
     
     birdVelocity += gravity;
     birdY += birdVelocity;
@@ -558,7 +557,7 @@ void geometryDash(void) {
       spacePressed = false;
     }
     
-    if (button_is_pressed(btn6)) return;
+    if (button_is_pressed(btn6, true)) return;
     
     if (isJumping) {
       jumpVelocity += gravity;
@@ -756,7 +755,7 @@ void flying3D() {
     if (button_is_pressed(btn3, false) && shipX < maxX)    shipX += 2;
     if (button_is_pressed(btn2, false) && shipY > minY)    shipY -= 2;
     if (button_is_pressed(btn5, false) && shipY < maxY)    shipY += 2;
-    if (button_is_pressed(btn6)) return;
+    if (button_is_pressed(btn6, true)) return;
 
     for (int i = 0; i < num_coins; ++i) {
       if (!coins[i].active) continue;
@@ -854,7 +853,7 @@ void countdown() {
                 delay(180);
             } else if (button_is_pressed(btn5, true)) {
                 readyForNewRound = false;
-            } else if (button_is_pressed(btn6)) {
+            } else if (button_is_pressed(btn6, true)) {
                 return; 
             }
             delay(30);
@@ -904,7 +903,7 @@ void countdown() {
                 break;
             }
             // else if (button_is_pressed(btn1)) countdownSolver();
-            if (button_is_pressed(btn6)) return;
+            if (button_is_pressed(btn6, true)) return;
 
             delay(80);
         }
@@ -1031,7 +1030,7 @@ int enterIntInput(const char *prompt, int initial, int minv, int maxv) {
             delay(120);
         } else if (button_is_pressed(btn5, true)) {
             return val;
-        } else if (button_is_pressed(btn6)) {
+        } else if (button_is_pressed(btn6, true)) {
             return -1;
         }
         delay(30);
@@ -1078,7 +1077,7 @@ void countdownSolver() {
         display.print("5:Solve   6:Exit");
     
         if (button_is_pressed(btn5, true)) break;
-        if (button_is_pressed(btn6)) return;
+        if (button_is_pressed(btn6, true)) return;
         delay(60);
     }
 
@@ -1152,7 +1151,7 @@ void countdownSolver() {
             }
             delay(130);
         }
-        if (button_is_pressed(btn6))
+        if (button_is_pressed(btn6, true))
             return;
         delay(60);
     }

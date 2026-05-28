@@ -1,5 +1,6 @@
 // Includes: Calculator, Unit Converter, Graph Plotter
 
+#include "Watch5.1.h"
 #include "tinyexpr.h"
 
 extern Adafruit_GC9A01A display;
@@ -7,12 +8,6 @@ extern bool button_is_pressed(int btnVal, bool onlyOnce);
 extern int btn1, btn2, btn3, btn4, btn5, btn6;
 extern const byte buttonPin;
 extern byte Func1;
-
-#define SCREEN_WIDTH 240
-#define SCREEN_HEIGHT 240
-#define SCREEN_CENTER_X (SCREEN_WIDTH / 2)
-#define SCREEN_CENTER_Y (SCREEN_HEIGHT / 2)
-#define SCREEN_RADIUS 120
 
 #define MAX_NUMBER_LENGTH 64
 #define totalMathsFunctions 6
@@ -75,7 +70,7 @@ void maths(void) {
       selectedMathsFunction--;
       if (selectedMathsFunction < 1) selectedMathsFunction = totalMathsFunctions;
       lastSelected = -999;
-    } else if (button_is_pressed(btn6)) return;
+    } else if (button_is_pressed(btn6, true)) return;
     else if (button_is_pressed(btn3)) {
       display.fillScreen(COLOR_BG);
       switch (selectedMathsFunction) {
@@ -83,7 +78,7 @@ void maths(void) {
         case 2: unitConverter(); break;
         case 3: baseConverter(); break;
         case 4: graphPlotter(); break;
-        case 5: matrixCalculator(); break;
+        case 5: //matrixCalculator(); break;
         case 6: primeFactorisation(); break;
       }
       lastSelected = -999;
@@ -190,7 +185,7 @@ void calculator() {
       exprLen = strlen(expr);
       redraw = 1;
       delay(120);
-    } else if (button_is_pressed(btn6)) {
+    } else if (button_is_pressed(btn6, true)) {
       if (showResult) return;
       int err;
       te_variable vars[] = {};
@@ -311,7 +306,7 @@ void unitConverter(void) {
       }
       enteringValue = false;
       delay(300);
-    } else if (button_is_pressed(btn6)) {
+    } else if (button_is_pressed(btn6, true)) {
       return;
     }
     delay(30);
@@ -397,7 +392,7 @@ void baseConverter(void) {
           sourceBase = tmpSrc;
           targetBase = tmpTgt;
           break;
-        } else if (button_is_pressed(btn6)) break;
+        } else if (button_is_pressed(btn6, true)) break;
         delay(20);
       }
     } else if (button_is_pressed(btn4)) {  // Convert!
@@ -406,7 +401,7 @@ void baseConverter(void) {
     } else if (button_is_pressed(btn5)) {
       inputNum(inputNumber, MAX_NUMBER_LENGTH, sourceBase);
       delay(200);
-    } else if (button_is_pressed(btn6)) return;
+    } else if (button_is_pressed(btn6, true)) return;
     delay(30);
   }
 }
@@ -450,7 +445,7 @@ void inputNum(char* buffer, int maxLen, int base) {
     } else if (button_is_pressed(btn5)) {
       buffer[0] = '\0';
       delay(80);
-    } else if (button_is_pressed(btn6)) return;
+    } else if (button_is_pressed(btn6, true)) return;
     delay(20);
   }
 }
@@ -501,7 +496,7 @@ void convertAndDisplay(const char* number, int sourceBase, int targetBase) {
     display.setTextSize(1);
     display.setCursor(SCREEN_CENTER_X - 42, SCREEN_HEIGHT - 32);
     display.print("Any Btn:Back");
-    if (button_is_pressed(btn1) || button_is_pressed(btn2) || button_is_pressed(btn3) || button_is_pressed(btn4) || button_is_pressed(btn5) || button_is_pressed(btn6))
+    if (button_is_pressed(btn1) || button_is_pressed(btn2) || button_is_pressed(btn3) || button_is_pressed(btn4) || button_is_pressed(btn5) || button_is_pressed(btn6, true))
       return;
     delay(25);
   }
@@ -563,7 +558,7 @@ void graphPlotter(void) {
       plotGraph(equation, xMin, xMax, yMin, yMax);
       redraw = 1;
       delay(200);
-    } else if (button_is_pressed(btn6)) {
+    } else if (button_is_pressed(btn6, true)) {
       return;
     }
     delay(20);
@@ -612,7 +607,7 @@ bool plotGraph(char* equation, double xMin, double xMax, double yMin, double yMa
   display.setTextSize(1);
   display.setCursor(10, SCREEN_HEIGHT - 22);
   display.print("6:Back");
-  while (!button_is_pressed(btn6)) delay(50);
+  while (!button_is_pressed(btn6, true)) delay(50);
   return 1;
 }
 
@@ -638,7 +633,7 @@ double evaluateEquation(char* equation, double x) {
   }
   return result;
 }
-// ------ MATRIX CALCULATOR: Round, Modern, Fully Standalone ------
+/*
 
 #define MAX_MATRIX_SIZE 3
 #define MAT_YY_STEP 28
@@ -850,7 +845,7 @@ void matrixCalculator() {
     redraw = 1;
     delay(120);
   }
-  else if (button_is_pressed(btn6)) {
+  else if (button_is_pressed(btn6, true)) {
     return;
   }
   delay(25);
@@ -876,7 +871,7 @@ void showResultMatrix(const char* op, float m[MAX_MATRIX_SIZE][MAX_MATRIX_SIZE],
   display.setTextSize(1);
   display.setCursor(SCREEN_CENTER_X - 32, SCREEN_HEIGHT - 26);
   display.print("Btn:Back");
-  while (!button_is_pressed(btn6)) delay(40);
+  while (!button_is_pressed(btn6, true)) delay(40);
 }
 
 void editMatrix(float m[MAX_MATRIX_SIZE][MAX_MATRIX_SIZE], int& rows, int& cols, char name) {
@@ -912,7 +907,7 @@ void editMatrix(float m[MAX_MATRIX_SIZE][MAX_MATRIX_SIZE], int& rows, int& cols,
       rows = sizeOpts[sel][0];
       cols = sizeOpts[sel][1];
       break;
-    } else if (button_is_pressed(btn6)) return;
+    } else if (button_is_pressed(btn6, true)) return;
     delay(18);
   }
   // Now edit entry-by-entry
@@ -960,10 +955,10 @@ void editMatrix(float m[MAX_MATRIX_SIZE][MAX_MATRIX_SIZE], int& rows, int& cols,
         else if (button_is_pressed(btn3)) {
           m[i][j] = val;
           break;
-        } else if (button_is_pressed(btn6)) break;
+        } else if (button_is_pressed(btn6, true)) break;
         delay(15);
       }
-    } else if (button_is_pressed(btn6)) break;
+    } else if (button_is_pressed(btn6, true)) break;
     delay(18);
   }
 }
@@ -983,7 +978,7 @@ void showScalarMenu(float& scalar) {
     if (button_is_pressed(btn4)) scalar -= 0.1;
     else if (button_is_pressed(btn5)) scalar += 0.1;
     else if (button_is_pressed(btn3)) return;
-    else if (button_is_pressed(btn6)) break;
+    else if (button_is_pressed(btn6, true)) break;
     delay(12);
   }
 }
@@ -999,7 +994,7 @@ void showMatrixDet(float det) {
   display.setTextSize(1);
   display.setCursor(SCREEN_CENTER_X - 32, SCREEN_HEIGHT - 28);
   display.print("Any Btn:Back");
-  while (!button_is_pressed(btn6)) delay(40);
+  while (!button_is_pressed(btn6, true)) delay(40);
 }
 void showMatrixError(const char* msg) {
   display.fillScreen(COLOR_ERROR);
@@ -1007,9 +1002,9 @@ void showMatrixError(const char* msg) {
   display.setTextSize(2);
   display.setCursor(SCREEN_CENTER_X - STR_W(msg, 2) / 2, SCREEN_CENTER_Y - 8);
   display.print(msg);
-  while (!button_is_pressed(btn6)) delay(35);
+  while (!button_is_pressed(btn6, true)) delay(35);
 }
-
+*/
 void primeFactorisation() {
   char inputBuffer[14] = "";
   int inputLen = 0;
@@ -1110,7 +1105,7 @@ void primeFactorisation() {
       }
       showingResult = true;
       delay(180);
-    } else if (button_is_pressed(btn6)) return;
+    } else if (button_is_pressed(btn6, true)) return;
     delay(16);
   }
 }
