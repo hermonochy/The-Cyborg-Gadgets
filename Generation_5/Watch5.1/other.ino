@@ -58,6 +58,7 @@ void activateFunc(byte func, int blinkTime = 500){
     display.setTextSize(2);
     display.setCursor(5, 0);
     display.print(digitalRead(func) ? "On" : "Off");
+    
   }
 }
 
@@ -71,6 +72,7 @@ void watchFuncs(void) {
     display.println("2. Laser");
     display.setCursor(0, 40);
     display.println("3. UV LED");
+    
     delay(50);
     
     if (button_is_pressed(btn1)) activateFunc(Func1, blinkTime1);
@@ -94,6 +96,7 @@ void counter(void){
     display.print(score1);
     display.print(" : ");
     display.print(score2);
+    
 
     if (button_is_pressed(btn1)){
       ++score1;
@@ -142,6 +145,7 @@ void randomNum(void) {
     display.print(decimals);
     display.setCursor(0, 56);
     display.print("3:tog 4:d.p 5:gen");
+    
     delay(100);
     
     if (button_is_pressed(btn1)) {
@@ -159,7 +163,8 @@ void randomNum(void) {
         display.setTextSize(3);
         display.setCursor(10, 25);
         display.print(r);
-            delay(2000);
+        
+        delay(2000);
       } else {
         double u = (random(0, 32767) / 32767.0);
         double val = u * range;
@@ -167,7 +172,8 @@ void randomNum(void) {
         display.setTextSize(3);
         display.setCursor(0, 18);
         display.print(val, decimals);
-            delay(2000);
+        
+        delay(2000);
       }
     } 
     else if (button_is_pressed(btn3)) {
@@ -292,6 +298,7 @@ void metronome_time_signature_menu() {
     display.setCursor(0, 56);
     display.print("1:< 2:> 3:OK 6:Back");
     
+    
     if (button_is_pressed(btn1)) {
       metronome_time_sig = (metronome_time_sig - 1 + 3) % 3;
       delay(200);
@@ -331,6 +338,7 @@ void metronome_subdivision_menu() {
     
     display.setCursor(0, 56);
     display.print("1:< 2:> 3:OK 6:Back");
+    
     
     if (button_is_pressed(btn1)) {
       metronome_subdivision = (metronome_subdivision - 1 + 3) % 3;
@@ -521,7 +529,8 @@ void notesFunction(void) {
         display.setCursor(0, 18 + ((i + 1) * 10));
       }
      
-        
+      
+      
       if (button_is_pressed(btn1)) {
         selectedNote = (selectedNote - 1 + MAX_NOTES) % MAX_NOTES;
         delay(150);
@@ -555,7 +564,8 @@ void notesFunction(void) {
       display.print("1:Del 2:Add 3:Char");
       display.setCursor(0, 50);
       display.print("4:Clr 5:Save 6:Back");
-        
+      
+      
       if (button_is_pressed(btn1, false)) {
         int len = strlen(notes[selectedNote].text);
         if (len > 0) {
@@ -591,7 +601,8 @@ void notesFunction(void) {
           display.setTextSize(1);
           display.setCursor(0, 56);
           display.print("1:< 2:> 3:Select");
-                
+          
+          
           if (button_is_pressed(btn1)) {
             charIndex = (charIndex - 1 + (int)strlen(charset)) % (int)strlen(charset);
             delay(100);

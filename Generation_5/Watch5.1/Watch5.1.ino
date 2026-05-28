@@ -1,29 +1,118 @@
+<<<<<<< Updated upstream
 #include "Watch5.1.h"
 
 #define DC  8
 #define RST 9
 #define CS 10
 
+=======
+// Watch 5.1: 5th gen watch - ESP32C3 with GC9A01A TFT display
+
+#include <Adafruit_GFX.h>
+#include <Adafruit_GC9A01A.h>
+#include <Preferences.h>
+#include <WiFi.h>
+#include <Wire.h>
+#include <time.h>
+#include <esp_sleep.h>
+#include <driver/gpio.h>
+#include <esp_wifi.h>
+#include <ctype.h>
+#include <math.h>
+
+#define SCREEN_WIDTH 240
+#define SCREEN_HEIGHT 240
+#define SCREEN_RADIUS (SCREEN_WIDTH/2)
+#define SCREEN_CENTER_X (SCREEN_WIDTH/2)
+#define SCREEN_CENTER_Y (SCREEN_HEIGHT/2)
+
+#define TFT_CS   10
+#define TFT_DC    8
+#define TFT_RST   9
+
+Adafruit_GC9A01A display(TFT_CS, TFT_DC, TFT_RST);
+Preferences preferences;
+>>>>>>> Stashed changes
 
 #define totalFunctions 12
 #define numSettings 5
 
+<<<<<<< Updated upstream
 Adafruit_GC9A01A display(CS, DC, RST);
 Preferences preferences;
+=======
+#define MAX_WIFI_NETWORKS 5
+#define MAX_WIFI_SSID 32
+#define MAX_WIFI_PASS 64
+>>>>>>> Stashed changes
 
 const char *Functions[] = {"Outputs", "Maths", "Random", "Score", "Games", "Metronome", "Notes", "Calendar", "WiFi Menu", "WiFi Tools","Shell", "Settings"};
 const char *settingFuncs[] = {"Button Offset", "Func1 Settings", "Func2 Settings", "Func3 Settings", "Display Settings"};
 
+<<<<<<< Updated upstream
+=======
+const byte buttonPin = 2;
+
+// Default button resistance values (Ordered by frequency used)
+const int defBtn1 = 1499;  // 5.1K
+const int defBtn2 = 1017;   // 3K
+const int defBtn3 = 215;   // 510
+const int defBtn4 = 400;   // 1K
+const int defBtn5 = 1805;    // 6.8K
+const int defBtn6 = 2238;  // 10K
+
+int btn1;
+int btn2;
+int btn3;
+int btn4;
+int btn5;
+int btn6;
+
+int buttonOffset = 0;
+int buttonValRange = 30;
+
+byte Func1 = 3;
+byte Func2 = 0;
+byte Func3 = 1;
+
+int blinkTime1 = 500000;
+int blinkTime2 = 1;
+int blinkTime3 = 10000;
+
+int selectedFunction = 1;
+int prevSelectedFunction = 0; 
+
+bool wifiConnected = false;
+
+struct WiFiNetwork {
+  char ssid[MAX_WIFI_SSID];
+  char password[MAX_WIFI_PASS];
+};
+
+>>>>>>> Stashed changes
 WiFiNetwork wifiNetworks[MAX_WIFI_NETWORKS];
 int wifiNetworkCount = 0;
 int currentWiFiIndex = 0;
 
+<<<<<<< Updated upstream
+=======
+unsigned long lastNavTime = 0;
+const unsigned long NAV_DEBOUNCE = 120;
+
+// Helper to check if a point is within the visible circle
+bool inCircle(int x, int y) {
+  int dx = x - SCREEN_CENTER_X;
+  int dy = y - SCREEN_CENTER_Y;
+  return (dx*dx + dy*dy) <= (SCREEN_RADIUS-2)*(SCREEN_RADIUS-2);
+}
+
+>>>>>>> Stashed changes
 bool button_is_pressed(int btnVal, bool onlyOnce = false) {
   int pinVal = analogRead(buttonPin) - buttonOffset;
   int errorVal = pinVal - btnVal;
   int absErrorVal = abs(errorVal);
 
-  if (absErrorVal <= buttonValRange) {
+  if (absErrorVal <= buttonValRange) {    
     if (onlyOnce) {
       while (true) {
         delay(10);
@@ -43,54 +132,78 @@ bool a_button_is_pressed(){
 }
 
 void drawMainUI() {
-  display.fillScreen(COLOR_BG);
+  display.fillScreen(GC9A01A_BLACK);
 
-  display.drawCircle(SCREEN_CENTER_X, SCREEN_CENTER_Y, SCREEN_RADIUS-1, COLOR_ACCENT);
-  display.drawCircle(SCREEN_CENTER_X, SCREEN_CENTER_Y, SCREEN_RADIUS-6, COLOR_FG);
+  display.fillCircle(SCREEN_CENTER_X, SCREEN_CENTER_Y, SCREEN_RADIUS, GC9A01A_BLACK);
 
-  display.setTextColor(COLOR_FG);
-  display.setTextSize(1);
-  const char* title = "Watch 5.1";
-  display.setCursor(SCREEN_CENTER_X - STR_W(title,1)/2, 32);
-  display.print(title);
+  display.drawCircle(SCREEN_CENTER_X, SCREEN_CENTER_Y, SCREEN_RADIUS-1, GC9A01A_WHITE);
+  display.drawCircle(SCREEN_CENTER_X, SCREEN_CENTER_Y, SCREEN_RADIUS-2, GC9A01A_DARKGREY);
+
+  int headerY = 42;
+  int headerR = SCREEN_RADIUS-24;
+  display.drawCircle(SCREEN_CENTER_X, SCREEN_CENTER_Y, headerR, GC9A01A_NAVY);
+
+  display.setTextColor(GC9A01A_WHITE);
+  display.setTextSize(2);
+  int16_t x1, y1;
+  uint16_t w, h;
 
   if (wifiConnected) {
-    int iconY = 50;
-    display.drawCircle(SCREEN_CENTER_X, iconY, 10, COLOR_ACCENT);
-    display.drawCircle(SCREEN_CENTER_X, iconY, 7, COLOR_ACCENT);
-    display.drawCircle(SCREEN_CENTER_X, iconY, 4, COLOR_ACCENT);
-    display.fillCircle(SCREEN_CENTER_X, iconY+7, 2, COLOR_ACCENT);
+    display.setTextSize(1);
+    display.setCursor(SCREEN_CENTER_X + headerR - 30, 18);
+    display.setTextColor(GC9A01A_GREEN);
+    display.print("WiFi");
   }
 
-  for (int i = 0; i < totalFunctions; i++) {
-    float angle = (2 * PI * i / totalFunctions) - PI/2;
-    int rDots = SCREEN_RADIUS - 26;
-    int dotX = SCREEN_CENTER_X + (int)(rDots * cos(angle));
-    int dotY = SCREEN_CENTER_Y + (int)(rDots * sin(angle));
-    if ((i+1) == selectedFunction)
-      display.fillCircle(dotX, dotY, 7, COLOR_SELECTED);
-    else
-      display.fillCircle(dotX, dotY, 4, COLOR_UNSELECTED);
-  }
-
-  display.setTextColor(COLOR_FG);
-  display.setTextSize(2);
-  const char* funcName = Functions[selectedFunction - 1];
-  display.setCursor(SCREEN_CENTER_X - STR_W(funcName,2)/2, SCREEN_CENTER_Y - 18);
-  display.print(funcName);
-
-  char numBuf[8];
-  sprintf(numBuf, "[%02d]", selectedFunction);
-  display.setTextColor(COLOR_ACCENT);
-  display.setTextSize(2);
-  display.setCursor(SCREEN_CENTER_X - STR_W(numBuf,2)/2, SCREEN_CENTER_Y + 20);
-  display.print(numBuf);
-
-  display.setTextColor(COLOR_FG);
+  display.setTextColor(GC9A01A_CYAN);
   display.setTextSize(1);
-  const char* navHint = "< NAV >   SEL";
-  display.setCursor(SCREEN_CENTER_X - STR_W(navHint,1)/2, SCREEN_HEIGHT - 22);
-  display.print(navHint);
+  display.setCursor(SCREEN_CENTER_X - 12, 150);
+  display.print("[");
+  if (selectedFunction < 10) display.print("0");
+  display.print(selectedFunction);
+  display.print("]");
+  display.setTextColor(GC9A01A_WHITE);
+
+  // Draw function title in the "middle"
+  display.setTextSize(2);
+  display.getTextBounds(Functions[selectedFunction-1], 0, 0, &x1, &y1, &w, &h);
+  display.setCursor(SCREEN_CENTER_X - w/2, 120);
+  display.setTextColor(GC9A01A_WHITE);
+  display.print(Functions[selectedFunction-1]);
+
+  // Draw selector bar at bottom (with arc)
+  int barY = SCREEN_HEIGHT - 40;
+  int barW = 120;
+  int barH = 28;
+
+  // Draw arc to represent current function position
+  float arcStart = -120.0;
+  float arcEnd   = 120.0;
+  float arcSpan  = arcEnd - arcStart;
+
+  for (int i=0; i<totalFunctions; i++) {
+    float angle = (arcStart + arcSpan * i/(float)(totalFunctions-1)) * 3.1416 / 180.0;
+    int cx = SCREEN_CENTER_X + cos(angle)*(headerR-8);
+    int cy = SCREEN_CENTER_Y + sin(angle)*(headerR-8);
+    if (i+1 == selectedFunction)
+      display.fillCircle(cx, cy, 7, GC9A01A_YELLOW);
+    else
+      display.drawCircle(cx, cy, 5, GC9A01A_DARKGREY);
+  }
+  
+  // Draw selector
+  display.setTextSize(1);
+  display.setTextColor(GC9A01A_WHITE);
+  display.getTextBounds("< SEL >", 0,0, &x1, &y1, &w, &h);
+  display.setCursor(SCREEN_CENTER_X - w/2, SCREEN_HEIGHT-15);
+  display.print("< SEL >");
+}
+
+void updateMainUI() {
+  if (selectedFunction != prevSelectedFunction) {
+    drawMainUI();
+    prevSelectedFunction = selectedFunction;
+  }
 }
 
 void saveBtnVals() {
@@ -145,7 +258,12 @@ void timeSyncAndUI() {
 
     int attempts = 0;
     while (WiFi.status() != WL_CONNECTED && attempts < 20) {
+<<<<<<< Updated upstream
       if (button_is_pressed(btn6, true)) {
+=======
+      // Allow escape if a skip button is pressed
+      if (button_is_pressed(btn6)) {
+>>>>>>> Stashed changes
         WiFi.disconnect();
         return;
       }
@@ -154,37 +272,55 @@ void timeSyncAndUI() {
       attempts++;
       currentStep = min(totalSteps - 10, (int)((millis() - startTime) * totalSteps / timeout));
 
-      display.fillScreen(COLOR_BG);
+      display.fillScreen(GC9A01A_BLACK);
+      display.fillCircle(SCREEN_CENTER_X, SCREEN_CENTER_Y, SCREEN_RADIUS, GC9A01A_BLACK);
+
       display.setTextSize(1);
-      display.setTextColor(COLOR_FG);
+      display.setTextColor(GC9A01A_WHITE);
 
-      const char* title = "WATCH 5.1";
-      display.setCursor(SCREEN_CENTER_X - STR_W(title,1)/2, SCREEN_CENTER_Y - 44);
-      display.print(title);
-
-      const char* initTxt = "INITIALIZING";
-      display.setCursor(SCREEN_CENTER_X - STR_W(initTxt,1)/2, SCREEN_CENTER_Y - 26);
-      display.print(initTxt);
+      String msg = "INITIALIZING";
+      int16_t x1, y1;
+      uint16_t w, h;
+      display.getTextBounds(msg, 0, 0, &x1, &y1, &w, &h);
+      display.setCursor(SCREEN_CENTER_X - w / 2, SCREEN_CENTER_Y - 34);
+      display.print(msg);
 
       int dotCount = (attempts / 2) % 4;
-      for (int i = 0; i < dotCount; i++) {
-        display.print(".");
+      display.setCursor(SCREEN_CENTER_X - 12, SCREEN_CENTER_Y - 16);
+      for (int i = 0; i < dotCount; i++) display.print(".");
+
+      const int arc_radius = SCREEN_RADIUS - 12;
+      const int arc_thickness = 10;
+      const float start_angle = 200.0;   // left bottom, degrees
+      const float end_angle = -20.0;     // right bottom, degrees
+
+      for (float a = start_angle; a >= end_angle; a -= 2) {
+        float rad = a * 3.14159 / 180.0;
+        int x1a = SCREEN_CENTER_X + cos(rad) * (arc_radius - arc_thickness / 2);
+        int y1a = SCREEN_CENTER_Y + sin(rad) * (arc_radius - arc_thickness / 2);
+        int x2a = SCREEN_CENTER_X + cos(rad) * (arc_radius + arc_thickness / 2);
+        int y2a = SCREEN_CENTER_Y + sin(rad) * (arc_radius + arc_thickness / 2);
+        display.drawLine(x1a, y1a, x2a, y2a, GC9A01A_DARKGREY);
       }
 
-      float angleF = 2 * PI * (float)currentStep / (float)totalSteps;
-      int arcR1 = 94, arcR2 = 106;
-      for (float theta = -PI/2; theta < -PI/2 + angleF; theta += 0.04) {
-        int x1 = SCREEN_CENTER_X + (int)(arcR1 * cos(theta));
-        int y1 = SCREEN_CENTER_Y + (int)(arcR1 * sin(theta));
-        int x2 = SCREEN_CENTER_X + (int)(arcR2 * cos(theta));
-        int y2 = SCREEN_CENTER_Y + (int)(arcR2 * sin(theta));
-        display.drawLine(x1, y1, x2, y2, COLOR_ACCENT);
+      float percent = currentStep * 1.0 / totalSteps;
+      float prog_end = start_angle + (end_angle - start_angle) * percent;
+      for (float a = start_angle; a >= prog_end; a -= 2) {
+        float rad = a * 3.14159 / 180.0;
+        int x1a = SCREEN_CENTER_X + cos(rad) * (arc_radius - arc_thickness / 2);
+        int y1a = SCREEN_CENTER_Y + sin(rad) * (arc_radius - arc_thickness / 2);
+        int x2a = SCREEN_CENTER_X + cos(rad) * (arc_radius + arc_thickness / 2);
+        int y2a = SCREEN_CENTER_Y + sin(rad) * (arc_radius + arc_thickness / 2);
+        display.drawLine(x1a, y1a, x2a, y2a, GC9A01A_CYAN);
       }
-      char percentText[8];
-      sprintf(percentText, "%d%", currentStep);
+
+      char percentStr[8];
+      sprintf(percentStr, "%3d%%", currentStep);
       display.setTextSize(2);
-      display.setCursor(SCREEN_CENTER_X - STR_W(percentText, 2)/2, SCREEN_CENTER_Y + 20);
-      display.print(percentText);
+      display.setTextColor(GC9A01A_WHITE);
+      display.getTextBounds(percentStr, 0, 0, &x1, &y1, &w, &h);
+      display.setCursor(SCREEN_CENTER_X - w / 2, SCREEN_HEIGHT - 38);
+      display.print(percentStr);
     }
 
     if (WiFi.status() == WL_CONNECTED) {
@@ -193,33 +329,44 @@ void timeSyncAndUI() {
       break;
     }
   }
-  display.fillScreen(COLOR_BG);
+
+  display.fillScreen(GC9A01A_BLACK);
+  display.fillCircle(SCREEN_CENTER_X, SCREEN_CENTER_Y, SCREEN_RADIUS, GC9A01A_BLACK);
+
   display.setTextSize(1);
-  display.setTextColor(COLOR_FG);
+  display.setTextColor(GC9A01A_WHITE);
 
-  const char* title = "WATCH 5.1";
-  display.setCursor(SCREEN_CENTER_X - STR_W(title,1)/2, SCREEN_CENTER_Y - 44);
-  display.print(title);
+  String msg = "INITIALIZING";
+  int16_t x1, y1;
+  uint16_t w, h;
+  display.getTextBounds(msg, 0, 0, &x1, &y1, &w, &h);
+  display.setCursor(SCREEN_CENTER_X - w / 2, SCREEN_CENTER_Y - 12);
+  display.print(msg);
+  display.print(".");
 
-  const char* initDone = "INITIALIZING.";
-  display.setCursor(SCREEN_CENTER_X - STR_W(initDone,1)/2, SCREEN_CENTER_Y - 26);
-  display.print(initDone);
-
-  int arcR1 = 94, arcR2 = 106;
-  for (float theta = -PI/2; theta < -PI/2 + 2*PI; theta += 0.04) {
-    int x1 = SCREEN_CENTER_X + (int)(arcR1 * cos(theta));
-    int y1 = SCREEN_CENTER_Y + (int)(arcR1 * sin(theta));
-    int x2 = SCREEN_CENTER_X + (int)(arcR2 * cos(theta));
-    int y2 = SCREEN_CENTER_Y + (int)(arcR2 * sin(theta));
-    display.drawLine(x1, y1, x2, y2, COLOR_ACCENT);
+  // Progress arc (full)
+  const int arc_radius = SCREEN_RADIUS - 12;
+  const int arc_thickness = 10;
+  const float start_angle = 200.0;
+  const float end_angle = -20.0;
+  for (float a = start_angle; a >= end_angle; a -= 2) {
+    float rad = a * 3.14159 / 180.0;
+    int x1a = SCREEN_CENTER_X + cos(rad) * (arc_radius - arc_thickness / 2);
+    int y1a = SCREEN_CENTER_Y + sin(rad) * (arc_radius - arc_thickness / 2);
+    int x2a = SCREEN_CENTER_X + cos(rad) * (arc_radius + arc_thickness / 2);
+    int y2a = SCREEN_CENTER_Y + sin(rad) * (arc_radius + arc_thickness / 2);
+    display.drawLine(x1a, y1a, x2a, y2a, GC9A01A_CYAN);
   }
-  char percentText[8];
-  sprintf(percentText, "100%");
-  display.setTextSize(2);
-  display.setCursor(SCREEN_CENTER_X - STR_W(percentText, 2)/2, SCREEN_CENTER_Y + 20);
-  display.print(percentText);
 
-  delay(1500);
+  char percentStr[8];
+  sprintf(percentStr, "%3d%%", 100);
+  display.setTextSize(2);
+  display.setTextColor(GC9A01A_WHITE);
+  display.getTextBounds(percentStr, 0, 0, &x1, &y1, &w, &h);
+  display.setCursor(SCREEN_CENTER_X - w / 2, SCREEN_HEIGHT - 38);
+  display.print(percentStr);
+  // ---------------------------------------------------------
+
   wifiConnected = false;
   WiFi.disconnect();
   delay(500);
@@ -232,44 +379,45 @@ void setup() {
   pinMode(Func3, OUTPUT);
 
   loadBtnVals();
-
   randomSeed(analogRead(1));
   display.begin();
   Serial.begin(115200);
+
   randomiseMac();
-  initializeNotesNVS();
+
+  initializeNotesNVS(); 
   loadWiFiNetworksFromNVS();
 
+  // Sync time and display startup message
   timeSyncAndUI();
+
   delay(1000);
 
+  // If any button is pressed, enter button tuning
   if (a_button_is_pressed()) {
-    display.fillScreen(COLOR_BG);
+    display.fillScreen(GC9A01A_BLACK);
     tuneButtonVals();
   }
+
+  drawMainUI();
+  prevSelectedFunction = selectedFunction;
 }
 
 void loop() {
-  // Only redraw UI if needed
-  if (selectedFunction != lastSelectedFunction) {
-    drawMainUI();
-    lastSelectedFunction = selectedFunction;
-  }
-
   if (Serial.available()) {
     char cmd = Serial.peek();
     if (cmd == 's' || cmd == 'S') {
       Serial.read();
       serialWiFiMenu();
-    }
+    } 
     else if (cmd == 'n' || cmd == 'N') {
       Serial.read();
       serialNotesMenu();
-    }
+    } 
     else if (cmd == 'c' || cmd == 'C') {
       Serial.read();
       serialCalendarMenu();
-    }
+    } 
     else {
       Serial.read();
     }
@@ -277,57 +425,37 @@ void loop() {
 
   checkCalendarAlarms();
 
+  updateMainUI();
+
   unsigned long now = millis();
 
-  if (button_is_pressed(btn2) && (now - lastNavTime) > NAV_DEBOUNCE) {
+  if (button_is_pressed(btn4) && (now - lastNavTime) > NAV_DEBOUNCE) {
     selectedFunction++;
     if (selectedFunction > totalFunctions) selectedFunction = 1;
     lastNavTime = now;
-  }
-  else if (button_is_pressed(btn1) && (now - lastNavTime) > NAV_DEBOUNCE) {
+  } 
+  else if (button_is_pressed(btn6) && (now - lastNavTime) > NAV_DEBOUNCE) {
     selectedFunction--;
     if (selectedFunction < 1) selectedFunction = totalFunctions;
     lastNavTime = now;
-  }
-  else if (button_is_pressed(btn3)) {
+  } 
+  else if (button_is_pressed(btn5, true)) {
     delay(100);
+    int prevSel = selectedFunction;
+    bool prevWifi = wifiConnected;
     switch (selectedFunction) {
-      case 1:
-        watchFuncs();
-        break;
-      case 2:
-        maths();
-        break;
-      case 3:
-        randomNum();
-        break;
-      case 4:
-        counter();
-        break;
-      case 5:
-        games();
-        break;
-      case 6:
-        metronome();
-        break;
-      case 7:
-        notesFunction();
-        break;
-      case 8:
-        calendar();
-        break;
-      case 9:
-        wifiMenu();
-        break;
-      case 10:
-        wifiFuncs();
-        break;
-      case 11:
-        //shell();
-        break;
-      case 12 :
-        settings();
-        break;
+      case 1: watchFuncs(); break;
+      case 2: maths(); break;
+      case 3: randomNum(); break;
+      case 4: counter(); break;
+      case 5: games(); break;
+      case 6: metronome(); break;
+      case 7: notesFunction(); break;
+      case 8: calendar(); break;
+      case 9: wifiMenu(); break;
+      case 10: wifiFuncs(); break;
+      case 11: shell(); break;
+      case 12: settings(); break;
     }
   }
 }

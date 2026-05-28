@@ -26,6 +26,7 @@ void settings() {
     display.println("3. Debug");
     display.println("4. System Info");
     display.println("5. Btn Settings");
+    
     delay(50);
     
     if (button_is_pressed(btn1)) tuneButtonVals();
@@ -50,6 +51,7 @@ void tuneButtonVals() {
     display.setCursor(0, 30);
     display.print("Push ");
     display.print(labels[i]);
+    
     while (!a_button_is_pressed()) delay(50);
 
     for (int s = 0; s < sampleCount; s++) {
@@ -71,6 +73,7 @@ void tuneButtonVals() {
     display.setCursor(0, 30);
     display.print(labels[i]);
     display.print(" Set");
+    
 
     while(a_button_is_pressed()) delay(50);
   }
@@ -188,6 +191,7 @@ void prefs() {
         delay(50);
         break;
     }
+    
     delay(100);
     if(button_is_pressed(btn3, true)) {
       settingIndex = (settingIndex + 1) % numSettings;
@@ -216,6 +220,7 @@ void debug() {
       display.print(*defBtnRefs[i]-*btnRefs[i]);
       display.print(")");
     }
+    
     // TODO: an alternative needs to be found here:
     if (button_is_pressed(btn6, true)) {
       return;
@@ -256,6 +261,7 @@ void chipStats() {
       display.print(lines[i + scroll]);
     }
     display.setCursor(0, 0); display.print("System Info");
+    
     if (button_is_pressed(btn1)) { if (scroll > 0) scroll--; delay(120); }
     else if (button_is_pressed(btn2)) { if (scroll < n - 5) scroll++; delay(120); }
     else if (button_is_pressed(btn3)) runtimeStats();
@@ -289,6 +295,7 @@ void runtimeStats() {
     y+=12; if (y >= 10 && y < 18) y = 20;
     display.setCursor(0,y); display.print("SketchFree: ");
     display.print(ESP.getFreeSketchSpace()/1024); display.print("KB");
+    
 
     unsigned long ref = millis();
     while (millis() - ref < 950) {

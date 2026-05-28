@@ -82,6 +82,7 @@ void calendar(void) {
   loadCalendarFromNVS();
   int redraw = 1;
   while (true) {
+<<<<<<< Updated upstream
     if (redraw) {
       display.fillScreen(COLOR_BG);
       display.drawCircle(SCREEN_CENTER_X, SCREEN_CENTER_Y, SCREEN_RADIUS-1, COLOR_ACCENT);
@@ -98,6 +99,30 @@ void calendar(void) {
       display.setCursor(SCREEN_CENTER_X-48, 148); display.print("6:Back");
 
       redraw = 0;
+=======
+    display.fillScreen(GC9A01A_BLACK);
+    display.setTextSize(1);
+    display.setCursor(0, 0);
+    display.print("Calendar");
+    display.drawLine(0, 10, SCREEN_WIDTH, 10, GC9A01A_WHITE);
+    
+    display.setCursor(0, 20);
+    display.print("Events: ");
+    display.println(eventCount);
+    
+    display.setCursor(0, 35);
+    display.println("3:New Event");
+    display.setCursor(0, 45);
+    display.println("2:View Events");
+    display.setCursor(0, 55);
+    display.println("6:Back");
+    
+    
+    
+    if (button_is_pressed(btn3)) {
+      createNewEvent();
+      delay(200);
+>>>>>>> Stashed changes
     }
     if (button_is_pressed(btn3)) { createNewEvent(); redraw = 1; delay(240);}
     else if (button_is_pressed(btn2)) { viewEvents(); redraw = 1; delay(240);}
@@ -108,12 +133,22 @@ void calendar(void) {
 
 void createNewEvent() {
   if (eventCount >= MAX_CALENDAR_EVENTS) {
+<<<<<<< Updated upstream
     display.fillScreen(COLOR_ERROR);
     display.setTextColor(COLOR_FG);
     display.setTextSize(2);
     display.setCursor(SCREEN_CENTER_X - 84, SCREEN_CENTER_Y-8);
     display.print("Max events!");
     delay(1300); return;
+=======
+    display.fillScreen(GC9A01A_BLACK);
+    display.setTextSize(1);
+    display.setCursor(0, 20);
+    display.print("Max events reached!");
+    
+    delay(2000);
+    return;
+>>>>>>> Stashed changes
   }
   CalendarEvent newEvent;
   time_t now = time(nullptr);
@@ -142,6 +177,7 @@ void createNewEvent() {
       newEvent.used = true; newEvent.alarmed = false;
       events[eventCount++] = newEvent;
       saveCalendarToNVS();
+<<<<<<< Updated upstream
       display.fillScreen(COLOR_ACCENT);
       display.setTextColor(COLOR_BG); display.setTextSize(2);
       display.setCursor(SCREEN_CENTER_X-40,SCREEN_CENTER_Y-9); display.print("Saved!");
@@ -152,12 +188,32 @@ void createNewEvent() {
       display.setTextColor(COLOR_ERROR); display.setTextSize(2);
       display.setCursor(SCREEN_CENTER_X-76,SCREEN_CENTER_Y-9); display.print("Cancelled");
       delay(650); return;
+=======
+      
+      display.fillScreen(GC9A01A_BLACK);
+      display.setTextSize(1);
+      display.setCursor(0, 20);
+      display.print("Event saved!");
+      
+      delay(1500);
+      return;
+    }
+    if (button_is_pressed(btn6)) {
+      display.fillScreen(GC9A01A_BLACK);
+      display.setTextSize(1);
+      display.setCursor(0, 20);
+      display.print("Cancelled");
+      
+      delay(1000);
+      return;
+>>>>>>> Stashed changes
     }
     delay(40);
   }
 }
 
 void selectDateTime(CalendarEvent* event) {
+<<<<<<< Updated upstream
   int field=0; // 0=year, 1=month, 2=day, 3=hour, 4=minute
   while (1) {
     display.fillScreen(COLOR_BG);
@@ -194,6 +250,59 @@ void selectDateTime(CalendarEvent* event) {
     else if (button_is_pressed(btn3)) { field=(field+1)%5; delay(130);}
     else if (button_is_pressed(btn6, true)) return;
     delay(26);
+=======
+  int field = 0; // 0=year, 1=month, 2=day, 3=hour, 4=minute
+  
+  while (true) {
+    display.fillScreen(GC9A01A_BLACK);
+    display.setTextSize(1);
+    display.setCursor(0, 0);
+    display.print("Set Date & Time");
+    
+    display.setCursor(0, 20);
+    
+    if (field == 0) display.print(">");
+    display.printf("%04d", event->year);
+    display.print("-");
+    
+    if (field == 1) display.print(">");
+    display.printf("%02d", event->month);
+    display.print("-");
+    
+    if (field == 2) display.print(">");
+    display.printf("%02d", event->day);
+    
+    display.setCursor(0, 40);
+    if (field == 3) display.print(">");
+    display.printf("%02d", event->hour);
+    display.print(":");
+    
+    if (field == 4) display.print(">");
+    display.printf("%02d", event->minute);
+    
+    display.setCursor(0, 56);
+    display.println("1:- 2:+ 3:Next 6:Done");
+    
+    
+    
+    if (button_is_pressed(btn1)) {
+      decrementField(event, field);
+      delay(100);
+    }
+    else if (button_is_pressed(btn2)) {
+      incrementField(event, field);
+      delay(100);
+    }
+    else if (button_is_pressed(btn3)) {
+      field = (field + 1) % 5;
+      delay(150);
+    }
+    else if (button_is_pressed(btn6)) {
+      return;
+    }
+    
+    delay(50);
+>>>>>>> Stashed changes
   }
 }
 
@@ -218,11 +327,22 @@ void decrementField(CalendarEvent* event, int field) {
 
 void viewEvents() {
   if (eventCount == 0) {
+<<<<<<< Updated upstream
     display.fillScreen(COLOR_ERROR); display.setTextColor(COLOR_BG); display.setTextSize(2);
     display.setCursor(SCREEN_CENTER_X-44,SCREEN_CENTER_Y-10);
     display.print("No events!"); delay(1000); return;
+=======
+    display.fillScreen(GC9A01A_BLACK);
+    display.setTextSize(1);
+    display.setCursor(0, 20);
+    display.print("No events");
+    
+    delay(1500);
+    return;
+>>>>>>> Stashed changes
   }
   int selectedIdx = 0;
+<<<<<<< Updated upstream
   while (1) {
     display.fillScreen(COLOR_BG);
     display.drawCircle(SCREEN_CENTER_X, SCREEN_CENTER_Y, SCREEN_RADIUS-1, COLOR_ACCENT);
@@ -250,6 +370,58 @@ void viewEvents() {
     else if (button_is_pressed(btn5)) { editEvent(selectedIdx); delay(200);}
     else if (button_is_pressed(btn6, true)) { return; }
     delay(34);
+=======
+  
+  while (true) {
+    display.fillScreen(GC9A01A_BLACK);
+    display.setTextSize(1);
+    display.setCursor(0, 0);
+    display.print("Events (");
+    display.print(selectedIdx + 1);
+    display.print("/");
+    display.print(eventCount);
+    display.println(")");
+    
+    if (events[selectedIdx].used) {
+      display.setCursor(0, 20);
+      display.printf("%04d-%02d-%02d", events[selectedIdx].year, events[selectedIdx].month, events[selectedIdx].day);
+      display.setCursor(0, 30);
+      display.printf("%02d:%02d", events[selectedIdx].hour, events[selectedIdx].minute);
+      
+      display.setCursor(0, 40);
+      display.println(events[selectedIdx].message);
+      
+      display.setCursor(0, 56);
+      display.println("4:Del 5:Edit 6:Back");
+    }
+    
+    
+    
+    if (button_is_pressed(btn1)) {
+      selectedIdx = (selectedIdx - 1 + eventCount) % eventCount;
+      delay(150);
+    }
+    else if (button_is_pressed(btn2)) {
+      selectedIdx = (selectedIdx + 1) % eventCount;
+      delay(150);
+    }
+    else if (button_is_pressed(btn4)) {
+      deleteEvent(selectedIdx);
+      if (selectedIdx >= eventCount && eventCount > 0) {
+        selectedIdx = eventCount - 1;
+      }
+      delay(200);
+    }
+    else if (button_is_pressed(btn5)) {
+      editEvent(selectedIdx);
+      delay(200);
+    }
+    else if (button_is_pressed(btn6)) {
+      return;
+    }
+    
+    delay(50);
+>>>>>>> Stashed changes
   }
 }
 
@@ -265,11 +437,27 @@ void deleteEvent(int idx) {
   display.print("3:Yes 6:Cancel");
   while (1) {
     if (button_is_pressed(btn3)) {
+<<<<<<< Updated upstream
       for (int i = idx; i < eventCount - 1; i++) events[i] = events[i + 1];
       eventCount--; saveCalendarToNVS();
       display.fillScreen(COLOR_ACCENT); display.setTextColor(COLOR_BG); display.setTextSize(2);
       display.setCursor(SCREEN_CENTER_X-40,SCREEN_CENTER_Y-12); display.print("Deleted!");
       delay(800); return;
+=======
+      for (int i = idx; i < eventCount - 1; i++) {
+        events[i] = events[i + 1];
+      }
+      eventCount--;
+      saveCalendarToNVS();
+      
+      display.fillScreen(GC9A01A_BLACK);
+      display.setTextSize(1);
+      display.setCursor(0, 20);
+      display.print("Deleted!");
+      
+      delay(1000);
+      return;
+>>>>>>> Stashed changes
     }
     if (button_is_pressed(btn6, true)) return;
     delay(40);
@@ -283,9 +471,19 @@ void editEvent(int idx) {
   if (inputStringOnWatch("Message:", newMessage, MAX_EVENT_MESSAGE)) {
     strncpy(events[idx].message, newMessage, MAX_EVENT_MESSAGE - 1);
     saveCalendarToNVS();
+<<<<<<< Updated upstream
     display.fillScreen(COLOR_ACCENT); display.setTextColor(COLOR_BG); display.setTextSize(2);
     display.setCursor(SCREEN_CENTER_X-52,SCREEN_CENTER_Y-8); display.print("Updated!");
     delay(900);
+=======
+    
+    display.fillScreen(GC9A01A_BLACK);
+    display.setTextSize(1);
+    display.setCursor(0, 20);
+    display.print("Event updated!");
+    
+    delay(1500);
+>>>>>>> Stashed changes
   }
 }
 

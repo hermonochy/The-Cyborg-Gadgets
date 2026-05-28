@@ -50,6 +50,7 @@ void games() {
       }
     }
     
+    
     delay(50);
     
     if (button_is_pressed(btn4)) {
@@ -99,6 +100,7 @@ void arcadeGames() {
         display.print(gameList[i]);
       }
     }
+    
     
     delay(50);
     
@@ -158,6 +160,7 @@ void mathsGames() {
         display.print(gameList[i]);
       }
     }
+    
     
     delay(50);
     
@@ -310,6 +313,7 @@ void shooter() {
     display.print("H:");
     display.print(health);
     
+    
     delay(30);
   }
 
@@ -404,6 +408,7 @@ void snake(void) {
     display.setCursor(65, 0);
     display.print("Score:");
     display.print(score);
+    
     
     delay(30);
   }
@@ -502,6 +507,7 @@ void flappyBird(void) {
     display.setCursor(80, 1);
     display.print("Spd: ");
     display.print(pipeSpeed);
+    
     
     delay(25);
   }
@@ -684,6 +690,7 @@ void geometryDash(void) {
     display.print("Spd:");
     display.print(speed);
     
+    
     delay(20);
   }
   
@@ -816,6 +823,7 @@ void flying3D() {
     display.setCursor(88, 2); display.print("Score:");
     display.print(score);
 
+    
     delay(26);
   }
 }
@@ -844,7 +852,8 @@ void countdown() {
             display.setTextSize(1);
             display.setCursor(0, 55);
             display.print("1/3:< >  5:Start  6:Exit");
-        
+            
+
             if (button_is_pressed(btn1, false) && selectedCount > 2) {
                 selectedCount--;
                 delay(180);
@@ -897,7 +906,8 @@ void countdown() {
 
             display.setCursor(0, 52);
             display.print("1: Solve 5:New");
-        
+            
+
             if (button_is_pressed(btn5, true)) {
                 readyForNewRound = true;
                 break;
@@ -1021,7 +1031,8 @@ int enterIntInput(const char *prompt, int initial, int minv, int maxv) {
         display.setTextSize(1);
         display.setCursor(0, 56);
         display.print("1/3: < >   5:OK   6:Exit");
-    
+        
+
         if (button_is_pressed(btn1, false) && val > minv) {
             val--;
             delay(120);
@@ -1075,7 +1086,8 @@ void countdownSolver() {
         }
         display.setCursor(0, 30);
         display.print("5:Solve   6:Exit");
-    
+        
+
         if (button_is_pressed(btn5, true)) break;
         if (button_is_pressed(btn6, true)) return;
         delay(60);
@@ -1089,6 +1101,7 @@ void countdownSolver() {
     display.fillScreen(GC9A01A_BLACK);
     display.setTextSize(2);
     display.setCursor(14, 24); display.print("SOLVING...");
+    
 
     solveCountdownRecursive(numbers, nCount, target, steps, 0, best, bestDiff);
 
@@ -1130,7 +1143,8 @@ void countdownSolver() {
             display.print("1/3:< > 5:More  6:Exit");
         else
             display.print("5:Again  6:Exit");
-    
+        
+
         if (best.nsteps > 0 && totalPages > 1) {
             if (button_is_pressed(btn1, false) && page > 0) {
                 page--;

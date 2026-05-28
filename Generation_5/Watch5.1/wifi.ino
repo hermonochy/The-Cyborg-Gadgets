@@ -83,6 +83,7 @@ void connectWiFi() {
     display.setTextSize(1);
     display.setCursor(0, 20);
     display.println("No WiFi networks saved!");
+    
     delay(2000);
     return;
   }
@@ -102,6 +103,7 @@ void connectWiFi() {
     delay(500);
     display.setCursor(0, 30);
     display.print(".");
+    
     attempts++;
   }
   
@@ -114,6 +116,7 @@ void connectWiFi() {
     display.setCursor(0, 20);
     display.print("IP: ");
     display.println(WiFi.localIP());
+    
     delay(2000);
     configTime(0, 0, "pool.ntp.org", "time.nist.gov");
   } else {
@@ -122,6 +125,7 @@ void connectWiFi() {
     display.setTextSize(1);
     display.setCursor(0, 20);
     display.print("Failed to connect");
+    
     delay(2000);
   }
 }
@@ -132,6 +136,7 @@ void addWiFiNetworkOnWatch() {
     display.setTextSize(1);
     display.setCursor(0, 20);
     display.print("Max networks (5) reached!");
+    
     delay(2000);
     return;
   }
@@ -175,7 +180,8 @@ void addWiFiNetworkOnWatch() {
       display.print("Total: ");
       display.print(wifiNetworkCount);
       display.print("/5");
-        delay(2000);
+      
+      delay(2000);
       return;
     }
     if (button_is_pressed(btn6, true)) {
@@ -183,7 +189,8 @@ void addWiFiNetworkOnWatch() {
       display.setTextSize(1);
       display.setCursor(0, 20);
       display.print("Cancelled");
-        delay(1000);
+      
+      delay(1000);
       return;
     }
     delay(50);
@@ -216,6 +223,7 @@ bool inputStringOnWatch(const char* label, char* buffer, int maxLen) {
     display.setTextSize(2);
     display.setCursor(40, 28);
     display.print(charset[charIndex]);
+    
     
     
     if (button_is_pressed(btn1)) {
@@ -291,6 +299,7 @@ void wifiNetworkMenu() {
     }
     
     
+    
     if (wifiNetworkCount > 0) {
       if (button_is_pressed(btn1)) {
         selectedIdx = (selectedIdx - 1 + wifiNetworkCount) % wifiNetworkCount;
@@ -356,7 +365,8 @@ void deleteWiFiNetwork(int idx) {
       display.setTextSize(1);
       display.setCursor(0, 20);
       display.println("Network deleted!");
-        delay(1000);
+      
+      delay(1000);
       return;
     }
     if (button_is_pressed(btn6, true)) {
@@ -380,6 +390,7 @@ void scanWiFiNetworks() {
     display.setTextSize(1);
     display.setCursor(0, 20);
     display.print("No networks found");
+    
     delay(2000);
     return;
   }
@@ -433,6 +444,7 @@ void scanWiFiNetworks() {
     }
     
     
+    
     if (button_is_pressed(btn1)) {
       selectedIdx = (selectedIdx - 1 + min(5, numNetworks)) % min(5, numNetworks);
       delay(150);
@@ -455,7 +467,8 @@ void scanWiFiNetworks() {
       display.println("networks?");
       display.setCursor(0, 45);
       display.println("3:Yes 6:No");
-        
+      
+      
       while (true) {
         if (button_is_pressed(btn3)) {
           if (wifiNetworkCount < MAX_WIFI_NETWORKS) {
@@ -474,7 +487,8 @@ void scanWiFiNetworks() {
               display.setTextSize(1);
               display.setCursor(0, 20);
               display.print("Network saved!");
-                        delay(1500);
+              
+              delay(1500);
             }
           }
           return;
@@ -499,6 +513,7 @@ void disconnectWiFi() {
     display.setTextSize(1);
     display.setCursor(0, 20);
     display.print("Not connected");
+    
     delay(1500);
     return;
   }
@@ -523,7 +538,8 @@ void disconnectWiFi() {
       display.setTextSize(1);
       display.setCursor(0, 20);
       display.print("Disconnected!");
-        delay(1500);
+      
+      delay(1500);
       return;
     }
     if (button_is_pressed(btn6, true)) {
@@ -559,6 +575,7 @@ void wifiMenu(void) {
         display.print("Status: Offline");
       }
     }
+    
     
     
     if (button_is_pressed(btn4)) {
@@ -743,6 +760,7 @@ void connectWiFiSerial() {
     display.setCursor(0, 20);
     display.print("IP: ");
     display.println(WiFi.localIP());
+    
     delay(2000);
     
     configTime(0, 0, "pool.ntp.org", "time.nist.gov");
@@ -757,6 +775,7 @@ void connectWiFiSerial() {
     display.setTextSize(1);
     display.setCursor(0, 20);
     display.println("Connection failed!");
+    
     delay(2000);
   }
 }
@@ -848,6 +867,7 @@ void wifiFuncs(){
     display.print("2. Time");
     display.setCursor(0, 40);
     display.print("3. Dictionary");
+    
     delay(50);
     
     if (button_is_pressed(btn1)) getWeather();
@@ -864,6 +884,7 @@ void getWeather(void) {
     display.print("WiFi not connected");
     display.setCursor(0, 40);
     display.print("Connect?");
+    
     while(true){
       if(button_is_pressed(btn3)) {
         wifiNetworkMenu();
@@ -886,6 +907,7 @@ void getWeather(void) {
     display.print("h");
     display.setCursor(0, 56);
     display.print("1/2:-/+  3:OK  6:Exit");
+    
 
     if (button_is_pressed(btn1)) {
       hourOffset = max(0, hourOffset - 1);
@@ -979,6 +1001,7 @@ void getWeather(void) {
     display.print((int)windSpeed);
     display.print("km/h");
 
+    
     while (true) {
       if (button_is_pressed(btn6, true)) break;
     }
@@ -987,6 +1010,7 @@ void getWeather(void) {
     display.setTextSize(1);
     display.setCursor(0, 20);
     display.print("Weather fetch failed");
+    
     delay(2000);
   }
   http.end();
@@ -1090,6 +1114,7 @@ void timeSettingsMenu() {
     display.print(" hrs");
     
     
+    
     if (button_is_pressed(btn1)) {
       selectedOption = (selectedOption - 1 + 3) % 3;
       delay(150);
@@ -1110,7 +1135,8 @@ void timeSettingsMenu() {
           display.setCursor(0, 35);
           display.setTextSize(2);
           display.print(timeOffset);
-                
+          
+          
           if (button_is_pressed(btn1)) {
             timeOffset--;
             if (timeOffset < -12) timeOffset = -12;
@@ -1144,7 +1170,8 @@ void timeSettingsMenu() {
           display.setCursor(0, 35);
           display.setTextSize(2);
           display.print(dstOffset);
-                
+          
+          
           if (button_is_pressed(btn1)) {
             dstOffset--;
             if (dstOffset < 0) dstOffset = 0;
@@ -1227,6 +1254,7 @@ void displayTime(void) {
       timeinfo->tm_mday, timeinfo->tm_year + 1900);
     
     
+    
     if (button_is_pressed(btn1)) timeSync();
 
     else if (button_is_pressed(btn4)) {
@@ -1250,6 +1278,7 @@ bool fetchWordDefinition(const char* word) {
     display.setTextSize(1);
     display.setCursor(0, 20);
     display.println("WiFi not connected");
+    
     delay(2000);
     return false;
   }
@@ -1347,6 +1376,7 @@ void dictCharacterInput(char* buffer, int maxLen) {
     display.print("5:Clr 6:Search");
     
     
+    
     if (button_is_pressed(btn1)) {
       charIndex = (charIndex - 1 + charsetSize) % charsetSize;
       delay(100);
@@ -1378,7 +1408,8 @@ void dictCharacterInput(char* buffer, int maxLen) {
         display.setTextSize(1);
         display.setCursor(0, 25);
         display.println("Searching...");
-            
+        
+        
         if (fetchWordDefinition(buffer)) {
           return;
         } else {
@@ -1388,7 +1419,8 @@ void dictCharacterInput(char* buffer, int maxLen) {
           display.println("Word not found!");
           display.setCursor(0, 35);
           display.println("Try another word.");
-                delay(2000);
+          
+          delay(2000);
         }
       }
       delay(200);
@@ -1471,6 +1503,7 @@ void dictionary(void) {
     display.println("1. Search Word");
     display.setCursor(0, 45);
     display.println("6. Back");
+    
     
     
     if (button_is_pressed(btn1)) {
