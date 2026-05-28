@@ -300,8 +300,6 @@ void wifiNetworkMenu() {
         } else {
           display.print("  ");
         }
-        display.print(i + 1);
-        display.print(": ");
         display.print(wifiNetworks[i].ssid);
         
         if (wifiConnected && i == currentWiFiIndex) {
@@ -575,10 +573,9 @@ void wifiMenu(void) {
     } else {
       display.print("Networks: ");
       display.print(wifiNetworkCount);
-      display.println("/5");
+      display.print("/5");
       display.setCursor(0, 30);
-      display.print("Cur: ");
-      display.println(wifiNetworks[currentWiFiIndex].ssid);
+      display.print(wifiNetworks[currentWiFiIndex].ssid);
       display.setCursor(0, 45);
       display.print(WiFi.RSSI());
       display.print(" dBm");
@@ -705,23 +702,14 @@ void deleteWiFiNetworkSerial() {
   }
   
   int idx = netNum - 1;
-  Serial.print("Delete '");
+  Serial.print("Deleting ");
   Serial.print(wifiNetworks[idx].ssid);
-  Serial.print("'? (y/n): ");
-  while (!Serial.available()) delay(10);
-  char response = Serial.read();
-  Serial.println(response);
-  
-  if (response == 'y' || response == 'Y') {
-    for (int i = idx; i < wifiNetworkCount - 1; i++) {
+  for (int i = idx; i < wifiNetworkCount - 1; i++) {
       wifiNetworks[i] = wifiNetworks[i + 1];
-    }
-    wifiNetworkCount--;
-    saveWiFiNetworksToNVS();
-    Serial.println("✓ Network deleted!");
-  } else {
-    Serial.println("Cancelled");
   }
+  wifiNetworkCount--;
+  saveWiFiNetworksToNVS();
+  Serial.println("✓ Network deleted!");
 }
 
 void connectWiFiSerial() {

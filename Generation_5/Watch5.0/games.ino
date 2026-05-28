@@ -8,7 +8,7 @@ extern int btn1, btn2, btn3, btn4, btn5, btn6;
 #define SCREEN_HEIGHT 64
 
 #define MAX_COUNT_NUMS 6
-#define SOLUTION_DISPLAY_STEPS 4   // how many lines of steps per page
+#define SOLUTION_DISPLAY_STEPS 4
 
 struct CountdownStep {
     int a, b;

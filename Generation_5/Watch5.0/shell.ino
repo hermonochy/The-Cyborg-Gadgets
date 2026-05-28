@@ -30,6 +30,525 @@ int historyCount = 0;
 LoopStack loopStack[MAX_LOOPS];
 int loopStackPtr = 0;
 
+#define MAX_LOOPS 10
+
+// Add these global variables after existing globals
+char serialInputBuffer[MAX_COMMAND_LENGTH] = "";
+int serialInputPos = 0;
+bool serialMode = false;
+
+// Add these new functions
+
+void initializeSerial() {
+  if (Serial) {
+    Serial.println("\n=== SHELL 5.0 - SERIAL INTERFACE ===");
+    Serial.println("Type 'help' for command list, 'exit' to return to display mode");
+    Serial.print("> ");
+  }
+}
+
+void handleSerialInput() {
+  while (Serial.available()) {
+    char c = Serial.read();
+    
+    if (c == '\r') {
+      Serial.println();
+      if (serialInputPos > 0) {
+        serialInputBuffer[serialInputPos] = '\0';
+        
+        if (strcmp(serialInputBuffer, "exit") == 0) {
+          Serial.println("Returning to display mode...\n");
+          serialMode = false;
+          serialInputPos = 0;
+          serialInputBuffer[0] = '\0';
+          return;
+        }
+        
+        Serial.print("Executing: ");
+        Serial.println(serialInputBuffer);
+        executeCommandSerial(serialInputBuffer);
+        addToHistory(serialInputBuffer);
+        
+        serialInputPos = 0;
+        serialInputBuffer[0] = '\0';
+        Serial.print("> ");
+      }
+    }
+    else if (c == '\n') {
+      continue;
+    }
+    else if (c == '\b' || c == 0x7F) {
+      if (serialInputPos > 0) {
+        serialInputPos--;
+        Serial.print("\b \b");
+      }
+    }
+    else if (serialInputPos < MAX_COMMAND_LENGTH - 1) {
+      serialInputBuffer[serialInputPos++] = c;
+      Serial.print(c);
+    }
+  }
+}
+
+void executeCommandSerial(const char* command) {
+  char cmd[64] = "";
+  char args[MAX_COMMAND_LENGTH] = "";
+  
+  int spacePos = -1;
+  for (int i = 0; i < strlen(command); i++) {
+    if (command[i] == ' ') {
+      spacePos = i;
+      break;
+    }
+  }
+  
+  if (spacePos == -1) {
+    strncpy(cmd, command, 63);
+    cmd[63] = '\0';
+  } else {
+    strncpy(cmd, command, spacePos);
+    cmd[spacePos] = '\0';
+    strncpy(args, command + spacePos + 1, MAX_COMMAND_LENGTH - 1);
+  }
+  
+  if (strcmp(cmd, "digitalWrite") == 0 || strcmp(cmd, "dw") == 0) {
+    cmdDigitalWrite(args);
+  }
+  else if (strcmp(cmd, "digitalRead") == 0 || strcmp(cmd, "dr") == 0) {
+    cmdDigitalReadSerial(args);
+  }
+  else if (strcmp(cmd, "analogWrite") == 0 || strcmp(cmd, "aw") == 0) {
+    cmdAnalogWrite(args);
+  }
+  else if (strcmp(cmd, "analogRead") == 0 || strcmp(cmd, "ar") == 0) {
+    cmdAnalogReadSerial(args);
+  }
+  else if (strcmp(cmd, "pinMode") == 0 || strcmp(cmd, "pm") == 0) {
+    cmdPinMode(args);
+  }
+  else if (strcmp(cmd, "var") == 0) {
+    cmdVariable(args);
+  }
+  else if (strcmp(cmd, "let") == 0) {
+    cmdLet(args);
+  }
+  else if (strcmp(cmd, "inc") == 0) {
+    cmdIncrement(args);
+  }
+  else if (strcmp(cmd, "dec") == 0) {
+    cmdDecrement(args);
+  }
+  else if (strcmp(cmd, "vars") == 0) {
+    showVariablesSerial();
+  }
+  else if (strcmp(cmd, "clear") == 0) {
+    clearVariables();
+  }
+  else if (strcmp(cmd, "blink") == 0) {
+    cmdBlink(args);
+  }
+  else if (strcmp(cmd, "ptn") == 0) {
+    cmdPattern(args);
+  }
+  else if (strcmp(cmd, "pulse") == 0) {
+    cmdPulse(args);
+  }
+  else if (strcmp(cmd, "delay") == 0) {
+    cmdDelay(args);
+  }
+  else if (strcmp(cmd, "millis") == 0) {
+    cmdMillisSerial();
+  }
+  else if (strcmp(cmd, "calc") == 0) {
+    cmdCalcSerial(args);
+  }
+  else if (strcmp(cmd, "random") == 0) {
+    cmdRandomNumSerial(args);
+  }
+  else if (strcmp(cmd, "print") == 0) {
+    cmdPrintSerial(args);
+  }
+  else if (strcmp(cmd, "save") == 0) {
+    cmdSave(args);
+  }
+  else if (strcmp(cmd, "load") == 0) {
+    cmdLoad(args);
+  }
+  else if (strcmp(cmd, "for") == 0) {
+    cmdForSerial(args);
+  }
+  else if (strcmp(cmd, "while") == 0) {
+    cmdWhileSerial(args);
+  }
+  else if (strcmp(cmd, "if") == 0) {
+    cmdIfSerial(args);
+  }
+  else if (strcmp(cmd, "help") == 0 || strcmp(cmd, "h") == 0) {
+    showHelpSerial();
+  }
+  else {
+    Serial.print("Unknown command: ");
+    Serial.println(cmd);
+    Serial.println("Type 'help' for command list");
+  }
+}
+
+void cmdDigitalReadSerial(const char* args) {
+  int pin = 0;
+  if (sscanf(args, "%d", &pin) == 1) {
+    int result = digitalRead(pin);
+    Serial.print("digitalRead(");
+    Serial.print(pin);
+    Serial.print(") = ");
+    Serial.println(result);
+  } else {
+    Serial.println("Usage: dr <pin>");
+  }
+}
+
+void cmdAnalogReadSerial(const char* args) {
+  int pin = 0;
+  if (sscanf(args, "%d", &pin) == 1) {
+    int result = analogRead(pin);
+    Serial.print("analogRead(");
+    Serial.print(pin);
+    Serial.print(") = ");
+    Serial.println(result);
+  } else {
+    Serial.println("Usage: ar <pin>");
+  }
+}
+
+void cmdMillisSerial(void) {
+  unsigned long now = millis();
+  Serial.print("millis() = ");
+  Serial.println(now);
+}
+
+void cmdCalcSerial(const char* args) {
+  int result = evaluateExpression(args);
+  Serial.print("Result: ");
+  Serial.println(result);
+}
+
+void cmdRandomNumSerial(const char* args) {
+  int min = 0, max = 100;
+  if (sscanf(args, "%d %d", &min, &max) >= 1) {
+    int result = random(min, max + 1);
+    Serial.print("random(");
+    Serial.print(min);
+    Serial.print(", ");
+    Serial.print(max);
+    Serial.print(") = ");
+    Serial.println(result);
+  } else {
+    Serial.println("Usage: random [min] [max]");
+  }
+}
+
+void cmdPrintSerial(const char* args) {
+  Serial.println(args);
+}
+
+void showVariablesSerial() {
+  int varCount = 0;
+  for (int i = 0; i < MAX_VARIABLES; i++) {
+    if (variables[i].used) varCount++;
+  }
+  
+  Serial.print("Variables (");
+  Serial.print(varCount);
+  Serial.print("/");
+  Serial.print(MAX_VARIABLES);
+  Serial.println("):");
+  
+  for (int i = 0; i < MAX_VARIABLES; i++) {
+    if (variables[i].used) {
+      Serial.print("  ");
+      Serial.print(variables[i].name);
+      Serial.print(" = ");
+      Serial.println(variables[i].value);
+    }
+  }
+}
+
+void cmdForSerial(const char* args) {
+  char varName[32] = "";
+  int start = 0, end = 0, step = 1;
+  
+  if (sscanf(args, "%s %d %d %d", varName, &start, &end, &step) >= 3) {
+    Serial.print("Loop: ");
+    Serial.print(varName);
+    Serial.print(" from ");
+    Serial.print(start);
+    Serial.print(" to ");
+    Serial.println(end);
+    
+    for (int i = start; i <= end; i += step) {
+      setVariableValue(varName, i);
+      handleSerialInput();
+      if (!serialMode) break;
+    }
+    Serial.println("Loop complete");
+  } else {
+    Serial.println("Usage: for <var> <start> <end> [step]");
+  }
+}
+
+void cmdWhileSerial(const char* args) {
+  char condition[256] = "";
+  char command[256] = "";
+  
+  int commandStart = -1;
+  int spaceCount = 0;
+  
+  for (int i = 0; i < strlen(args); i++) {
+    if (args[i] == ' ') {
+      spaceCount++;
+      if (spaceCount >= 4) {
+        commandStart = i + 1;
+        break;
+      }
+    }
+  }
+  
+  if (commandStart == -1) {
+    Serial.println("Usage: while <condition> <command>");
+    return;
+  }
+  
+  int pos = 0;
+  for (int i = 0; i < commandStart - 1; i++) {
+    if (args[i] == ' ' && pos > 0 && condition[pos-1] != ' ') {
+      condition[pos++] = ' ';
+    } else if (args[i] != ' ') {
+      condition[pos++] = args[i];
+    }
+  }
+  condition[pos] = '\0';
+  
+  strncpy(command, args + commandStart, 255);
+  command[255] = '\0';
+  
+  Serial.print("While condition: ");
+  Serial.println(condition);
+  
+  int iterations = 0;
+  unsigned long startTime = millis();
+  const unsigned long MAX_RUNTIME = 60000;
+  
+  while (evaluateCondition(condition)) {
+    executeCommandSerial(command);
+    iterations++;
+    handleSerialInput();
+    
+    if (millis() - startTime > MAX_RUNTIME) {
+      Serial.println("ERROR: Loop timeout (60s max)");
+      return;
+    }
+    
+    if (!serialMode) break;
+    delay(100);
+  }
+  
+  Serial.print("Loop complete. Iterations: ");
+  Serial.println(iterations);
+}
+
+void cmdIfSerial(const char* args) {
+  char condition[256] = "";
+  char trueCommand[256] = "";
+  char falseCommand[256] = "";
+  
+  int elsePos = -1;
+  for (int i = 0; i < strlen(args) - 3; i++) {
+    if (strncmp(&args[i], " else ", 6) == 0) {
+      elsePos = i;
+      break;
+    }
+  }
+  
+  int spaceCount = 0;
+  int commandStart = -1;
+  
+  for (int i = 0; i < strlen(args); i++) {
+    if (args[i] == ' ') {
+      spaceCount++;
+      if (spaceCount == 3) {
+        commandStart = i + 1;
+        break;
+      }
+    }
+  }
+  
+  if (commandStart == -1) {
+    Serial.println("Usage: if <condition> <command> [else <command>]");
+    return;
+  }
+  
+  int pos = 0;
+  for (int i = 0; i < commandStart - 1; i++) {
+    if (args[i] == ' ' && pos > 0 && condition[pos-1] != ' ') {
+      condition[pos++] = ' ';
+    } else if (args[i] != ' ') {
+      condition[pos++] = args[i];
+    }
+  }
+  condition[pos] = '\0';
+  
+  int cmdEnd = (elsePos == -1) ? strlen(args) : elsePos;
+  pos = 0;
+  for (int i = commandStart; i < cmdEnd; i++) {
+    if (args[i] != ' ' || (pos > 0 && trueCommand[pos-1] != ' ')) {
+      trueCommand[pos++] = args[i];
+    }
+  }
+  while (pos > 0 && trueCommand[pos-1] == ' ') {
+    pos--;
+  }
+  trueCommand[pos] = '\0';
+  
+  if (elsePos != -1) {
+    int falseStart = elsePos + 6;
+    pos = 0;
+    for (int i = falseStart; i < strlen(args); i++) {
+      falseCommand[pos++] = args[i];
+    }
+    falseCommand[pos] = '\0';
+  }
+  
+  bool conditionMet = evaluateCondition(condition);
+  
+  Serial.print("Condition: ");
+  Serial.println(condition);
+  Serial.print("Result: ");
+  Serial.println(conditionMet ? "TRUE" : "FALSE");
+  
+  if (conditionMet) {
+    if (strlen(trueCommand) > 0) {
+      executeCommandSerial(trueCommand);
+    }
+  } else {
+    if (strlen(falseCommand) > 0) {
+      executeCommandSerial(falseCommand);
+    }
+  }
+}
+
+void showHelpSerial() {
+  Serial.println("\n=== SHELL 5.0 Commands ===\n");
+  Serial.println("GPIO Commands:");
+  Serial.println("  dw <pin> <state>     - digitalWrite");
+  Serial.println("  dr <pin>             - digitalRead");
+  Serial.println("  aw <pin> <value>     - analogWrite (0-255)");
+  Serial.println("  ar <pin>             - analogRead");
+  Serial.println("  pm <pin> <mode>      - pinMode (INPUT/OUTPUT/INPUT_PULLUP)\n");
+  
+  Serial.println("Variables:");
+  Serial.println("  var <name> <value>   - Create/set variable");
+  Serial.println("  let <var> = <expr>   - Assign expression to variable");
+  Serial.println("  inc <var>            - Increment variable");
+  Serial.println("  dec <var>            - Decrement variable");
+  Serial.println("  vars                 - Show all variables");
+  Serial.println("  clear                - Clear all variables\n");
+  
+  Serial.println("Control Flow:");
+  Serial.println("  for <v> <s> <e> [st] - Loop variable from start to end");
+  Serial.println("  while <cond> <cmd>   - Execute command while condition true");
+  Serial.println("  if <cond> <cmd> [else <cmd>] - Conditional execution\n");
+  
+  Serial.println("Timing & Output:");
+  Serial.println("  delay <ms>           - Delay in milliseconds");
+  Serial.println("  millis               - Get current milliseconds");
+  Serial.println("  blink <pin> <cnt> [dly] - Blink LED");
+  Serial.println("  ptn <pin> <seq> [dly] - Pattern (1=on, 0=off)");
+  Serial.println("  pulse <pin> [dur]    - Pulse pin high\n");
+  
+  Serial.println("Other:");
+  Serial.println("  calc <expr>          - Calculate expression");
+  Serial.println("  random [min] [max]   - Random number");
+  Serial.println("  print <text>         - Print text");
+  Serial.println("  save <key>           - Save variables to NVS");
+  Serial.println("  load <key>           - Load variables from NVS");
+  Serial.println("  exit                 - Return to display mode\n");
+}
+
+void shell(void) {
+  initializeSerial();
+  initializeShell();
+  char inputBuffer[MAX_COMMAND_LENGTH] = "";
+  
+  if (Serial.available()) {
+    serialMode = true;
+  }
+  
+  while (true) {
+    if (serialMode) {
+      handleSerialInput();
+    } else {
+      // Display mode - keep existing code
+      display.clearDisplay();
+      display.setTextSize(1);
+      display.setCursor(0, 0);
+      display.print("SHELL 5.0");
+      display.drawLine(0, 10, SCREEN_WIDTH, 10, SSD1306_WHITE);
+      
+      display.setCursor(0, 20);
+      display.print("Command:");
+      display.setCursor(0, 35);
+      
+      int dispLen = strlen(inputBuffer);
+      if (dispLen > 20) {
+        display.print(&inputBuffer[dispLen - 20]);
+      } else {
+        display.print(inputBuffer);
+      }
+      
+      display.setCursor(0, 55);
+      display.setTextSize(1);
+      display.print("2:Input 3:Run 6:Exit");
+      
+      display.display();
+      
+      if (button_is_pressed(btn2)) {
+        if (inputString("Enter cmd:", inputBuffer, MAX_COMMAND_LENGTH)) {
+          executeCommand(inputBuffer);
+          addToHistory(inputBuffer);
+          inputBuffer[0] = '\0';
+        }
+        delay(200);
+      }
+      else if (button_is_pressed(btn3)) {
+        if (strlen(inputBuffer) > 0) {
+          executeCommand(inputBuffer);
+          addToHistory(inputBuffer);
+          inputBuffer[0] = '\0';
+        }
+        delay(200);
+      }
+      else if (button_is_pressed(btn5)) {
+        if (historyCount > 0) {
+          historyIndex = (historyIndex - 1 + historyCount) % historyCount;
+          strncpy(inputBuffer, commandHistory[historyIndex], MAX_COMMAND_LENGTH - 1);
+        }
+        delay(150);
+      }
+      else if (button_is_pressed(btn1)) {
+        serialMode = true;
+      }
+      else if (button_is_pressed(btn6)) {
+        return;
+      }
+      
+      // Check for serial input to switch modes
+      if (Serial.available()) {
+        serialMode = true;
+      }
+    }
+    
+    delay(50);
+  }
+}
 
 bool inputString(const char* label, char* buffer, int maxLen) {
   int cursorPos = 0;
@@ -105,65 +624,6 @@ void initializeShell() {
     commandHistory[i][0] = '\0';
   }
   loopStackPtr = 0;
-}
-
-void shell(void) {
-  initializeShell();
-  char inputBuffer[MAX_COMMAND_LENGTH] = "";
-  
-  while (true) {
-    display.clearDisplay();
-    display.setTextSize(1);
-    display.setCursor(0, 0);
-    display.print("SHELL 5.0");
-    display.drawLine(0, 10, SCREEN_WIDTH, 10, SSD1306_WHITE);
-    
-    display.setCursor(0, 20);
-    display.print("Command:");
-    display.setCursor(0, 35);
-    
-    int dispLen = strlen(inputBuffer);
-    if (dispLen > 20) {
-      display.print(&inputBuffer[dispLen - 20]);
-    } else {
-      display.print(inputBuffer);
-    }
-    
-    display.setCursor(0, 55);
-    display.setTextSize(1);
-    display.print("2:Input 3:Run 6:Exit");
-    
-    display.display();
-    
-    if (button_is_pressed(btn2)) {
-      if (inputString("Enter cmd:", inputBuffer, MAX_COMMAND_LENGTH)) {
-        executeCommand(inputBuffer);
-        addToHistory(inputBuffer);
-        inputBuffer[0] = '\0';
-      }
-      delay(200);
-    }
-    else if (button_is_pressed(btn3)) {
-      if (strlen(inputBuffer) > 0) {
-        executeCommand(inputBuffer);
-        addToHistory(inputBuffer);
-        inputBuffer[0] = '\0';
-      }
-      delay(200);
-    }
-    else if (button_is_pressed(btn5)) {
-      if (historyCount > 0) {
-        historyIndex = (historyIndex - 1 + historyCount) % historyCount;
-        strncpy(inputBuffer, commandHistory[historyIndex], MAX_COMMAND_LENGTH - 1);
-      }
-      delay(150);
-    }
-    else if (button_is_pressed(btn6)) {
-      return;
-    }
-    
-    delay(50);
-  }
 }
 
 void addToHistory(const char* command) {

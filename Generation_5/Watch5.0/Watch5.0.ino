@@ -2,14 +2,15 @@
 
 #include <Adafruit_GFX.h>
 #include <Adafruit_SSD1306.h>
-#include "esp_sleep.h"
-#include "driver/gpio.h"
-#include <Wire.h>
-#include <ctype.h>
-#include <math.h>
 #include <Preferences.h>
 #include <WiFi.h>
+#include <Wire.h>
 #include <time.h>
+#include <esp_sleep.h>
+#include <driver/gpio.h>
+#include <esp_wifi.h>
+#include <ctype.h>
+#include <math.h>
 
 #define SCREEN_WIDTH 128
 #define SCREEN_HEIGHT 64
@@ -164,6 +165,15 @@ void loadBtnVals(){
   preferences.end();
 }
 
+void randomiseMac(){
+  uint8_t mac[6];
+  for (int i = 0; i < 6; i++) {
+    mac[i] = random(0, 256);
+  }
+  mac[0] = (mac[0] | 0x02) & 0xFE;
+  esp_wifi_set_mac(WIFI_IF_STA, mac);
+}
+
 void timeSyncAndUI() {
   if (wifiNetworkCount == 0) {
     delay(2000);
@@ -269,7 +279,9 @@ void setup() {
   }
 
   Serial.begin(115200);
-
+  
+  randomiseMac();
+  
   initializeNotesNVS(); 
   loadWiFiNetworksFromNVS();
 
