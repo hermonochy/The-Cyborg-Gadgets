@@ -6,6 +6,7 @@
 extern Adafruit_GC9A01A display;
 extern bool button_is_pressed(int btnVal, bool onlyOnce);
 extern int btn1, btn2, btn3, btn4, btn5, btn6;
+extern uint16_t colourBG,colourText,colour1,colour2,colour3,colour4,colour5,colour6;
 extern byte Func1, Func2, Func3;
 extern int blinkTime1, blinkTime2, blinkTime3;
 extern Preferences preferences;
@@ -48,7 +49,7 @@ void activateFunc(byte func, int blinkTime = 500){
       return;
     }
     
-    display.fillScreen(GC9A01A_BLACK);
+    display.fillScreen(colourBG);
     display.setTextSize(1);
     display.setCursor(0, 20);
     display.println("1. Quick Flash");
@@ -68,7 +69,7 @@ void activateFunc(byte func, int blinkTime = 500){
 
 void watchFuncs(void) {
   while (true) {
-    display.fillScreen(GC9A01A_BLACK);
+    display.fillScreen(colourBG);
     display.setTextSize(1);
     display.setCursor(0, 20);
     display.println("1. White LED");
@@ -90,7 +91,7 @@ int score1 = 0;
 int score2 = 0;
 void counter(void){
   while (true){
-    display.fillScreen(GC9A01A_BLACK);
+    display.fillScreen(colourBG);
     display.setTextSize(1);
     display.setCursor(10, 5);
     display.print("Score Counter");
@@ -134,7 +135,7 @@ void randomNum(void) {
   bool floatMode = false;
   int decimals = 2;
   while (true) {
-    display.fillScreen(GC9A01A_BLACK);
+    display.fillScreen(colourBG);
     display.setTextSize(2);
     display.setCursor(0, 0);
     display.print("Random");
@@ -163,7 +164,7 @@ void randomNum(void) {
     else if (button_is_pressed(btn5)) {
       if (!floatMode) {
         int r = random(0, range + 1);
-        display.fillScreen(GC9A01A_BLACK);
+        display.fillScreen(colourBG);
         display.setTextSize(3);
         display.setCursor(10, 25);
         display.print(r);
@@ -172,7 +173,7 @@ void randomNum(void) {
       } else {
         double u = (random(0, 32767) / 32767.0);
         double val = u * range;
-        display.fillScreen(GC9A01A_BLACK);
+        display.fillScreen(colourBG);
         display.setTextSize(3);
         display.setCursor(0, 18);
         display.print(val, decimals);
@@ -204,7 +205,7 @@ const char* TIME_SIGS[] = {"4/4", "3/4", "2/4"};
 const int TIME_SIG_BEATS[] = {4, 3, 2};
 
 void metronome_display_main(int bpm, int time_sig, int beat, int total_beats) {
-  display.fillScreen(GC9A01A_BLACK);
+  display.fillScreen(colourBG);
   display.setTextSize(2);
   display.setCursor(0, 0);
   display.print(bpm);
@@ -269,7 +270,7 @@ void metronome_tap_tempo() {
   
   lastTapTime = currentTime;
   
-  display.fillScreen(GC9A01A_BLACK);
+  display.fillScreen(colourBG);
   display.setTextSize(2);
   display.setCursor(10, 25);
   display.print("Tempo Set!");
@@ -282,7 +283,7 @@ void metronome_tap_tempo() {
 
 void metronome_time_signature_menu() {
   while (true) {
-    display.fillScreen(GC9A01A_BLACK);
+    display.fillScreen(colourBG);
     display.setTextSize(1);
     display.setCursor(0, 0);
     display.print("Time Signature");
@@ -324,7 +325,7 @@ void metronome_subdivision_menu() {
   const char* SUBS[] = {"Quarters", "Eighths", "Triplets"};
   
   while (true) {
-    display.fillScreen(GC9A01A_BLACK);
+    display.fillScreen(colourBG);
     display.setTextSize(1);
     display.setCursor(0, 0);
     display.print("Subdivision");
@@ -507,7 +508,7 @@ void notesFunction(void) {
 
   while (true) {
     if (viewingMode) {
-      display.fillScreen(GC9A01A_BLACK);
+      display.fillScreen(colourBG);
       display.setTextSize(1);
       display.setCursor(0, 0);
       display.print("Notes");
@@ -551,7 +552,7 @@ void notesFunction(void) {
         return;
       }
     } else {
-      display.fillScreen(GC9A01A_BLACK);
+      display.fillScreen(colourBG);
       display.setTextSize(1);
       display.setCursor(0, 0);
       display.print("Note ");
@@ -595,7 +596,7 @@ void notesFunction(void) {
         bool selectingChar = true;
         
         while (selectingChar) {
-          display.fillScreen(GC9A01A_BLACK);
+          display.fillScreen(colourBG);
           display.setTextSize(1);
           display.setCursor(0, 0);
           display.print("Select Char:");
@@ -710,7 +711,7 @@ void serialCreateEditNote(void) {
   Serial.print(": ");
   Serial.println(notes[noteIndex].text);
   
-  display.fillScreen(GC9A01A_BLACK);
+  display.fillScreen(colourBG);
   display.setTextSize(1);
   display.setCursor(0, 20);
   display.print("Note ");

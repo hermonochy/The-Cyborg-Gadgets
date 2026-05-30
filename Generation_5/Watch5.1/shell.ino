@@ -3,6 +3,7 @@
 extern Adafruit_GC9A01A display;
 extern bool button_is_pressed(int btnVal, bool onlyOnce);
 extern int btn1, btn2, btn3, btn4, btn5, btn6;
+extern uint16_t colourBG,colourText,colour1,colour2,colour3,colour4,colour5,colour6;
 extern byte Func1, Func2, Func3;
 extern Preferences preferences;
 
@@ -40,7 +41,7 @@ bool inputString(const char* label, char* buffer, int maxLen) {
   int charIndex = 0;
   
   while (true) {
-    display.fillScreen(GC9A01A_BLACK);
+    display.fillScreen(colourBG);
     display.setTextSize(1);
     display.setCursor(0, 0);
     display.print(label);
@@ -112,11 +113,11 @@ void shell(void) {
   char inputBuffer[MAX_COMMAND_LENGTH] = "";
   
   while (true) {
-    display.fillScreen(GC9A01A_BLACK);
+    display.fillScreen(colourBG);
     display.setTextSize(1);
     display.setCursor(0, 0);
     display.print("SHELL 5.0");
-    display.drawLine(0, 10, SCREEN_WIDTH, 10, GC9A01A_WHITE);
+    display.drawLine(0, 10, SCREEN_WIDTH, 10, colourText);
     
     display.setCursor(0, 20);
     display.print("Command:");
@@ -261,7 +262,7 @@ int evaluateExpression(const char* expr) {
 }
 
 void executeCommand(const char* command) {
-  display.fillScreen(GC9A01A_BLACK);
+  display.fillScreen(colourBG);
   display.setTextSize(1);
   display.setCursor(0, 0);
   display.print("Executing...");
@@ -346,7 +347,7 @@ void executeCommand(const char* command) {
     cmdPrint(args);
   }
   else if (strcmp(cmd, "cls") == 0) {
-    display.fillScreen(GC9A01A_BLACK);
+    display.fillScreen(colourBG);
     
     delay(500);
   }
@@ -375,7 +376,7 @@ void executeCommand(const char* command) {
     showHelp3();
   }
   else {
-    display.fillScreen(GC9A01A_BLACK);
+    display.fillScreen(colourBG);
     display.setTextSize(1);
     display.setCursor(0, 0);
     display.print("Unknown: ");
@@ -403,7 +404,7 @@ void cmdDigitalRead(const char* args) {
   int pin = 0;
   if (sscanf(args, "%d", &pin) == 1) {
     int result = digitalRead(pin);
-    display.fillScreen(GC9A01A_BLACK);
+    display.fillScreen(colourBG);
     display.setTextSize(1);
     display.setCursor(0, 0);
     display.print("digitalRead(");
@@ -433,7 +434,7 @@ void cmdAnalogRead(const char* args) {
   int pin = 0;
   if (sscanf(args, "%d", &pin) == 1) {
     int result = analogRead(pin);
-    display.fillScreen(GC9A01A_BLACK);
+    display.fillScreen(colourBG);
     display.setTextSize(1);
     display.setCursor(0, 0);
     display.print("analogRead(");
@@ -502,7 +503,7 @@ void cmdLet(const char* args) {
     int result = evaluateExpression(expr);
     setVariableValue(name, result);
     
-    display.fillScreen(GC9A01A_BLACK);
+    display.fillScreen(colourBG);
     display.setTextSize(1);
     display.setCursor(0, 0);
     display.print(name);
@@ -595,7 +596,7 @@ void cmdDelay(const char* args) {
 
 void cmdMillis(const char* args) {
   unsigned long now = millis();
-  display.fillScreen(GC9A01A_BLACK);
+  display.fillScreen(colourBG);
   display.setTextSize(1);
   display.setCursor(0, 0);
   display.print("millis()");
@@ -608,7 +609,7 @@ void cmdMillis(const char* args) {
 
 void cmdCalc(const char* args) {
   int result = evaluateExpression(args);
-  display.fillScreen(GC9A01A_BLACK);
+  display.fillScreen(colourBG);
   display.setTextSize(1);
   display.setCursor(0, 0);
   display.print("Result:");
@@ -623,7 +624,7 @@ void cmdRandomNum(const char* args) {
   int min = 0, max = 100;
   if (sscanf(args, "%d %d", &min, &max) >= 1) {
     int result = random(min, max + 1);
-    display.fillScreen(GC9A01A_BLACK);
+    display.fillScreen(colourBG);
     display.setTextSize(1);
     display.setCursor(0, 0);
     display.print("random(");
@@ -642,7 +643,7 @@ void cmdRandomNum(const char* args) {
 }
 
 void cmdPrint(const char* args) {
-  display.fillScreen(GC9A01A_BLACK);
+  display.fillScreen(colourBG);
   display.setTextSize(1);
   display.setCursor(0, 0);
   display.print(">> ");
@@ -771,7 +772,7 @@ void cmdFor(const char* args) {
   int start = 0, end = 0, step = 1;
   
   if (sscanf(args, "%s %d %d %d", varName, &start, &end, &step) >= 3) {
-    display.fillScreen(GC9A01A_BLACK);
+    display.fillScreen(colourBG);
     display.setTextSize(1);
     display.setCursor(0, 0);
     display.print("Loop ");
@@ -827,7 +828,7 @@ void cmdWhile(const char* args) {
   strncpy(command, args + commandStart, 255);
   command[255] = '\0';
   
-  display.fillScreen(GC9A01A_BLACK);
+  display.fillScreen(colourBG);
   display.setTextSize(1);
   display.setCursor(0, 0);
   display.println("While Loop:");
@@ -852,7 +853,7 @@ void cmdWhile(const char* args) {
     }
     
     if (button_is_pressed(btn6)) {
-      display.fillScreen(GC9A01A_BLACK);
+      display.fillScreen(colourBG);
       display.setTextSize(1);
       display.setCursor(0, 20);
       display.println("Loop interrupted!");
@@ -864,7 +865,7 @@ void cmdWhile(const char* args) {
     delay(100);
   }
   
-  display.fillScreen(GC9A01A_BLACK);
+  display.fillScreen(colourBG);
   display.setTextSize(1);
   display.setCursor(0, 0);
   display.print("Loop done!");
@@ -939,7 +940,7 @@ void cmdIf(const char* args) {
   
   bool conditionMet = evaluateCondition(condition);
   
-  display.fillScreen(GC9A01A_BLACK);
+  display.fillScreen(colourBG);
   display.setTextSize(1);
   display.setCursor(0, 0);
   display.println("If condition:");
@@ -962,7 +963,7 @@ void cmdIf(const char* args) {
 }
 
 void showConditionResult(const char* condition, bool result) {
-  display.fillScreen(GC9A01A_BLACK);
+  display.fillScreen(colourBG);
   display.setTextSize(1);
   display.setCursor(0, 0);
   display.println("Condition:");
@@ -975,7 +976,7 @@ void showConditionResult(const char* condition, bool result) {
 }
 
 void showSuccess(const char* cmd, int val) {
-  display.fillScreen(GC9A01A_BLACK);
+  display.fillScreen(colourBG);
   display.setTextSize(1);
   display.setCursor(0, 0);
   display.print(cmd);
@@ -987,7 +988,7 @@ void showSuccess(const char* cmd, int val) {
 }
 
 void showSuccessStr(const char* cmd, const char* val) {
-  display.fillScreen(GC9A01A_BLACK);
+  display.fillScreen(colourBG);
   display.setTextSize(1);
   display.setCursor(0, 0);
   display.print(cmd);
@@ -998,7 +999,7 @@ void showSuccessStr(const char* cmd, const char* val) {
 }
 
 void showError(const char* usage) {
-  display.fillScreen(GC9A01A_BLACK);
+  display.fillScreen(colourBG);
   display.setTextSize(1);
   display.setCursor(0, 0);
   display.print("Usage:");
@@ -1014,7 +1015,7 @@ void showVariables() {
     if (variables[i].used) varCount++;
   }
   
-  display.fillScreen(GC9A01A_BLACK);
+  display.fillScreen(colourBG);
   display.setTextSize(1);
   display.setCursor(0, 0);
   display.print("Variables (");
@@ -1047,7 +1048,7 @@ void clearVariables() {
     variables[i].used = false;
   }
   
-  display.fillScreen(GC9A01A_BLACK);
+  display.fillScreen(colourBG);
   display.setTextSize(1);
   display.setCursor(0, 20);
   display.print("Variables cleared!");
@@ -1056,7 +1057,7 @@ void clearVariables() {
 }
 
 void showHelp1() {
-  display.fillScreen(GC9A01A_BLACK);
+  display.fillScreen(colourBG);
   display.setTextSize(1);
   display.setCursor(0, 0);
   display.println("dw/dr pin [val]");
@@ -1084,7 +1085,7 @@ void showHelp1() {
 }
 
 void showHelp2() {
-  display.fillScreen(GC9A01A_BLACK);
+  display.fillScreen(colourBG);
   display.setTextSize(1);
   display.setCursor(0, 0);
   display.println("var <name> <val>");
@@ -1112,7 +1113,7 @@ void showHelp2() {
 }
 
 void showHelp3() {
-  display.fillScreen(GC9A01A_BLACK);
+  display.fillScreen(colourBG);
   display.setTextSize(1);
   display.setCursor(0, 20);
   display.println("random <min> <max>");

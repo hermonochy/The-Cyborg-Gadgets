@@ -3,6 +3,7 @@
 extern Adafruit_GC9A01A display;
 extern bool button_is_pressed(int btnVal, bool onlyOnce);
 extern int btn1, btn2, btn3, btn4, btn5, btn6;
+extern uint16_t colourBG,colourText,colour1,colour2,colour3,colour4,colour5,colour6;
 
 #define SCREEN_WIDTH 128
 #define SCREEN_HEIGHT 64
@@ -30,9 +31,9 @@ void games() {
   const char* gameList[] = {"Arcade Games", "Maths Games"};
   
   while (true) {
-    display.fillScreen(GC9A01A_BLACK);
-    display.drawLine(0, 0, SCREEN_WIDTH, 0, GC9A01A_WHITE);
-    display.drawLine(0, 10, SCREEN_WIDTH, 10, GC9A01A_WHITE);
+    display.fillScreen(colourBG);
+    display.drawLine(0, 0, SCREEN_WIDTH, 0, colourText);
+    display.drawLine(0, 10, SCREEN_WIDTH, 10, colourText);
     
     display.setTextSize(1);
     display.setCursor(2, 2);
@@ -42,10 +43,10 @@ void games() {
     for (int i = 0; i < 2; i++) {
       display.setCursor(15, 18 + (i * 9));
       if (i == selected) {
-        display.setTextColor(GC9A01A_BLACK);
-        display.fillRect(10, 17 + (i * 9), 108, 10, GC9A01A_WHITE);
+        display.setTextColor(colourBG);
+        display.fillRect(10, 17 + (i * 9), 108, 10, colourText);
         display.print(gameList[i]);
-        display.setTextColor(GC9A01A_WHITE);
+        display.setTextColor(colourText);
       } else {
         display.print(gameList[i]);
       }
@@ -81,9 +82,9 @@ void arcadeGames() {
   const char* gameList[] = {"Shooter", "Snake", "Flappy Bird", "Geometry Dash", "3D Flight"};
   
   while (true) {
-    display.fillScreen(GC9A01A_BLACK);
-    display.drawLine(0, 0, SCREEN_WIDTH, 0, GC9A01A_WHITE);
-    display.drawLine(0, 10, SCREEN_WIDTH, 10, GC9A01A_WHITE);
+    display.fillScreen(colourBG);
+    display.drawLine(0, 0, SCREEN_WIDTH, 0, colourText);
+    display.drawLine(0, 10, SCREEN_WIDTH, 10, colourText);
     
     display.setTextSize(1);
     display.setCursor(2, 2);
@@ -93,10 +94,10 @@ void arcadeGames() {
     for (int i = 0; i < 5; i++) {
       display.setCursor(15, 18 + (i * 9));
       if (i == selected) {
-        display.setTextColor(GC9A01A_BLACK);
-        display.fillRect(10, 17 + (i * 9), 108, 10, GC9A01A_WHITE);
+        display.setTextColor(colourBG);
+        display.fillRect(10, 17 + (i * 9), 108, 10, colourText);
         display.print(gameList[i]);
-        display.setTextColor(GC9A01A_WHITE);
+        display.setTextColor(colourText);
       } else {
         display.print(gameList[i]);
       }
@@ -141,9 +142,9 @@ void mathsGames() {
   const char* gameList[] = {"Countdown"};
   
   while (true) {
-    display.fillScreen(GC9A01A_BLACK);
-    display.drawLine(0, 0, SCREEN_WIDTH, 0, GC9A01A_WHITE);
-    display.drawLine(0, 10, SCREEN_WIDTH, 10, GC9A01A_WHITE);
+    display.fillScreen(colourBG);
+    display.drawLine(0, 0, SCREEN_WIDTH, 0, colourText);
+    display.drawLine(0, 10, SCREEN_WIDTH, 10, colourText);
     
     display.setTextSize(1);
     display.setCursor(2, 2);
@@ -153,10 +154,10 @@ void mathsGames() {
     for (int i = 0; i < 1; i++) {
       display.setCursor(15, 18 + (i * 9));
       if (i == selected) {
-        display.setTextColor(GC9A01A_BLACK);
-        display.fillRect(10, 17 + (i * 9), 108, 10, GC9A01A_WHITE);
+        display.setTextColor(colourBG);
+        display.fillRect(10, 17 + (i * 9), 108, 10, colourText);
         display.print(gameList[i]);
-        display.setTextColor(GC9A01A_WHITE);
+        display.setTextColor(colourText);
       } else {
         display.print(gameList[i]);
       }
@@ -280,7 +281,7 @@ void shooter() {
       }
     }
 
-    display.fillScreen(GC9A01A_BLACK);
+    display.fillScreen(colourBG);
     
     for (int dx = 0; dx < 4; dx++) {
       for (int dy = 0; dy < 6; dy++) {
@@ -306,7 +307,7 @@ void shooter() {
     }
 
     display.setTextSize(1);
-    display.setTextColor(GC9A01A_WHITE);
+    display.setTextColor(colourText);
     display.setCursor(0, 0);
     display.print("S:");
     display.print(score);
@@ -318,7 +319,7 @@ void shooter() {
     delay(30);
   }
 
-  display.fillScreen(GC9A01A_BLACK);
+  display.fillScreen(colourBG);
   display.setTextSize(2);
   display.setCursor(10, 0);
   display.print("Game Over");
@@ -394,13 +395,13 @@ void snake(void) {
       }
     }
     
-    display.fillScreen(GC9A01A_BLACK);
+    display.fillScreen(colourBG);
     
     for (int i = 0; i < snakeLength; i++) {
-      display.fillRect(snake[i].x, snake[i].y, 3, 3, GC9A01A_WHITE);
+      display.fillRect(snake[i].x, snake[i].y, 3, 3, colourText);
     }
     
-    display.fillRect(foodX, foodY, 3, 3, GC9A01A_WHITE);
+    display.fillRect(foodX, foodY, 3, 3, colourText);
     
     display.setTextSize(1);
     display.setCursor(0, 0);
@@ -414,7 +415,7 @@ void snake(void) {
     delay(30);
   }
   
-  display.fillScreen(GC9A01A_BLACK);
+  display.fillScreen(colourBG);
   display.setTextSize(2);
   display.setCursor(20, 20);
   display.print("Game Over");
@@ -486,18 +487,18 @@ void flappyBird(void) {
       }
     }
     
-    display.fillScreen(GC9A01A_BLACK);
-    display.drawLine(0, 0, SCREEN_WIDTH, 0, GC9A01A_WHITE);
-    display.drawLine(0, 9, SCREEN_WIDTH, 9, GC9A01A_WHITE);
-    display.drawLine(0, 63, SCREEN_WIDTH, 63, GC9A01A_WHITE);
+    display.fillScreen(colourBG);
+    display.drawLine(0, 0, SCREEN_WIDTH, 0, colourText);
+    display.drawLine(0, 9, SCREEN_WIDTH, 9, colourText);
+    display.drawLine(0, 63, SCREEN_WIDTH, 63, colourText);
     
-    display.fillRect(50, birdY, 4, 4, GC9A01A_WHITE);
-    display.drawPixel(50 + 3, birdY + 1, GC9A01A_WHITE);
+    display.fillRect(50, birdY, 4, 4, colourText);
+    display.drawPixel(50 + 3, birdY + 1, colourText);
     
     for (int i = 0; i < 4; i++) {
       if (pipes[i].x > -5 && pipes[i].x < SCREEN_WIDTH) {
-        display.fillRect(pipes[i].x, 10, 6, pipes[i].gap, GC9A01A_WHITE);
-        display.fillRect(pipes[i].x, pipes[i].gap + pipes[i].gapSize, 6, 53 - pipes[i].gap - pipes[i].gapSize, GC9A01A_WHITE);
+        display.fillRect(pipes[i].x, 10, 6, pipes[i].gap, colourText);
+        display.fillRect(pipes[i].x, pipes[i].gap + pipes[i].gapSize, 6, 53 - pipes[i].gap - pipes[i].gapSize, colourText);
       }
     }
     
@@ -513,9 +514,9 @@ void flappyBird(void) {
     delay(25);
   }
   
-  display.fillScreen(GC9A01A_BLACK);
-  display.drawLine(0, 20, SCREEN_WIDTH, 20, GC9A01A_WHITE);
-  display.drawLine(0, 45, SCREEN_WIDTH, 45, GC9A01A_WHITE);
+  display.fillScreen(colourBG);
+  display.drawLine(0, 20, SCREEN_WIDTH, 20, colourText);
+  display.drawLine(0, 45, SCREEN_WIDTH, 45, colourText);
   display.setTextSize(2);
   display.setCursor(8, 0);
   display.print("Crashed!");
@@ -636,16 +637,16 @@ void geometryDash(void) {
       }
     }
     
-    display.fillScreen(GC9A01A_BLACK);
+    display.fillScreen(colourBG);
     
-    display.drawLine(0, SCREEN_HEIGHT - 10, SCREEN_WIDTH, SCREEN_HEIGHT - 10, GC9A01A_WHITE);
-    display.drawLine(0, SCREEN_HEIGHT - 9, SCREEN_WIDTH, SCREEN_HEIGHT - 9, GC9A01A_WHITE);
+    display.drawLine(0, SCREEN_HEIGHT - 10, SCREEN_WIDTH, SCREEN_HEIGHT - 10, colourText);
+    display.drawLine(0, SCREEN_HEIGHT - 9, SCREEN_WIDTH, SCREEN_HEIGHT - 9, colourText);
     
-    display.drawLine(0, 0, SCREEN_WIDTH, 0, GC9A01A_WHITE);
-    display.drawLine(0, 8, SCREEN_WIDTH, 8, GC9A01A_WHITE);
+    display.drawLine(0, 0, SCREEN_WIDTH, 0, colourText);
+    display.drawLine(0, 8, SCREEN_WIDTH, 8, colourText);
     
-    display.fillRect(playerX, playerY, playerSize, playerSize, GC9A01A_WHITE);
-    display.drawPixel(playerX + 3, playerY - 1, GC9A01A_WHITE);
+    display.fillRect(playerX, playerY, playerSize, playerSize, colourText);
+    display.drawPixel(playerX + 3, playerY - 1, colourText);
     
     for (int i = 0; i < 8; i++) {
       if (obstacles[i].active && obstacles[i].x > -10 && obstacles[i].x < SCREEN_WIDTH) {
@@ -656,29 +657,29 @@ void geometryDash(void) {
         
         if (obstacles[i].type == 0) {
           obsHeight = 5;
-          display.fillRect(obsX, obsY, obsWidth, obsHeight, GC9A01A_WHITE);
+          display.fillRect(obsX, obsY, obsWidth, obsHeight, colourText);
         } else if (obstacles[i].type == 1) {
           obsHeight = 8;
-          display.fillRect(obsX, obsY, obsWidth, obsHeight, GC9A01A_WHITE);
-          display.drawPixel(obsX + 2, obsY - 1, GC9A01A_WHITE);
+          display.fillRect(obsX, obsY, obsWidth, obsHeight, colourText);
+          display.drawPixel(obsX + 2, obsY - 1, colourText);
         } else if (obstacles[i].type == 2) {
           obsHeight = 11;
-          display.fillRect(obsX, obsY, obsWidth, obsHeight, GC9A01A_WHITE);
-          display.drawPixel(obsX + 2, obsY - 1, GC9A01A_WHITE);
-          display.drawPixel(obsX + 2, obsY - 2, GC9A01A_WHITE);
+          display.fillRect(obsX, obsY, obsWidth, obsHeight, colourText);
+          display.drawPixel(obsX + 2, obsY - 1, colourText);
+          display.drawPixel(obsX + 2, obsY - 2, colourText);
         } else if (obstacles[i].type == 3) {
           obsHeight = 6;
           obsY = groundLevel - 8;
-          display.fillRect(obsX, obsY, obsWidth, obsHeight, GC9A01A_WHITE);
-          display.drawPixel(obsX + 1, obsY - 1, GC9A01A_WHITE);
-          display.drawPixel(obsX + 3, obsY - 1, GC9A01A_WHITE);
+          display.fillRect(obsX, obsY, obsWidth, obsHeight, colourText);
+          display.drawPixel(obsX + 1, obsY - 1, colourText);
+          display.drawPixel(obsX + 3, obsY - 1, colourText);
         } else {
           obsHeight = 4;
           obsY = groundLevel - 12;
-          display.fillRect(obsX, obsY, obsWidth, obsHeight, GC9A01A_WHITE);
-          display.drawPixel(obsX + 1, obsY - 1, GC9A01A_WHITE);
-          display.drawPixel(obsX + 3, obsY - 1, GC9A01A_WHITE);
-          display.drawPixel(obsX + 2, obsY - 2, GC9A01A_WHITE);
+          display.fillRect(obsX, obsY, obsWidth, obsHeight, colourText);
+          display.drawPixel(obsX + 1, obsY - 1, colourText);
+          display.drawPixel(obsX + 3, obsY - 1, colourText);
+          display.drawPixel(obsX + 2, obsY - 2, colourText);
         }
       }
     }
@@ -697,9 +698,9 @@ void geometryDash(void) {
   
   unsigned long finalTime = (millis() - gameStartTime) / 1000;
   
-  display.fillScreen(GC9A01A_BLACK);
-  display.drawLine(0, 20, SCREEN_WIDTH, 20, GC9A01A_WHITE);
-  display.drawLine(0, 45, SCREEN_WIDTH, 45, GC9A01A_WHITE);
+  display.fillScreen(colourBG);
+  display.drawLine(0, 20, SCREEN_WIDTH, 20, colourText);
+  display.drawLine(0, 45, SCREEN_WIDTH, 45, colourText);
   
   display.setTextSize(2);
   display.setCursor(8, 0);
@@ -798,9 +799,9 @@ void flying3D() {
     if (score && (score % 20 == 0) && shipSpeed < 0.13f)
       shipSpeed += 0.008f;
 
-    display.fillScreen(GC9A01A_BLACK);
+    display.fillScreen(colourBG);
     for (int i = -2; i <= 2; ++i)
-      display.drawLine(horizonX, horizonY, horizonX + i * 20, 63, GC9A01A_WHITE);
+      display.drawLine(horizonX, horizonY, horizonX + i * 20, 63, colourText);
 
     for (int i = 0; i < num_coins; ++i) {
       if (!coins[i].active) continue;
@@ -808,7 +809,7 @@ void flying3D() {
       int coin_x = horizonX + int((coins[i].x - horizonX) * scale);
       int coin_y = horizonY + int((coins[i].y - horizonY) * scale);
       int coin_r = 3 + int(2.0f * scale);
-      display.drawCircle(coin_x, coin_y, coin_r, GC9A01A_WHITE);
+      display.drawCircle(coin_x, coin_y, coin_r, colourText);
       display.setCursor(coin_x - 2, coin_y - 3);
       display.print("C");
     }
@@ -816,8 +817,8 @@ void flying3D() {
     int x0 = int(shipX), y0 = int(shipY);
     display.fillTriangle(x0 - shipSize, y0 + shipSize + 2,
                         x0 + shipSize, y0 + shipSize + 2,
-                        x0, y0 - shipSize + 1, GC9A01A_WHITE);
-    display.drawPixel(x0, y0 - 2, GC9A01A_WHITE);
+                        x0, y0 - shipSize + 1, colourText);
+    display.drawPixel(x0, y0 - 2, colourText);
 
     display.setTextSize(1);
     display.setCursor(2, 2);  display.print("3D COINS");
@@ -839,7 +840,7 @@ void countdown() {
 
     while (true) {
         while (readyForNewRound) {
-            display.fillScreen(GC9A01A_BLACK);
+            display.fillScreen(colourBG);
             display.setTextSize(1);
             display.setCursor(0, 0);
             display.print("COUNTDOWN MATHS");
@@ -889,7 +890,7 @@ void countdown() {
         target = random(100, 1000);
 
         while (true) {
-            display.fillScreen(GC9A01A_BLACK);
+            display.fillScreen(colourBG);
             display.setTextSize(1);
             display.setCursor(0, 0);
             display.print("TARGET:");
@@ -1022,7 +1023,7 @@ bool solveCountdownRecursive(int numbers[], int numCount, int target, CountdownS
 int enterIntInput(const char *prompt, int initial, int minv, int maxv) {
     int val = initial;
     while (true) {
-        display.fillScreen(GC9A01A_BLACK);
+        display.fillScreen(colourBG);
         display.setTextSize(1);
         display.setCursor(0, 8);
         display.print(prompt);
@@ -1075,7 +1076,7 @@ void countdownSolver() {
 
     // Show entered data
     while (true) {
-        display.fillScreen(GC9A01A_BLACK);
+        display.fillScreen(colourBG);
         display.setTextSize(1);
         display.setCursor(0,0);
         display.print("Target: "); display.print(target);
@@ -1099,7 +1100,7 @@ void countdownSolver() {
     CountdownSolution best;
     best.result = 0; best.nsteps = 0;
     int bestDiff = 9999999;
-    display.fillScreen(GC9A01A_BLACK);
+    display.fillScreen(colourBG);
     display.setTextSize(2);
     display.setCursor(14, 24); display.print("SOLVING...");
     
@@ -1112,7 +1113,7 @@ void countdownSolver() {
     if (best.nsteps == 0) totalPages = 1;
 
     while (true) {
-        display.fillScreen(GC9A01A_BLACK);
+        display.fillScreen(colourBG);
         display.setTextSize(1);
         display.setCursor(0,0);
         display.print("Target: "); display.print(target);

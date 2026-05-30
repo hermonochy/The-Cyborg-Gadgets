@@ -1,54 +1,98 @@
-// Includes: Settings, tuneButtonVals, Prefs, Debug
-
 extern Adafruit_GC9A01A display;
 extern void loadBtnVals();
 extern bool button_is_pressed(int btnVal, bool onlyOnce);
+extern bool a_button_is_pressed();
+extern void saveBtnVals();
+extern void initializeNotesNVS();
+extern const char* settingFuncs[];
+extern int buttonOffset, buttonValRange, blinkTime1, blinkTime2, blinkTime3;
 extern const byte buttonPin;
 extern int btn1, btn2, btn3, btn4, btn5, btn6;
-extern const int defBtn1, defBtn2,defBtn3,defBtn4,defBtn5,defBtn6;
+extern uint16_t colourBG,colourText,colour1,colour2,colour3,colour4,colour5,colour6;
+extern const int defBtn1, defBtn2, defBtn3, defBtn4, defBtn5, defBtn6;
 extern byte Func1, Func2, Func3;
+
+#define numSettings 5
+
+int rotation=0;
 
 int *btnRefs[] = {&btn1, &btn2, &btn3, &btn4, &btn5, &btn6};
 const int *defBtnRefs[] = {&defBtn1, &defBtn2, &defBtn3, &defBtn4, &defBtn5, &defBtn6};
-
 const char *labels[] = {"Btn 1", "Btn 2", "Btn 3", "Btn 4", "Btn 5", "Btn 6"};
 
 void settings() {
+  int sel = 0;
+  int menuCount = 4;
+  int prevSel = -1;
+  bool first = true;
   while (true) {
-    display.fillScreen(GC9A01A_BLACK);
-    display.setTextSize(1);
-    display.setCursor(0, 20);
-    display.println("1. Tune Btns");
-    display.println("2. Preferences");
-    display.println("3. Debug");
-    display.println("4. Btn Settings");
-    
-    delay(50);
-    
-    if (button_is_pressed(btn1)) tuneButtonVals();
-    else if (button_is_pressed(btn2)) prefs();
-    else if (button_is_pressed(btn3)) debug();
-    else if (button_is_pressed(btn4)) btnSettings();
-    else if (button_is_pressed(btn6)) return;
+    // Redraw screen only if selection changes or on first entry
+    if (first || sel != prevSel) {
+      display.fillScreen(colourBG);
+      display.fillCircle(120, 120, 120, colourBG);
+
+      display.setTextSize(2);
+      display.setTextColor(colourText);
+      int16_t x1, y1; uint16_t w, h;
+      display.getTextBounds("SETTINGS", 0, 0, &x1, &y1, &w, &h);
+      display.setCursor(120 - w / 2, 22);
+      display.print("SETTINGS");
+
+      int anchorY = 70, spacing = 33;
+      for (int i = 0; i < menuCount; i++) {
+        display.setTextSize(i == sel ? 2 : 1);
+        display.setTextColor(i == sel ? colour6 : colour1);
+        display.setCursor(20, anchorY + i * spacing);
+        switch(i) {
+          case 0: display.print("Tune Btns"); break;
+          case 1: display.print("Preferences"); break;
+          case 2: display.print("Debug"); break;
+          case 3: display.print("Btn Settings"); break;
+        }
+      }
+      prevSel = sel;
+      first = false;
+    }
+
+    if (button_is_pressed(btn2, true)) { sel = (sel + 1) % menuCount; }
+    else if (button_is_pressed(btn1, true)) { sel = (sel + menuCount - 1) % menuCount; }
+    else if (button_is_pressed(btn3, true)) {
+      switch(sel) {
+        case 0: tuneButtonVals(); break;
+        case 1: prefs(); break;
+        case 2: debug(); break;
+        case 3: btnSettings(); break;
+      }
+      prevSel = -1; first = true;
+      continue;
+    }
+    else if (button_is_pressed(btn6, true)) {
+      display.fillScreen(colourBG);
+      return;
+    }
+    delay(40);
   }
 }
 
-// Similar in purpose to buttonOffset, but specific for every button
 void tuneButtonVals() {
-  // ensure no mis-measurements
-  while (a_button_is_pressed()) {}
+  int16_t x1, y1; uint16_t w, h;
   const int sampleCount = 75;
   int samples[sampleCount];
-
   for (int i = 0; i < 6; i++) {
-    display.fillScreen(GC9A01A_BLACK);
-    display.setTextSize(2);
-    display.setCursor(0, 30);
-    display.print("Push ");
-    display.print(labels[i]);
-    
-    while (!a_button_is_pressed()) delay(50);
-
+    bool first = true; bool lastPromptDrawn = true;
+    while (!a_button_is_pressed()) {
+      if (first) {
+        display.fillScreen(colourBG);
+        display.setTextSize(2);
+        String prompt = String("Push ") + labels[i];
+        display.getTextBounds(prompt.c_str(), 0, 0, &x1, &y1, &w, &h);
+        display.setCursor(120 - w / 2, 90);
+        display.setTextColor(colour4);
+        display.print(prompt);
+        first = false;
+      }
+      delay(13);
+    }
     for (int s = 0; s < sampleCount; s++) {
       samples[s] = analogRead(buttonPin); 
       delay(1); 
@@ -64,179 +108,219 @@ void tuneButtonVals() {
     }
     *btnRefs[i] = samples[sampleCount/2];
 
-    display.fillScreen(GC9A01A_BLACK);
-    display.setCursor(0, 30);
-    display.print(labels[i]);
-    display.print(" Set");
-    
+    display.fillRect(0, 100, 240, 40, colourBG);
+    String setMsg = String(labels[i]) + " Set";
+    display.setTextSize(2);
+    display.getTextBounds(setMsg.c_str(), 0, 0, &x1, &y1, &w, &h);
+    display.setCursor(120 - w / 2, 106);
+    display.setTextColor(colour3);
+    display.print(setMsg);
 
-    while(a_button_is_pressed()) delay(50);
+    while(a_button_is_pressed()) delay(18);
   }
 }
 
-int rotation = 0;
 void prefs() {
-  int settingIndex = 0;
+  int settingIndex = 0, prevIndex = -1;
+  int prevOffset = -9999, prevRange = -9999, prevBlink1 = -2, prevFunc1=-2, prevBlink2=-2, prevFunc2=-2, prevFunc3=-2, prevRot=-2;
   bool displayOff = false;
+  int16_t x1, y1; uint16_t w, h;
   while(!button_is_pressed(btn6, true)){
-    display.fillScreen(GC9A01A_BLACK);
-    display.setTextSize(1);
-    display.setCursor(0,5);
-    display.print(settingFuncs[settingIndex]);
+    if(settingIndex != prevIndex){
+      display.fillScreen(colourBG);
+      display.fillCircle(120, 120, 120, colourBG);
 
-    display.setTextSize(1);
-    display.setCursor(0,24);
+      display.setTextSize(2);
+      display.setTextColor(colourText);
+      display.getTextBounds("PREFERENCES", 0, 0, &x1, &y1, &w, &h);
+      display.setCursor(120 - w / 2, 20);
+      display.print("PREFERENCES");
 
+      display.setTextSize(2);
+      display.setTextColor(colour6);
+      String thisSetting = settingFuncs[settingIndex];
+      display.getTextBounds(thisSetting, 0,0, &x1, &y1, &w, &h);
+      display.setCursor(120-w/2, 65);
+      display.print(thisSetting);
+      prevIndex = settingIndex;
+      prevOffset = prevRange = prevBlink1 = prevFunc1 = prevBlink2 = prevFunc2 = prevFunc3 = prevRot = -9999;
+    }
     switch(settingIndex) {
       case 0:
-        display.print(analogRead(buttonPin));
-        display.setCursor(0,36);
-        display.print(buttonOffset);
-        display.setCursor(0,48);
-        display.print(buttonValRange);
-        if(button_is_pressed(btn2, false)) {
-          buttonOffset++;
+        if (buttonOffset != prevOffset || buttonValRange != prevRange) {
+          display.fillRect(40, 105, 180, 50, colourBG);
+          display.setTextSize(1);
+          display.setTextColor(colourText);
+          display.setCursor(50, 105);
+          display.print("ADC: "); display.print(analogRead(buttonPin));
+          display.setCursor(50, 125);
+          display.print("Offset: "); display.print(buttonOffset);
+          display.setCursor(50, 145);
+          display.print("Range: "); display.print(buttonValRange);
+          prevOffset = buttonOffset; prevRange = buttonValRange;
         }
-        else if(button_is_pressed(btn1, false)) {
-          buttonOffset--;
-        }
-        if(button_is_pressed(btn5, false)) {
-          buttonValRange++;
-        }
-        else if(button_is_pressed(btn4, false)) {
-          buttonValRange--;
-        }
-        else if(button_is_pressed(btn3)) buttonOffset = 0;
+
+        if(button_is_pressed(btn2, false)) buttonOffset++;
+        else if(button_is_pressed(btn1, false)) buttonOffset--;
+        if(button_is_pressed(btn5, false)) buttonValRange++;
+        else if(button_is_pressed(btn4, false)) buttonValRange--;
+        else if(button_is_pressed(btn3, true)) buttonOffset = 0;
         break;
       case 1:
-        display.print("Blk 1: ");
-        display.print(blinkTime1);
-        display.print("us");
-        display.setCursor(0,40);
-        display.print("Func1: ");
-        display.print(Func1);
-        if(button_is_pressed(btn1)) {
-          blinkTime1 *= 2;
-          if(blinkTime1 > 5000000) blinkTime1 = 5000000;
+        if(blinkTime1 != prevBlink1 || Func1 != prevFunc1) {
+          display.fillRect(40, 110, 180, 40, colourBG);
+          display.setTextSize(1);
+          display.setTextColor(colourText);
+          display.setCursor(40, 110);
+          display.print("Blk1: "); display.print(blinkTime1); display.print("us");
+          display.setCursor(40, 135);
+          display.print("Func1: "); display.print(Func1);
+          prevBlink1 = blinkTime1; prevFunc1 = Func1;
         }
-        if(button_is_pressed(btn2)) {
-          blinkTime1 /= 2;
-          if(blinkTime1 < 1) blinkTime1 = 1;
-        }
-        if(button_is_pressed(btn3)) {
-          Func1--;
-          if(Func1 < 0) Func1 = 10;
-        }
-        if(button_is_pressed(btn4, true)) {
-          Func1++;
-          if(Func1 > 10) Func1 = 0;
-        }
+
+        if(button_is_pressed(btn1, true)) { blinkTime1 *= 2; if(blinkTime1 > 5000000) blinkTime1 = 5000000; }
+        if(button_is_pressed(btn2, true)) { blinkTime1 /= 2; if(blinkTime1 < 1) blinkTime1 = 1; }
+        if(button_is_pressed(btn3, true)) { Func1--; if(Func1 < 0) Func1 = 10; }
+        if(button_is_pressed(btn4, true)) { Func1++; if(Func1 > 10) Func1 = 0; }
         break;
       case 2:
-        display.print("Blk 2: ");
-        display.print(blinkTime2);
-        display.print("us");
-        display.setCursor(0,40);
-        display.print("Func2: ");
-        display.print(Func2);
-        if(button_is_pressed(btn1)) {
-          blinkTime2 *= 2;
-          if(blinkTime2 > 5000000) blinkTime2 = 5000000;
+        if(blinkTime2 != prevBlink2 || Func2 != prevFunc2) {
+          display.fillRect(40, 110, 180, 40, colourBG);
+          display.setTextSize(1);
+          display.setTextColor(colourText);
+          display.setCursor(40, 110);
+          display.print("Blk2: "); display.print(blinkTime2); display.print("us");
+          display.setCursor(40, 135);
+          display.print("Func2: "); display.print(Func2);
+          prevBlink2 = blinkTime2; prevFunc2 = Func2;
         }
-        if(button_is_pressed(btn2)) {
-          blinkTime2 /= 2;
-          if(blinkTime2 < 1) blinkTime2 = 1;
-        }
-        if(button_is_pressed(btn3)) {
-        Func2--;
-        if(Func2 < 0) Func1 = 10;
-      }
-      if(button_is_pressed(btn4, true)) {
-        Func2++;
-        if(Func2 > 10) Func2 = 0;
-      }
+
+        if(button_is_pressed(btn1, true)) { blinkTime2 *= 2; if(blinkTime2 > 5000000) blinkTime2 = 5000000; }
+        if(button_is_pressed(btn2, true)) { blinkTime2 /= 2; if(blinkTime2 < 1) blinkTime2 = 1; }
+        if(button_is_pressed(btn3, true)) { Func2--; if(Func2 < 0) Func2 = 10; }
+        if(button_is_pressed(btn4, true)) { Func2++; if(Func2 > 10) Func2 = 0; }
         break;
       case 3:
-      display.print(Func3);
-      if(button_is_pressed(btn1)) {
-        Func3--;
-        if(Func3 < 0) Func3 = 10;
-      }
-      if(button_is_pressed(btn2, true)) {
-        Func3++;
-        if(Func3 > 10) Func3 = 0;
-      }
+        if(Func3 != prevFunc3) {
+          display.fillRect(80, 110, 100, 20, colourBG);
+          display.setTextSize(1);
+          display.setTextColor(colourText);
+          display.setCursor(95, 110);
+          display.print("Func3: "); display.print(Func3);
+          prevFunc3 = Func3;
+        }
+
+        if(button_is_pressed(btn1, true)) { Func3--; if(Func3 < 0) Func3 = 10; }
+        if(button_is_pressed(btn2, true)) { Func3++; if(Func3 > 10) Func3 = 0; }
         break;
       case 4:
-        display.print(rotation%4);
-        if(button_is_pressed(btn1)) {
-          rotation ++;
+        if(rotation != prevRot) {
+          display.fillRect(95, 110, 90, 20, colourBG);
+          display.setTextSize(1);
+          display.setTextColor(colourText);
+          display.setCursor(95, 110);
+          display.print("Rotation: ");
+          display.print(rotation%4);
+          prevRot = rotation;
         }
+        if(button_is_pressed(btn1, true)) rotation++;
         if(button_is_pressed(btn2, true)) {
-          if(displayOff) {
-            //display.GC9A01A_command(GC9A01A_DISPLAYON);
-            displayOff = false;
-          }
-          else {
-            //display.GC9A01A_command(GC9A01A_DISPLAYOFF);
-            displayOff = true;
-          }
+          if(displayOff) displayOff = false;
+          else displayOff = true;
         }
-        display.setRotation(rotation%4);
-        delay(50);
+        display.setRotation(rotation % 4);
+        delay(80);
         break;
     }
-    
-    delay(100);
-    if(button_is_pressed(btn3, true)) {
-      settingIndex = (settingIndex + 1) % numSettings;
-    }
+    delay(80);
+    if(button_is_pressed(btn3, true)) settingIndex = (settingIndex + 1) % numSettings;
   }
 }
 
 void debug() {
+  int16_t x1, y1; uint16_t w, h;
   int posY;
+  int prevadc = -1, prevbtns[6] = {-1, -1, -1, -1, -1, -1};
+  bool first = true;
   while (true) {
-    display.fillScreen(GC9A01A_BLACK);
-    display.setTextSize(2);
-    display.setCursor(0, 0);
-    display.print("ADC: ");
-    display.print(analogRead(buttonPin));
-    display.setTextSize(1);
-    for (int i = 0; i < 6;i++) {
-      posY = 18 + i*8;
-      display.setCursor(0, posY);
-      display.print(labels[i]);
-      display.print(": ");
-      display.print(*btnRefs[i]);
-      display.setCursor(90, posY);
-      display.print("(");
-      if (*defBtnRefs[i]-*btnRefs[i] > 0) display.print("+"); 
-      display.print(*defBtnRefs[i]-*btnRefs[i]);
-      display.print(")");
+    int adc = analogRead(buttonPin);
+    bool changed = first || (adc != prevadc);
+    for(int i=0;i<6;i++) if (*btnRefs[i] != prevbtns[i]) changed = true;
+
+    if (changed) {
+      display.fillScreen(colourBG);
+      display.fillCircle(120, 120, 120, colourBG);
+
+      display.setTextSize(2);
+      display.setTextColor(colourText);
+      display.getTextBounds("DEBUG", 0,0, &x1,&y1,&w,&h);
+      display.setCursor(120-w/2, 12);
+      display.print("DEBUG");
+
+      display.setTextSize(1);
+      display.setCursor(62, 42);
+      display.setTextColor(colour6);
+      display.print("ADC: ");
+      display.setTextColor(colourText);
+      display.print(adc);
+      for (int i = 0; i < 6;i++) {
+        posY = 62 + i*20;
+        display.setCursor(34, posY);
+        display.setTextColor(colour4);
+        display.print(labels[i]);
+        display.setTextColor(colourText);
+        display.print(": ");
+        display.print(*btnRefs[i]);
+        display.setCursor(154, posY);
+        display.setTextColor(colour1);
+        int diff = *defBtnRefs[i]-*btnRefs[i];
+        display.print("(");
+        if (diff > 0) display.print("+"); 
+        display.print(diff);
+        display.print(")");
+        prevbtns[i] = *btnRefs[i];
+      }
+      prevadc = adc;
+      first = false;
     }
-    
-    // TODO: an alternative needs to be found here:
-    if (button_is_pressed(btn6)) {
-      return;
-    }
-    delay(100);
+    if (button_is_pressed(btn6)) return;
+    delay(80);
   }
 }
 
 void btnSettings(){
-  display.fillScreen(GC9A01A_BLACK);
-  display.setCursor(5, 20);
-  display.println("1. Save Btn Vals");
-  display.println("2. Revert Btn Vals");
-  
+  int sel = 0, prevSel = -1;
   while(true){
-    if (button_is_pressed(btn1)) saveBtnVals();
-    else if (button_is_pressed(btn2)) {
-      for (int i = 0; i < 6; i++){
-        *btnRefs[i] = *defBtnRefs[i];
+    if (sel != prevSel) {
+      display.fillScreen(colourBG);
+      display.fillCircle(120,120,120,colourBG);
+      display.setTextSize(2);
+      display.setTextColor(colourText);
+      int16_t x1, y1; uint16_t w, h;
+      display.getTextBounds("BTN SETTINGS", 0,0, &x1, &y1, &w, &h);
+      display.setCursor(120-w/2, 24);
+      display.print("BTN SETTINGS");
+
+      display.setTextSize(sel == 0 ? 2 : 1);
+      display.setTextColor(sel == 0 ? colour6 : colour1);
+      display.setCursor(40,90);
+      display.print("Save Btn Vals");
+      display.setTextSize(sel == 1 ? 2 : 1);
+      display.setTextColor(sel == 1 ? colour6 : colour1);
+      display.setCursor(40,140);
+      display.print("Revert Btn Vals");
+
+      prevSel = sel;
+    }
+    if (button_is_pressed(btn2, true)) { sel = (sel + 1) % 2;}
+    else if (button_is_pressed(btn1, true)) { sel = (sel == 0 ? 1 : 0);}
+    else if (button_is_pressed(btn3, true)) {
+      if (sel == 0) { saveBtnVals(); }
+      else {
+        for (int i = 0; i < 6; i++) *btnRefs[i] = *defBtnRefs[i];
       }
     }
-    else if (button_is_pressed(btn6)) return;
+    else if (button_is_pressed(btn6, true)) { display.fillScreen(colourBG); return;}
+    delay(60);
   }
 }
