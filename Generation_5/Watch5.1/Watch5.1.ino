@@ -25,13 +25,22 @@
 Adafruit_GC9A01A display(TFT_CS, TFT_DC, TFT_RST);
 Preferences preferences;
 
-#define totalFunctions 12
+#define totalFunctions 13
 
 #define MAX_WIFI_NETWORKS 5
 #define MAX_WIFI_SSID 32
 #define MAX_WIFI_PASS 64
 
-const char *Functions[] = {"Outputs", "Maths", "Random", "Score", "Games", "Metronome", "Notes", "Calendar", "WiFi Menu", "WiFi Tools","Shell", "Settings"};
+struct WiFiNetwork {
+  char ssid[MAX_WIFI_SSID];
+  char password[MAX_WIFI_PASS];
+};
+WiFiNetwork wifiNetworks[MAX_WIFI_NETWORKS];
+int wifiNetworkCount = 0;
+int currentWiFiIndex = 0;
+
+
+const char *Functions[] = {"Time", "Outputs","Maths", "Random", "Score", "Snake", "Metronome", "Notes", "Calendar", "WiFi Menu", "WiFi Tools","Shell", "Settings"};
 const char *settingFuncs[] = {"Button Offset", "Func1 Settings", "Func2 Settings", "Func3 Settings", "Display Settings"};
 
 const byte buttonPin = 2;
@@ -75,15 +84,6 @@ int selectedFunction = 1;
 
 bool wifiConnected = false;
 
-struct WiFiNetwork {
-  char ssid[MAX_WIFI_SSID];
-  char password[MAX_WIFI_PASS];
-};
-
-WiFiNetwork wifiNetworks[MAX_WIFI_NETWORKS];
-int wifiNetworkCount = 0;
-int currentWiFiIndex = 0;
-
 unsigned long lastNavTime = 0;
 const unsigned long NAV_DEBOUNCE = 120;
 
@@ -117,11 +117,9 @@ bool a_button_is_pressed(){
   return (analogRead(buttonPin) != 4095);
 }
 
-// MAIN UI (flicker-free, round, modern)
 void drawMainUI() {
   int headerR = SCREEN_RADIUS-24;
 
-  // --- Draw static UI only once ---
   if (!staticUIdrawn) {
     display.fillScreen(colourBG);
     display.fillCircle(SCREEN_CENTER_X, SCREEN_CENTER_Y, SCREEN_RADIUS, colourBG);
@@ -359,6 +357,7 @@ void setup() {
 
   if (a_button_is_pressed()) {
     display.fillScreen(colourBG);
+    while (a_button_is_pressed()){}
     tuneButtonVals();
   }
 
@@ -368,7 +367,7 @@ void setup() {
 void loop() {
   if (Serial.available()) {
     char cmd = Serial.peek();
-    if (cmd == 's' || cmd == 'S') {
+    if (cmd == 'w' || cmd == 'W') {
       Serial.read();
       serialWiFiMenu();
     } 
@@ -391,7 +390,22 @@ void loop() {
 
   unsigned long now = millis();
 
-  if (button_is_pressed(btn4) && (now - lastNavTime) > NAV_DEBOUNCE) {
+  if (button_is_pressed(btn1)) {
+    display.fillScreen(GC9A01A_BLACK);
+    esp_sleep_enable_gpio_wakeup();
+    while (a_button_is_pressed()) {}
+    //esp_sleep_enable_ext0_wakeup((gpio_num_t)buttonPin, 0);
+    esp_light_sleep_start();
+    staticUIdrawn = false; // force redraw when returning to UI
+  }
+  else if (button_is_pressed(btn3)) {
+    display.fillScreen(GC9A01A_BLACK);
+    delay(1000);
+    esp_deep_sleep_enable_gpio_wakeup(2, ESP_GPIO_WAKEUP_GPIO_HIGH);
+    esp_deep_sleep_start();
+  }
+
+  else if (button_is_pressed(btn4) && (now - lastNavTime) > NAV_DEBOUNCE) {
     selectedFunction++;
     if (selectedFunction > totalFunctions) selectedFunction = 1;
     lastNavTime = now;
@@ -404,18 +418,19 @@ void loop() {
   else if (button_is_pressed(btn6)) {
     delay(100);
     switch (selectedFunction) {
-      case 1: watchFuncs(); break;
-      case 2: maths(); break;
-      case 3: randomNum(); break;
-      case 4: counter(); break;
-      case 5: games(); break;
-      case 6: metronome(); break;
-      case 7: notesFunction(); break;
-      case 8: calendar(); break;
-      case 9: wifiMenu(); break;
-      case 10: wifiFuncs(); break;
-      case 11: shell(); break;
-      case 12: settings(); break;
+      case 1: timeMenu(); break;
+      case 2: watchFuncs(); break;
+      case 3: maths(); break;
+      case 4: randomNum(); break;
+      case 5: counter(); break;
+      case 6: snake(); break;
+      case 7: metronome(); break;
+      case 8: notesFunction(); break;
+      case 9: calendar(); break;
+      case 10: wifiMenu(); break;
+      case 11: wifiFuncs(); break;
+      case 12: shell(); break;
+      case 13: settings(); break;
     }
     staticUIdrawn = false; // force redraw when returning to UI
   }

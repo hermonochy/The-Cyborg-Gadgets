@@ -108,7 +108,7 @@ void tuneButtonVals() {
     }
     *btnRefs[i] = samples[sampleCount/2];
 
-    display.fillRect(0, 100, 240, 40, colourBG);
+    display.fillRect(0, 90, 240, 40, colourBG);
     String setMsg = String(labels[i]) + " Set";
     display.setTextSize(2);
     display.getTextBounds(setMsg.c_str(), 0, 0, &x1, &y1, &w, &h);

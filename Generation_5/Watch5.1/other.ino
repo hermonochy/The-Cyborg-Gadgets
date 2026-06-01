@@ -1,12 +1,10 @@
-// Includes: Watch Funcs, Counter, Random Num, Metronome, Notes storage, Serial Notes Menu
-
 #define MAX_NOTES 5
 #define MAX_NOTE_LENGTH 64
 
 extern Adafruit_GC9A01A display;
 extern bool button_is_pressed(int btnVal, bool onlyOnce);
 extern int btn1, btn2, btn3, btn4, btn5, btn6;
-extern uint16_t colourBG,colourText,colour1,colour2,colour3,colour4,colour5,colour6;
+extern uint16_t colourBG, colourText, colour1, colour2, colour3, colour4, colour5, colour6;
 extern byte Func1, Func2, Func3;
 extern int blinkTime1, blinkTime2, blinkTime3;
 extern Preferences preferences;
@@ -15,486 +13,289 @@ struct Note {
   char text[MAX_NOTE_LENGTH];
   bool used;
 };
-
 Note notes[MAX_NOTES];
 
-void activateFunc(byte func, int blinkTime = 500){
-  bool blink = false;
-  bool keepOn = false;
+///////////////// WATCH FUNCTIONS (GPIO) MENU ///////////////
 
-  while (true){
-    if (!blink) delay(50);
-    if (keepOn){
-      digitalWrite(func, HIGH);
-    } 
-    else if (blink){
-      digitalWrite(func, !digitalRead(func));
-      if (blinkTime>5000) delay(round(blinkTime/1000));
-      else delayMicroseconds(blinkTime);
-    } 
-    else {
-      if (button_is_pressed(btn1, false)) digitalWrite(func, HIGH);
-      else digitalWrite(func, LOW);
+void activateFunc(byte func, int blinkTime = 500) {
+  bool blink = false, keepOn = false, showMode = true, lastState = false;
+  int oldMode = -1;
+  while (true) {
+    // UI update only when mode changes (avoid flicker)
+    if (showMode) {
+      display.fillCircle(120, 120, 120, colourBG);
+      display.setTextSize(2);
+      display.setTextColor(colour4);
+      display.setCursor(62, 25);
+      display.print("ACTUATOR");
+      display.setTextSize(1);
+      display.setTextColor(colour6);
+      display.setCursor(54, 70);
+      display.print("1:Flash 2:HOLD 3:Blink");
+      display.setCursor(72, 96);
+      display.print("6:Back");
+      showMode = false;
     }
-
-    if (button_is_pressed(btn2, true)){
+    if (button_is_pressed(btn2, true)) {
       keepOn = !keepOn;
-      if (keepOn) blink = false;
-    } 
-    else if (button_is_pressed(btn3, true)){
+      blink = false;
+      lastState = false;
+      showMode = true;
+    } else if (button_is_pressed(btn3, true)) {
       blink = !blink;
-      if (blink) keepOn = false;
-    }
-    else if (button_is_pressed(btn6)){
+      keepOn = false;
+      lastState = false;
+      showMode = true;
+    } else if (button_is_pressed(btn6, true)) {
+      digitalWrite(func, LOW);
       return;
     }
-    
-    display.fillScreen(colourBG);
-    display.setTextSize(1);
-    display.setCursor(0, 20);
-    display.println("1. Quick Flash");
-    display.setCursor(0, 30);
-    display.println("2. Always On");
-    display.setCursor(0, 40);
-    display.println("3. Blink");
-    display.setCursor(0, 50);
-    display.println("6. Return");
-    
-    display.setTextSize(2);
-    display.setCursor(5, 0);
-    display.print(digitalRead(func) ? "On" : "Off");
-    
+    if (blink) {
+      digitalWrite(func, HIGH);
+      delay(blinkTime);
+      digitalWrite(func, LOW);
+      delay(blinkTime);
+    } else if (keepOn) digitalWrite(func, HIGH);
+    else if (button_is_pressed(btn1, false)) {
+      digitalWrite(func, HIGH);
+      lastState = true;
+    } else if (lastState) {
+      digitalWrite(func, LOW);
+      lastState = false;
+    }
+    delay(10);
   }
 }
 
 void watchFuncs(void) {
+  int sel = 0, oldSel = -1;
+  const char* funcs[] = { "White LED", "Laser", "UV LED", "Back" };
+  while (1) {
+    if (sel != oldSel) {
+      display.fillCircle(120, 120, 120, colourBG);
+      display.setTextSize(2);
+      display.setTextColor(colourText);
+      display.setCursor(74, 28);
+      display.print("OUTPUTS");
+      int y0 = 70;
+      for (int i = 0; i < 4; ++i) {
+        display.setTextSize(i == sel ? 2 : 1);
+        display.setTextColor(i == sel ? colour6 : colour3);
+        display.setCursor(60, y0 + i * 34);
+        display.print(funcs[i]);
+      }
+      oldSel = sel;
+    }
+    if (button_is_pressed(btn2, true)) {
+      sel = (sel + 1) % 4;
+    } else if (button_is_pressed(btn1, true)) {
+      sel = (sel + 3) % 4;
+    } else if (button_is_pressed(btn3, true) || button_is_pressed(btn5, true)) {
+      if (sel == 0) activateFunc(Func1, blinkTime1);
+      else if (sel == 1) activateFunc(Func2, blinkTime2);
+      else if (sel == 2) activateFunc(Func3, blinkTime3);
+      else if (sel == 3) return;
+      oldSel = -1;
+    } else if (button_is_pressed(btn6, true)) return;
+    delay(50);
+  }
+}
+
+///////////////// SCORE COUNTER //////////////////////
+
+int score1 = 0, score2 = 0;
+void counter(void) {
+  int lastS1 = -1000, lastS2 = -1000;
   while (true) {
-    display.fillScreen(colourBG);
-    display.setTextSize(1);
-    display.setCursor(0, 20);
-    display.println("1. White LED");
-    display.setCursor(0, 30);
-    display.println("2. Laser");
-    display.setCursor(0, 40);
-    display.println("3. UV LED");
-    
-    delay(50);
-    
-    if (button_is_pressed(btn1)) activateFunc(Func1, blinkTime1);
-    else if (button_is_pressed(btn2)) activateFunc(Func2, blinkTime2);
-    else if (button_is_pressed(btn3)) activateFunc(Func3, blinkTime3);
-    else if (button_is_pressed(btn6)) return;
-  }
-}
-
-int score1 = 0;
-int score2 = 0;
-void counter(void){
-  while (true){
-    display.fillScreen(colourBG);
-    display.setTextSize(1);
-    display.setCursor(10, 5);
-    display.print("Score Counter");
-
-    display.setTextSize(3);
-    display.setCursor(0, 30);
-    display.print(score1);
-    display.print(" : ");
-    display.print(score2);
-    
-
-    if (button_is_pressed(btn1)){
+    if (score1 != lastS1 || score2 != lastS2) {
+      display.fillCircle(120, 120, 120, colourBG);
+      display.setTextSize(2);
+      display.setTextColor(colour2);
+      display.setCursor(87, 26);
+      display.print("COUNTER");
+      display.setTextSize(3);
+      display.setTextColor(colour3);
+      display.setCursor(54, 90);
+      display.printf("%d : %d", score1, score2);
+      display.setTextSize(1);
+      display.setTextColor(colour4);
+      display.setCursor(34, 182);
+      display.print("1/4/5:+/-  2:+ 3:Zr  6:Bk");
+      lastS1 = score1;
+      lastS2 = score2;
+    }
+    if (button_is_pressed(btn1)) {
       ++score1;
-      delay(150);
-    }
-    else if (button_is_pressed(btn2)){
+      delay(110);
+    } else if (button_is_pressed(btn2)) {
       ++score2;
-      delay(150);
-    }
-    else if (button_is_pressed(btn3)){
-      score1 = 0;
-      score2 = 0;  
-    }
-    else if (button_is_pressed(btn4)){
+      delay(110);
+    } else if (button_is_pressed(btn4)) {
       --score1;
-      delay(150);
-    }
-    else if (button_is_pressed(btn5)){
+      delay(110);
+    } else if (button_is_pressed(btn5)) {
       --score2;
-      delay(150);
-    }
-    else if (button_is_pressed(btn6)){
-      return;
-    }
-    delay(50);
+      delay(110);
+    } else if (button_is_pressed(btn3)) {
+      score1 = score2 = 0;
+      delay(110);
+    } else if (button_is_pressed(btn6, true)) return;
+    delay(10);
   }
 }
+
+///////////////// RANDOM NUMBER //////////////////////
 
 void randomNum(void) {
-  int range = 10;
-  bool floatMode = false;
-  int decimals = 2;
+  int range = 10, decimals = 2, lastRange = -1, lastDec = -1, showNum = 0, floatMode = false;
+  double lastVal = -1;
+  char numStr[18] = "";
   while (true) {
-    display.fillScreen(colourBG);
-    display.setTextSize(2);
-    display.setCursor(0, 0);
-    display.print("Random");
-    display.setCursor(0, 22);
-    display.setTextSize(1);
-    display.print("Max:");
-    display.print(range);
-    display.setCursor(64, 22);
-    display.print(floatMode ? "Float" : "Int");
-    display.setCursor(0, 44);
-    display.print("Dec:");
-    display.print(decimals);
-    display.setCursor(0, 56);
-    display.print("3:tog 4:d.p 5:gen");
-    
-    delay(100);
-    
-    if (button_is_pressed(btn1)) {
+    if (range != lastRange || decimals != lastDec || floatMode || showNum) {
+      display.fillCircle(120, 120, 120, colourBG);
+      display.setTextSize(2);
+      display.setTextColor(colour6);
+      display.setCursor(80, 25);
+      display.print("RAND");
+      display.setTextSize(1);
+      display.setTextColor(colourText);
+      display.setCursor(40, 66);
+      display.print("Max:");
+      display.print(range);
+      display.setCursor(124, 66);
+      display.print(floatMode ? "Float" : "Int");
+      display.setCursor(40, 90);
+      display.print("Dec :");
+      display.print(decimals);
+      display.setCursor(40, 120);
+      display.print("btn1:+10 btn2:-1 btn3:Mode");
+      display.setCursor(40, 140);
+      display.print("btn4:Dp+ btn5:Go  btn6:Return");
+
+      if (showNum) {
+        display.setTextSize(floatMode ? 2 : 3);
+        display.setTextColor(colour3);
+        display.setCursor(82, 176);
+        display.print(numStr);
+        showNum = 0;  // Only draws the result once
+      }
+      lastRange = range;
+      lastDec = decimals;
+      lastVal = -1;
+    }
+    if (button_is_pressed(btn1, true)) {
       range += 10;
-      delay(250);
-    } 
-    else if (button_is_pressed(btn2)) {
+    } else if (button_is_pressed(btn2, true)) {
       range = max(1, range - 1);
-      delay(250);
-    } 
-    else if (button_is_pressed(btn5)) {
+    } else if (button_is_pressed(btn4, true)) {
+      decimals = min(6, decimals + 1);
+    } else if (button_is_pressed(btn3, true)) {
+      floatMode = !floatMode;
+    } else if (button_is_pressed(btn5, true)) {
       if (!floatMode) {
         int r = random(0, range + 1);
-        display.fillScreen(colourBG);
-        display.setTextSize(3);
-        display.setCursor(10, 25);
-        display.print(r);
-        
-        delay(2000);
+        snprintf(numStr, sizeof(numStr), "%d", r);
+        showNum = 1;
       } else {
         double u = (random(0, 32767) / 32767.0);
         double val = u * range;
-        display.fillScreen(colourBG);
-        display.setTextSize(3);
-        display.setCursor(0, 18);
-        display.print(val, decimals);
-        
-        delay(2000);
+        dtostrf(val, 0, decimals, numStr);
+        showNum = 1;
       }
-    } 
-    else if (button_is_pressed(btn3)) {
-      floatMode = !floatMode;
-      delay(250);
-    }
-    else if (button_is_pressed(btn4)) {
-      decimals = min(6, decimals + 1);
-      delay(200);
-    }
-    else if (button_is_pressed(btn6, true)) {
-      return;
-    }
+    } else if (button_is_pressed(btn6, true)) return;
+    delay(55);
   }
 }
+
+///////////////// METRONOME (NO FLICKERING UI ON BEAT) /////////////////
 
 int metronome_bpm = 100;
-int metronome_time_sig = 0;  // 0=4/4, 1=3/4, 2=2/4
-byte metronome_subdivision = 0; // 0=quarters, 1=eighths, 2=triplets
-const int MIN_BPM = 30;
-const int MAX_BPM = 300;
-const int TEMPO_INCREMENT = 1;
-const char* TIME_SIGS[] = {"4/4", "3/4", "2/4"};
-const int TIME_SIG_BEATS[] = {4, 3, 2};
-
-void metronome_display_main(int bpm, int time_sig, int beat, int total_beats) {
-  display.fillScreen(colourBG);
-  display.setTextSize(2);
-  display.setCursor(0, 0);
-  display.print(bpm);
-  display.print(" BPM");
-  
-  display.setTextSize(1);
-  display.setCursor(90, 0);
-  display.print(TIME_SIGS[time_sig]);
-  
-  display.setCursor(0, 20);
-  display.print("Beat: ");
-  display.print(beat + 1);
-  display.print("/");
-  display.print(total_beats);
-  
-  display.setCursor(0, 32);
-  for (int i = 0; i < total_beats; i++) {
-    if (i == beat) {
-      display.print(i == 0 ? "[*]" : "[ ]");
-    } else if (i == 0) {
-      display.print("[*]");
-    } else {
-      display.print("[ ]");
-    }
-  }
-  
-  display.setCursor(0, 46);
-  display.setTextSize(1);
-  display.print("1:< 2:> 3:Time 4:Sub");
-  display.setCursor(0, 56);
-  display.print("5:Tap 6:Exit");
-  
-  
-}
-
-void metronome_pulse_beat(int beat, int total_beats) {
-  const unsigned long PULSE_STRONG = 30;
-  const unsigned long PULSE_WEAK = 15;
-  
-  unsigned long pulse_duration = (beat == 0) ? PULSE_STRONG : PULSE_WEAK;
-  
-  digitalWrite(Func1, HIGH);
-  delay(pulse_duration);
-  digitalWrite(Func1, LOW);
-}
-
-void metronome_tap_tempo() {
-  static unsigned long lastTapTime = 0;
-  unsigned long currentTime = millis();
-  
-  if (lastTapTime == 0) {
-    lastTapTime = currentTime;
-    return;
-  }
-  
-  unsigned long tapInterval = currentTime - lastTapTime;
-  
-  if (tapInterval > 200 && tapInterval < 4000) {
-    int calculatedBpm = 60000 / tapInterval;
-    metronome_bpm = constrain(calculatedBpm, MIN_BPM, MAX_BPM);
-  }
-  
-  lastTapTime = currentTime;
-  
-  display.fillScreen(colourBG);
-  display.setTextSize(2);
-  display.setCursor(10, 25);
-  display.print("Tempo Set!");
-  display.setCursor(20, 45);
-  display.print(metronome_bpm);
-  display.print(" BPM");
-  
-  delay(800);
-}
-
-void metronome_time_signature_menu() {
-  while (true) {
-    display.fillScreen(colourBG);
-    display.setTextSize(1);
-    display.setCursor(0, 0);
-    display.print("Time Signature");
-    
-    display.setCursor(10, 20);
-    display.setTextSize(2);
-    for (int i = 0; i < 3; i++) {
-      if (i == metronome_time_sig) {
-        display.print(">");
-      } else {
-        display.print(" ");
-      }
-      display.println(TIME_SIGS[i]);
-    }
-    
-    display.setTextSize(1);
-    display.setCursor(0, 56);
-    display.print("1:< 2:> 3:OK 6:Back");
-    
-    
-    if (button_is_pressed(btn1)) {
-      metronome_time_sig = (metronome_time_sig - 1 + 3) % 3;
-      delay(200);
-    }
-    else if (button_is_pressed(btn2)) {
-      metronome_time_sig = (metronome_time_sig + 1) % 3;
-      delay(200);
-    }
-    else if (button_is_pressed(btn3)) {
-      return;
-    }
-    else if (button_is_pressed(btn6)) {
-      return;
-    }
-  }
-}
-
-void metronome_subdivision_menu() {
-  const char* SUBS[] = {"Quarters", "Eighths", "Triplets"};
-  
-  while (true) {
-    display.fillScreen(colourBG);
-    display.setTextSize(1);
-    display.setCursor(0, 0);
-    display.print("Subdivision");
-    
-    display.setCursor(10, 20);
-    display.setTextSize(1);
-    for (int i = 0; i < 3; i++) {
-      if (i == metronome_subdivision) {
-        display.print(">");
-      } else {
-        display.print(" ");
-      }
-      display.println(SUBS[i]);
-    }
-    
-    display.setCursor(0, 56);
-    display.print("1:< 2:> 3:OK 6:Back");
-    
-    
-    if (button_is_pressed(btn1)) {
-      metronome_subdivision = (metronome_subdivision - 1 + 3) % 3;
-      delay(200);
-    }
-    else if (button_is_pressed(btn2)) {
-      metronome_subdivision = (metronome_subdivision + 1) % 3;
-      delay(200);
-    }
-    else if (button_is_pressed(btn3)) {
-      return;
-    }
-    else if (button_is_pressed(btn6)) {
-      return;
-    }
-  }
-}
+int metronome_time_sig = 0;
+const char* TIME_SIGS[] = { "4/4", "3/4", "2/4" };
+const int TIME_SIG_BEATS[] = { 4, 3, 2 };
 
 void metronome(void) {
-  int total_beats = TIME_SIG_BEATS[metronome_time_sig];
-  int current_beat = 0;
-  
-  unsigned long lastBeatTime = millis();
-  unsigned long beatInterval = 60000UL / (unsigned long)max(1, metronome_bpm);
-  
-  bool btn1Held = false;
-  bool btn2Held = false;
-  unsigned long btn1NextRepeat = 0;
-  unsigned long btn2NextRepeat = 0;
-  const unsigned long HOLD_INITIAL_MS = 500;
-  const unsigned long HOLD_MIN_MS = 50;
-  const float HOLD_ACCEL_FACTOR = 0.85f;
-  unsigned long btn1RepeatDelay = HOLD_INITIAL_MS;
-  unsigned long btn2RepeatDelay = HOLD_INITIAL_MS;
-  
-  digitalWrite(Func1, LOW);
-
-  while (true) {
-    unsigned long now = millis();
-    
-    static int lastDisplayedBpm = -1;
-    static int lastDisplayedTimeSig = -1;
-    if (metronome_bpm != lastDisplayedBpm || metronome_time_sig != lastDisplayedTimeSig) {
-      lastDisplayedBpm = metronome_bpm;
-      lastDisplayedTimeSig = metronome_time_sig;
-      total_beats = TIME_SIG_BEATS[metronome_time_sig];
-      beatInterval = 60000UL / (unsigned long)max(1, metronome_bpm);
-      metronome_display_main(metronome_bpm, metronome_time_sig, current_beat, total_beats);
+  int selScreen = 0, oldScreen = -1;
+  int cur_bpm = metronome_bpm, cur_sig = metronome_time_sig, beat = 0;
+  unsigned long lastBeat = millis(), interval = 60000UL / cur_bpm;
+  while (1) {
+    if (oldScreen != selScreen || cur_bpm != metronome_bpm || cur_sig != metronome_time_sig) {
+      display.fillCircle(120, 120, 120, colourBG);
+      display.setTextSize(2);
+      display.setTextColor(colour3);
+      display.setCursor(79, 24);
+      display.print("METRO");
+      display.setTextSize(3);
+      display.setTextColor(colourText);
+      display.setCursor(80, 70);
+      display.print(cur_bpm);
+      display.setTextSize(1);
+      display.setCursor(172, 72);
+      display.print("BPM");
+      display.setTextSize(1);
+      display.setTextColor(colour6);
+      display.setCursor(80, 98);
+      display.print("Sig: ");
+      display.print(TIME_SIGS[cur_sig]);
+      display.setCursor(40, 166);
+      display.print("1/2:-/+  3:Sig 4:GO 6:Back");
+      oldScreen = selScreen;
+      cur_bpm = metronome_bpm;
+      cur_sig = metronome_time_sig;
     }
-    
-    if ((unsigned long)(now - lastBeatTime) >= beatInterval) {
-      metronome_pulse_beat(current_beat, total_beats);
-      current_beat = (current_beat + 1) % total_beats;
-      lastBeatTime = now;
-      metronome_display_main(metronome_bpm, metronome_time_sig, current_beat, total_beats);
-    }
-    
-    if (button_is_pressed(btn1, false)) {
-      if (!btn1Held) {
-        btn1Held = true;
-        btn1RepeatDelay = HOLD_INITIAL_MS;
-        btn1NextRepeat = now + btn1RepeatDelay;
-        if (metronome_bpm > MIN_BPM) metronome_bpm -= TEMPO_INCREMENT;
-      } else {
-        if (now >= btn1NextRepeat) {
-          if (metronome_bpm > MIN_BPM) metronome_bpm -= TEMPO_INCREMENT;
-          unsigned long newDelay = (unsigned long)max((float)HOLD_MIN_MS, btn1RepeatDelay * HOLD_ACCEL_FACTOR);
-          btn1RepeatDelay = newDelay;
-          btn1NextRepeat = now + btn1RepeatDelay;
+    if (button_is_pressed(btn1, true)) {
+      metronome_bpm = max(30, metronome_bpm - 1);
+    } else if (button_is_pressed(btn2, true)) {
+      metronome_bpm = min(250, metronome_bpm + 1);
+    } else if (button_is_pressed(btn3, true)) {
+      metronome_time_sig = (metronome_time_sig + 1) % 3;
+    } else if (button_is_pressed(btn4, true)) {
+      int total_beats = TIME_SIG_BEATS[metronome_time_sig];
+      beat = 0;
+      lastBeat = millis();
+      while (!button_is_pressed(btn6, false)) {
+        unsigned long now = millis();
+        if (now - lastBeat >= 60000UL / metronome_bpm) {
+          (beat == 0 ? digitalWrite(Func1, HIGH) : digitalWrite(Func2, HIGH));
+          delay(75);
+          digitalWrite(Func1, LOW);
+          digitalWrite(Func2, LOW);
+          beat = (beat + 1) % total_beats;
+          lastBeat = now;
         }
+        // no UI redraw while metronome running!
+        if (button_is_pressed(btn6, true)) break;
       }
-    } else {
-      btn1Held = false;
-    }
-    
-    if (button_is_pressed(btn2, false)) {
-      if (!btn2Held) {
-        btn2Held = true;
-        btn2RepeatDelay = HOLD_INITIAL_MS;
-        btn2NextRepeat = now + btn2RepeatDelay;
-        if (metronome_bpm < MAX_BPM) metronome_bpm += TEMPO_INCREMENT;
-      } else {
-        if (now >= btn2NextRepeat) {
-          if (metronome_bpm < MAX_BPM) metronome_bpm += TEMPO_INCREMENT;
-          unsigned long newDelay = (unsigned long)max((float)HOLD_MIN_MS, btn2RepeatDelay * HOLD_ACCEL_FACTOR);
-          btn2RepeatDelay = newDelay;
-          btn2NextRepeat = now + btn2RepeatDelay;
-        }
-      }
-    } else {
-      btn2Held = false;
-    }
-    
-    if (button_is_pressed(btn3, true)) {
-      metronome_time_signature_menu();
-      delay(200);
-    }
-    
-    if (button_is_pressed(btn4, true)) {
-      metronome_subdivision_menu();
-      delay(200);
-    }
-    
-    if (button_is_pressed(btn5, true)) {
-      metronome_tap_tempo();
-      delay(200);
-    }
-    
-    if (button_is_pressed(btn6, true)) {
-      digitalWrite(Func1, LOW);
-      return;
-    }
-    
-    yield();
+    } else if (button_is_pressed(btn6, true)) return;
+    delay(40);
   }
 }
+
+////////////////// NOTES ///////////////////////
 
 void saveNotesToNVS(void) {
   preferences.begin("notes", false);
-  
   for (int i = 0; i < MAX_NOTES; i++) {
-    char keyText[20];
-    char keyUsed[20];
-    
+    char keyText[20], keyUsed[20];
     sprintf(keyText, "note%d_text", i);
     sprintf(keyUsed, "note%d_used", i);
-    
     preferences.putString(keyText, notes[i].text);
     preferences.putBool(keyUsed, notes[i].used);
   }
-  
   preferences.end();
 }
 
 void loadNotesFromNVS(void) {
   preferences.begin("notes", true);
-  
   for (int i = 0; i < MAX_NOTES; i++) {
-    char keyText[20];
-    char keyUsed[20];
-    
+    char keyText[20], keyUsed[20];
     sprintf(keyText, "note%d_text", i);
     sprintf(keyUsed, "note%d_used", i);
-    
     String noteText = preferences.getString(keyText, "");
     notes[i].used = preferences.getBool(keyUsed, false);
-    
     strncpy(notes[i].text, noteText.c_str(), MAX_NOTE_LENGTH - 1);
     notes[i].text[MAX_NOTE_LENGTH - 1] = '\0';
   }
-  
   preferences.end();
 }
 
@@ -503,153 +304,87 @@ void initializeNotesNVS(void) {
 }
 
 void notesFunction(void) {
-  int selectedNote = 0;
-  bool viewingMode = true;
-
-  while (true) {
-    if (viewingMode) {
-      display.fillScreen(colourBG);
-      display.setTextSize(1);
-      display.setCursor(0, 0);
-      display.print("Notes");
-      
-      display.setCursor(0, 18);
+  int sel = 0, oldSel = -1, mode = 0, charSel = 0;
+  while (1) {
+    if (mode == 0 && sel != oldSel) {  // List
+      display.fillCircle(120, 120, 120, colourBG);
+      display.setTextSize(2);
+      display.setTextColor(colourText);
+      display.setCursor(80, 24);
+      display.print("NOTES");
       for (int i = 0; i < MAX_NOTES; i++) {
-        if (i == selectedNote) {
-          display.print(">");
-        } else {
-          display.print(" ");
-        }
-        display.print(i + 1);
-        display.print(": ");
-        
+        display.setTextSize(i == sel ? 2 : 1);
+        display.setTextColor(i == sel ? colour6 : colour3);
+        display.setCursor(38, 70 + i * 30);
         if (notes[i].used) {
-          char preview[13];
-          strncpy(preview, notes[i].text, 12);
-          preview[12] = '\0';
-          display.print(preview);
-        } else {
-          display.print("[Empty]");
-        }
-        display.setCursor(0, 18 + ((i + 1) * 10));
+          char prev[14];
+          strncpy(prev, notes[i].text, 13);
+          prev[13] = '\0';
+          display.print(prev);
+        } else display.print("[Empty]");
       }
-     
-      
-      
-      if (button_is_pressed(btn1)) {
-        selectedNote = (selectedNote - 1 + MAX_NOTES) % MAX_NOTES;
-        delay(150);
-      }
-      else if (button_is_pressed(btn2)) {
-        selectedNote = (selectedNote + 1) % MAX_NOTES;
-        delay(150);
-      }
-      else if (button_is_pressed(btn3)) {
-        viewingMode = false;
-        delay(200);
-      }
-      else if (button_is_pressed(btn6)) {
-        return;
-      }
-    } else {
-      display.fillScreen(colourBG);
       display.setTextSize(1);
-      display.setCursor(0, 0);
-      display.print("Note ");
-      display.print(selectedNote + 1);
-      display.print(" - Edit");
-      
-      display.setCursor(0, 18);
-      display.print("Text:");
-      display.setCursor(0, 30);
-      display.print(notes[selectedNote].text);
-      display.print("_");
-      
-      display.setCursor(0, 40);
-      display.print("1:Del 2:Add 3:Char");
-      display.setCursor(0, 50);
-      display.print("4:Clr 5:Save 6:Back");
-      
-      
-      if (button_is_pressed(btn1, false)) {
-        int len = strlen(notes[selectedNote].text);
-        if (len > 0) {
-          notes[selectedNote].text[len - 1] = '\0';
-          if (len - 1 == 0) {
-            notes[selectedNote].used = false;
-          }
-        }
-        delay(150);
-      }
-      else if (button_is_pressed(btn2, false)) {
-        int len = strlen(notes[selectedNote].text);
-        if (len < MAX_NOTE_LENGTH - 1) {
-          notes[selectedNote].text[len] = ' ';
-          notes[selectedNote].text[len + 1] = '\0';
-          notes[selectedNote].used = true;
-        }
-        delay(150);
-      }
-      else if (button_is_pressed(btn3)) {
-        char charset[] = "ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789.-:,!?";
-        int charIndex = 0;
-        bool selectingChar = true;
-        
-        while (selectingChar) {
-          display.fillScreen(colourBG);
-          display.setTextSize(1);
-          display.setCursor(0, 0);
-          display.print("Select Char:");
-          display.setCursor(0, 18);
-          display.setTextSize(2);
-          display.print(charset[charIndex]);
-          display.setTextSize(1);
-          display.setCursor(0, 56);
-          display.print("1:< 2:> 3:Select");
-          
-          
-          if (button_is_pressed(btn1)) {
-            charIndex = (charIndex - 1 + (int)strlen(charset)) % (int)strlen(charset);
-            delay(100);
-          }
-          else if (button_is_pressed(btn2)) {
-            charIndex = (charIndex + 1) % (int)strlen(charset);
-            delay(100);
-          }
-          else if (button_is_pressed(btn3)) {
-            int len = strlen(notes[selectedNote].text);
-            if (len < MAX_NOTE_LENGTH - 1) {
-              notes[selectedNote].text[len] = charset[charIndex];
-              notes[selectedNote].text[len + 1] = '\0';
-              notes[selectedNote].used = true;
-            }
-            selectingChar = false;
-            delay(200);
-          }
-          else if (button_is_pressed(btn6)) {
-            selectingChar = false;
-            delay(200);
-          }
-          delay(50);
-        }
-      }
-      else if (button_is_pressed(btn4)) {
-        notes[selectedNote].text[0] = '\0';
-        notes[selectedNote].used = false;
-        delay(200);
-      }
-      else if (button_is_pressed(btn5)) {
-        saveNotesToNVS();
-        viewingMode = true;
-        delay(200);
-      }
-      else if (button_is_pressed(btn6)) {
-        viewingMode = true;
-        delay(200);
-      }
+      display.setTextColor(colour4);
+      display.setCursor(36, 190);
+      display.print("3:Edit/Add 4:Del 5:Sve 6:Back");
+      oldSel = sel;
     }
-    
-    delay(50);
+
+    if (mode == 0 && button_is_pressed(btn2, true)) {
+      sel = (sel + 1) % MAX_NOTES;
+    } else if (mode == 0 && button_is_pressed(btn1, true)) {
+      sel = (sel + MAX_NOTES - 1) % MAX_NOTES;
+    } else if (mode == 0 && button_is_pressed(btn3, true)) {
+      mode = 1;
+      oldSel = -1;
+    } else if (mode == 0 && button_is_pressed(btn4, true)) {
+      notes[sel].text[0] = 0;
+      notes[sel].used = 0;
+      oldSel = -1;
+    } else if (mode == 0 && button_is_pressed(btn5, true)) {
+      saveNotesToNVS();
+    } else if (mode == 0 && button_is_pressed(btn6, true)) return;
+    else if (mode == 1) {  // Edit
+      display.fillCircle(120, 120, 120, colourBG);
+      display.setTextSize(2);
+      display.setTextColor(colourText);
+      display.setCursor(60, 24);
+      display.print("EDIT NOTE");
+      display.setTextSize(1);
+      display.setCursor(30, 64);
+      display.print(notes[sel].text);
+      display.print("_");
+      display.setTextColor(colour6);
+      display.setCursor(44, 142);
+      display.print("1:< 2:> 3:Char 4:Del 5:Sve 6:Back");
+      if (button_is_pressed(btn1, true)) {
+        charSel = (charSel + 94) % 95;
+      } else if (button_is_pressed(btn2, true)) {
+        charSel = (charSel + 1) % 95;
+      } else if (button_is_pressed(btn3, true)) {
+        int l = strlen(notes[sel].text);
+        if (l < MAX_NOTE_LENGTH - 2) {
+          notes[sel].text[l] = 32 + charSel;
+          notes[sel].text[l + 1] = 0;
+          notes[sel].used = 1;
+        }
+      } else if (button_is_pressed(btn4, true)) {
+        int l = strlen(notes[sel].text);
+        if (l > 0) { notes[sel].text[l - 1] = 0; }
+      } else if (button_is_pressed(btn5, true)) {
+        saveNotesToNVS();
+        mode = 0;
+        oldSel = -1;
+      } else if (button_is_pressed(btn6, true)) {
+        mode = 0;
+        oldSel = -1;
+      }
+      display.setCursor(58, 106);
+      display.setTextColor(colour2);
+      display.setTextSize(3);
+      display.print((char)(32 + charSel));
+    }
+    delay(44);
   }
 }
 
