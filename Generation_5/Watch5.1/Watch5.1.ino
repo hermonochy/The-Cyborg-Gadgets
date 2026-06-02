@@ -76,6 +76,8 @@ uint16_t colour4    =  display.color565(255, 255, 0);    // Yellow
 uint16_t colour5    =  display.color565(0, 0, 123);      // Navy 
 uint16_t colour6    =  display.color565(0, 255, 255);    // Cyan
 
+bool inverted = false;
+
 int blinkTime1 = 500000;
 int blinkTime2 = 1;
 int blinkTime3 = 10000;
@@ -92,6 +94,8 @@ int prevFuncShown = -1;
 int oldFuncShown = -1;
 int oldSelectedFunction = -1;
 bool prevWifiConnected = false;
+int lastDisplayedHour = -1;
+int lastDisplayedMin = -1;
 
 bool button_is_pressed(int btnVal, bool onlyOnce = false) {
   int pinVal = analogRead(buttonPin) - buttonOffset;
@@ -115,6 +119,31 @@ bool button_is_pressed(int btnVal, bool onlyOnce = false) {
 
 bool a_button_is_pressed(){
   return (analogRead(buttonPin) != 4095);
+}
+
+void updateTimeDisplay() {
+  int dst = getDSTOffset();
+  time_t now = time(nullptr);
+  struct tm* timeinfo = localtime(&now);
+  int hour = timeinfo->tm_hour + dst;
+  int minute = timeinfo->tm_min;
+  
+  if (hour != lastDisplayedHour || minute != lastDisplayedMin) {
+    display.fillRect(SCREEN_CENTER_X - 40, SCREEN_HEIGHT - 70, 80, 12, colourBG);
+    
+    display.setTextSize(1);
+    display.setTextColor(colour1);
+    int16_t x1, y1;
+    uint16_t w, h;
+    char timeStr[16];
+    sprintf(timeStr, "%02d:%02d", hour, minute);
+    display.getTextBounds(timeStr, 0, 0, &x1, &y1, &w, &h);
+    display.setCursor(SCREEN_CENTER_X - w/2, SCREEN_HEIGHT - 69);
+    display.print(timeStr);
+    
+    lastDisplayedHour = hour;
+    lastDisplayedMin = minute;
+  }
 }
 
 void drawMainUI() {
@@ -143,6 +172,8 @@ void drawMainUI() {
     prevFuncShown = -1;
     oldFuncShown = -1;
     oldSelectedFunction = -1;
+    lastDisplayedHour = -1;
+    lastDisplayedMin = -1;
   }
 
   if (wifiConnected != prevWifiConnected) {
@@ -184,6 +215,8 @@ void drawMainUI() {
     display.fillCircle(cx, cy, 7, colour4);
     oldSelectedFunction = selectedFunction;
   }
+
+  updateTimeDisplay();
 }
 
 void timeSyncAndUI() {
@@ -209,6 +242,7 @@ void timeSyncAndUI() {
     }
 
     WiFi.begin(wifiNetworks[wifiIndex].ssid, wifiNetworks[wifiIndex].password);
+	  WiFi.setTxPower(WIFI_POWER_8_5dBm);
 
     int totalSteps = 100;
     int currentStep = 0;
@@ -340,7 +374,7 @@ void setup() {
   pinMode(Func1, OUTPUT);
   pinMode(Func2, OUTPUT);
   pinMode(Func3, OUTPUT);
-
+  esp_sleep_enable_timer_wakeup(500000); // 500ms
   loadBtnVals();
   randomSeed(analogRead(1));
   display.begin();
@@ -362,6 +396,24 @@ void setup() {
   }
 
   drawMainUI();
+}
+
+bool lightSleep(){
+  display.fillScreen(GC9A01A_BLACK);
+  delay(1000);
+  while (!a_button_is_pressed()){
+    esp_light_sleep_start();
+  }
+  display.fillScreen(colour1);
+  if (button_is_pressed(btn3, true)){
+    displayTime();
+    return true;
+  }
+  else {
+    delay(1000);
+    staticUIdrawn = false; // force redraw when returning to UI
+    return false;
+  }
 }
 
 void loop() {
@@ -391,19 +443,15 @@ void loop() {
   unsigned long now = millis();
 
   if (button_is_pressed(btn1)) {
-    display.fillScreen(GC9A01A_BLACK);
-    esp_sleep_enable_gpio_wakeup();
-    while (a_button_is_pressed()) {}
-    //esp_sleep_enable_ext0_wakeup((gpio_num_t)buttonPin, 0);
-    esp_light_sleep_start();
-    staticUIdrawn = false; // force redraw when returning to UI
+    // returns true if going back to sleep, otherwise false
+    while (lightSleep()){}
   }
-  else if (button_is_pressed(btn3)) {
+  /*else if (button_is_pressed(btn3)) {
     display.fillScreen(GC9A01A_BLACK);
     delay(1000);
     esp_deep_sleep_enable_gpio_wakeup(2, ESP_GPIO_WAKEUP_GPIO_HIGH);
     esp_deep_sleep_start();
-  }
+  }*/
 
   else if (button_is_pressed(btn4) && (now - lastNavTime) > NAV_DEBOUNCE) {
     selectedFunction++;

@@ -9,20 +9,23 @@ extern int buttonOffset, buttonValRange, blinkTime1, blinkTime2, blinkTime3;
 extern const byte buttonPin;
 extern int btn1, btn2, btn3, btn4, btn5, btn6;
 extern uint16_t colourBG,colourText,colour1,colour2,colour3,colour4,colour5,colour6;
+extern bool inverted;
 extern const int defBtn1, defBtn2, defBtn3, defBtn4, defBtn5, defBtn6;
 extern byte Func1, Func2, Func3;
 
 #define numSettings 5
 
-int rotation=0;
+int rotation = 0;
 
 int *btnRefs[] = {&btn1, &btn2, &btn3, &btn4, &btn5, &btn6};
 const int *defBtnRefs[] = {&defBtn1, &defBtn2, &defBtn3, &defBtn4, &defBtn5, &defBtn6};
 const char *labels[] = {"Btn 1", "Btn 2", "Btn 3", "Btn 4", "Btn 5", "Btn 6"};
 
+uint16_t *colours[] = {&colourBG,&colourText,&colour1,&colour2,&colour3,&colour4,&colour5,&colour6};
+
 void settings() {
   int sel = 0;
-  int menuCount = 4;
+  int menuCount = 5;
   int prevSel = -1;
   bool first = true;
   while (true) {
@@ -38,16 +41,17 @@ void settings() {
       display.setCursor(120 - w / 2, 22);
       display.print("SETTINGS");
 
-      int anchorY = 70, spacing = 33;
+      int Y = 70, spacing = 30;
       for (int i = 0; i < menuCount; i++) {
         display.setTextSize(i == sel ? 2 : 1);
         display.setTextColor(i == sel ? colour6 : colour1);
-        display.setCursor(20, anchorY + i * spacing);
+        display.setCursor(20, Y + i * spacing);
         switch(i) {
           case 0: display.print("Tune Btns"); break;
           case 1: display.print("Preferences"); break;
           case 2: display.print("Debug"); break;
           case 3: display.print("Btn Settings"); break;
+          case 4: display.print("LCD Settings"); break;
         }
       }
       prevSel = sel;
@@ -62,6 +66,7 @@ void settings() {
         case 1: prefs(); break;
         case 2: debug(); break;
         case 3: btnSettings(); break;
+        case 4: LCDSettings(); break;
       }
       prevSel = -1; first = true;
       continue;
@@ -112,7 +117,7 @@ void tuneButtonVals() {
     String setMsg = String(labels[i]) + " Set";
     display.setTextSize(2);
     display.getTextBounds(setMsg.c_str(), 0, 0, &x1, &y1, &w, &h);
-    display.setCursor(120 - w / 2, 106);
+    display.setCursor(120 - w / 2, 90);
     display.setTextColor(colour3);
     display.print(setMsg);
 
@@ -284,7 +289,7 @@ void debug() {
       first = false;
     }
     if (button_is_pressed(btn6)) return;
-    delay(80);
+    delay(100);
   }
 }
 
@@ -312,7 +317,7 @@ void btnSettings(){
 
       prevSel = sel;
     }
-    if (button_is_pressed(btn2, true)) { sel = (sel + 1) % 2;}
+    if (button_is_pressed(btn4, true)) { sel = (sel + 1) % 2;}
     else if (button_is_pressed(btn1, true)) { sel = (sel == 0 ? 1 : 0);}
     else if (button_is_pressed(btn3, true)) {
       if (sel == 0) { saveBtnVals(); }
@@ -321,6 +326,45 @@ void btnSettings(){
       }
     }
     else if (button_is_pressed(btn6, true)) { display.fillScreen(colourBG); return;}
+    delay(60);
+  }
+}
+
+void LCDSettings(){
+  // int *colours[] = {&colourBG,&colourText,&colour1,&colour2,&colour3,&colour4,&colour5,&colour6};
+  int sel = 0, prevSel = -1;
+  while(true){
+    if (sel != prevSel) {
+      display.fillScreen(colourBG);
+      display.fillCircle(120,120,120,colourBG);
+      display.setTextSize(2);
+      display.setTextColor(colourText);
+      int16_t x1, y1; uint16_t w, h;
+      display.getTextBounds("LCD SETTINGS", 0,0, &x1, &y1, &w, &h);
+      display.setCursor(120-w/2, 24);
+      display.print("LCD SETTINGS");
+
+      display.setTextSize(sel == 0 ? 2 : 1);
+      display.setTextColor(sel == 0 ? colour6 : colour1);
+      display.setCursor(40,90);
+      display.print("Light/Dark");
+      display.setTextSize(sel == 1 ? 2 : 1);
+      display.setTextColor(sel == 1 ? colour6 : colour1);
+      display.setCursor(40,140);
+      display.print("Change Colours");
+
+      prevSel = sel;
+    }
+    if (button_is_pressed(btn4)) { sel = (sel + 1) % 2;}
+    else if (button_is_pressed(btn1)) { sel = (sel == 0 ? 1 : 0);}
+    else if (button_is_pressed(btn3, true)) {
+      if (sel == 0) {
+        display.invertDisplay(inverted); 
+        inverted = !inverted;
+      }
+      else break;
+    }
+    else if (button_is_pressed(btn6, true)) return;
     delay(60);
   }
 }
