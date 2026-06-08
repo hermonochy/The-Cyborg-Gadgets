@@ -80,6 +80,7 @@ void settings() {
 }
 
 void tuneButtonVals() {
+  while(a_button_is_pressed()){}
   int16_t x1, y1; uint16_t w, h;
   const int sampleCount = 75;
   int samples[sampleCount];

@@ -25,7 +25,7 @@
 Adafruit_GC9A01A display(TFT_CS, TFT_DC, TFT_RST);
 Preferences preferences;
 
-#define totalFunctions 13
+#define totalFunctions 15
 
 #define MAX_WIFI_NETWORKS 5
 #define MAX_WIFI_SSID 32
@@ -39,8 +39,7 @@ WiFiNetwork wifiNetworks[MAX_WIFI_NETWORKS];
 int wifiNetworkCount = 0;
 int currentWiFiIndex = 0;
 
-
-const char *Functions[] = {"Time", "Outputs","Maths", "Random", "Score", "Snake", "Metronome", "Notes", "Calendar", "WiFi Menu", "WiFi Tools","Shell", "Settings"};
+const char *Functions[] = {"Time", "Outputs","Maths", "Random", "Score", "Snake", "Metronome", "Notes", "Calendar", "WiFi Setup", "WiFi Funcs","Shell", "Settings", "Light Sleep", "Deep Sleep"};
 const char *settingFuncs[] = {"Button Offset", "Func1 Settings", "Func2 Settings", "Func3 Settings", "Display Settings"};
 
 const byte buttonPin = 2;
@@ -63,9 +62,14 @@ int btn6;
 int buttonOffset = 0;
 int buttonValRange = 30;
 
+unsigned long lastActivityTime = 0;
+unsigned long inactivityPeriod = 60000;
+
+bool a_button_is_pressed();
+
 byte Func1 = 0;
 byte Func2 = 21;
-byte Func3 = 0;
+byte Func3 = 0; // currently func3 is not implemented yet
 
 uint16_t colourBG   =  display.color565(0, 0, 0);        // Black
 uint16_t colourText =  display.color565(255, 255, 255);  // White
@@ -73,7 +77,7 @@ uint16_t colour1    =  display.color565(123, 125, 123);  // Dark Grey
 uint16_t colour2    =  display.color565(255, 0, 0);      // Red
 uint16_t colour3    =  display.color565(0, 255, 0);      // Green
 uint16_t colour4    =  display.color565(255, 255, 0);    // Yellow
-uint16_t colour5    =  display.color565(0, 0, 123);      // Navy 
+uint16_t colour5    =  display.color565(0, 0, 123);      // Navy
 uint16_t colour6    =  display.color565(0, 255, 255);    // Cyan
 
 bool inverted = false;
@@ -102,6 +106,15 @@ bool button_is_pressed(int btnVal, bool onlyOnce = false) {
   int errorVal = pinVal - btnVal;
   int absErrorVal = abs(errorVal);
 
+  unsigned long now = millis();
+
+  if (now - lastActivityTime > inactivityPeriod){
+    while (lightSleep()){}
+    lastActivityTime = millis();
+    while (a_button_is_pressed()){}
+    return false;
+  }
+
   if (absErrorVal <= buttonValRange) {    
     if (onlyOnce) {
       while (true) {
@@ -112,6 +125,7 @@ bool button_is_pressed(int btnVal, bool onlyOnce = false) {
         if (absErrorVal > 10) break;
       }
     }
+    lastActivityTime = millis();
     return true;
   }
   return false;
@@ -120,6 +134,8 @@ bool button_is_pressed(int btnVal, bool onlyOnce = false) {
 bool a_button_is_pressed(){
   return (analogRead(buttonPin) != 4095);
 }
+
+
 
 void updateTimeDisplay() {
   int dst = getDSTOffset();
@@ -160,7 +176,7 @@ void drawMainUI() {
     int16_t x1, y1; uint16_t w, h;
     String title = "Watch 5.1";
     display.getTextBounds(title, 0, 0, &x1, &y1, &w, &h);
-    display.setCursor(SCREEN_CENTER_X - w/2, 50);
+    display.setCursor(SCREEN_CENTER_X - w/2, 60);
     display.print(title);
     display.setTextSize(1);
     display.setTextColor(colourText);
@@ -236,11 +252,6 @@ void timeSyncAndUI() {
   display.print(msg);
 
   for (int wifiIndex = 0; wifiIndex < wifiNetworkCount; wifiIndex++) {
-    if (WiFi.status() == WL_CONNECTED) {
-      configTime(0, 0, "pool.ntp.org", "time.nist.gov");
-      break;
-    }
-
     WiFi.begin(wifiNetworks[wifiIndex].ssid, wifiNetworks[wifiIndex].password);
 	  WiFi.setTxPower(WIFI_POWER_8_5dBm);
 
@@ -299,7 +310,7 @@ void timeSyncAndUI() {
         display.setTextSize(2);
         display.setTextColor(colourText);
         display.getTextBounds(percentStr, 0, 0, &x1, &y1, &w, &h);
-        display.setCursor(SCREEN_CENTER_X - w / 2, SCREEN_HEIGHT - 38);
+        display.setCursor(SCREEN_CENTER_X - w / 2, SCREEN_HEIGHT - 50);
         display.print(percentStr);
 
         lastPercentDrawn = currentStep;
@@ -307,7 +318,6 @@ void timeSyncAndUI() {
     }
     if (WiFi.status() == WL_CONNECTED) {
       wifiConnected = true;
-      configTime(0, 0, "pool.ntp.org", "time.nist.gov");
       break;
     }
   }
@@ -330,12 +340,16 @@ void timeSyncAndUI() {
   display.setTextSize(2);
   display.setTextColor(colourText);
   display.getTextBounds(percentStr, 0, 0, &x1, &y1, &w, &h);
-  display.setCursor(SCREEN_CENTER_X - w / 2, SCREEN_HEIGHT - 38);
+  display.setCursor(SCREEN_CENTER_X - w / 2, SCREEN_HEIGHT - 50);
   display.print(percentStr);
 
+  if (WiFi.status() == WL_CONNECTED) {
+    configTime(0, 0, "uk.pool.ntp.org", "time.nist.gov");
+    //while (sntp_get_sync_status() != SNTP_SYNC_STATUS_COMPLETED) delay(50);
+  }
+  delay(1000);
   wifiConnected = false;
   WiFi.disconnect();
-  delay(500);
 }
 
 void saveBtnVals() {
@@ -404,6 +418,8 @@ bool lightSleep(){
   while (!a_button_is_pressed()){
     esp_light_sleep_start();
   }
+  // vcc is cut off from display which seems to require calling display.begin again. 
+  display.begin();
   display.fillScreen(colour1);
   if (button_is_pressed(btn3, true)){
     displayTime();
@@ -414,6 +430,13 @@ bool lightSleep(){
     staticUIdrawn = false; // force redraw when returning to UI
     return false;
   }
+}
+
+bool deepSleep(){
+  display.fillScreen(GC9A01A_BLACK);
+  delay(1000);
+  esp_deep_sleep_start();
+  // there is not point in continuing the program, as deep sleep causes a restart.
 }
 
 void loop() {
@@ -442,18 +465,7 @@ void loop() {
 
   unsigned long now = millis();
 
-  if (button_is_pressed(btn1)) {
-    // returns true if going back to sleep, otherwise false
-    while (lightSleep()){}
-  }
-  /*else if (button_is_pressed(btn3)) {
-    display.fillScreen(GC9A01A_BLACK);
-    delay(1000);
-    esp_deep_sleep_enable_gpio_wakeup(2, ESP_GPIO_WAKEUP_GPIO_HIGH);
-    esp_deep_sleep_start();
-  }*/
-
-  else if (button_is_pressed(btn4) && (now - lastNavTime) > NAV_DEBOUNCE) {
+  if (button_is_pressed(btn4) && (now - lastNavTime) > NAV_DEBOUNCE) {
     selectedFunction++;
     if (selectedFunction > totalFunctions) selectedFunction = 1;
     lastNavTime = now;
@@ -466,19 +478,21 @@ void loop() {
   else if (button_is_pressed(btn6)) {
     delay(100);
     switch (selectedFunction) {
-      case 1: timeMenu(); break;
-      case 2: watchFuncs(); break;
-      case 3: maths(); break;
-      case 4: randomNum(); break;
-      case 5: counter(); break;
-      case 6: snake(); break;
-      case 7: metronome(); break;
-      case 8: notesFunction(); break;
-      case 9: calendar(); break;
+      case 1:  timeMenu(); break;
+      case 2:  watchFuncs(); break;
+      case 3:  maths(); break;
+      case 4:  randomNum(); break;
+      case 5:  counter(); break;
+      case 6:  snake(); break;
+      case 7:  metronome(); break;
+      case 8:  notesFunction(); break;
+      case 9:  calendar(); break;
       case 10: wifiMenu(); break;
       case 11: wifiFuncs(); break;
       case 12: shell(); break;
       case 13: settings(); break;
+      case 14: while (lightSleep()){} break;
+      case 15: deepSleep(); break;
     }
     staticUIdrawn = false; // force redraw when returning to UI
   }
