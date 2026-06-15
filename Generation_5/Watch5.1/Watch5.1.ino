@@ -25,7 +25,7 @@
 Adafruit_GC9A01A display(TFT_CS, TFT_DC, TFT_RST);
 Preferences preferences;
 
-#define totalFunctions 15
+#define totalFunctions 13
 
 #define MAX_WIFI_NETWORKS 5
 #define MAX_WIFI_SSID 32
@@ -39,7 +39,7 @@ WiFiNetwork wifiNetworks[MAX_WIFI_NETWORKS];
 int wifiNetworkCount = 0;
 int currentWiFiIndex = 0;
 
-const char *Functions[] = {"Time", "Outputs","Maths", "Random", "Score", "Snake", "Metronome", "Notes", "Calendar", "WiFi Setup", "WiFi Funcs","Shell", "Settings", "Light Sleep", "Deep Sleep"};
+const char *Functions[] = {"Time", "Outputs","Maths", "Random", "Score", "Snake", "Metronome", "Notes", "Calendar", "WiFi Setup", "WiFi Funcs","Shell", "Settings"};
 const char *settingFuncs[] = {"Button Offset", "Func1 Settings", "Func2 Settings", "Func3 Settings", "Display Settings"};
 
 const byte buttonPin = 2;
@@ -63,9 +63,7 @@ int buttonOffset = 0;
 int buttonValRange = 30;
 
 unsigned long lastActivityTime = 0;
-unsigned long inactivityPeriod = 60000;
-
-bool a_button_is_pressed();
+unsigned long inactivityPeriod = 120000;
 
 byte Func1 = 0;
 byte Func2 = 21;
@@ -101,6 +99,10 @@ bool prevWifiConnected = false;
 int lastDisplayedHour = -1;
 int lastDisplayedMin = -1;
 
+bool a_button_is_pressed(){
+  return (analogRead(buttonPin) != 4095);
+}
+
 bool button_is_pressed(int btnVal, bool onlyOnce = false) {
   int pinVal = analogRead(buttonPin) - buttonOffset;
   int errorVal = pinVal - btnVal;
@@ -131,12 +133,6 @@ bool button_is_pressed(int btnVal, bool onlyOnce = false) {
   return false;
 }
 
-bool a_button_is_pressed(){
-  return (analogRead(buttonPin) != 4095);
-}
-
-
-
 void updateTimeDisplay() {
   int dst = getDSTOffset();
   time_t now = time(nullptr);
@@ -160,6 +156,89 @@ void updateTimeDisplay() {
     lastDisplayedHour = hour;
     lastDisplayedMin = minute;
   }
+}
+
+void drawCyborgLogo(int cx = 50, int cy=50, float scale = 1.0f)
+{
+auto S = [&](int v) { return (int)(v * scale); };
+
+// ===== Circuit traces =====
+display.fillRoundRect(cx - S(85), cy - S(4), S(55), S(8), S(4), colour6);
+
+display.drawLine(cx - S(85), cy - S(40),
+cx - S(55), cy - S(10),
+colour6);
+display.drawLine(cx - S(55), cy - S(10),
+cx - S(30), cy - S(10),
+colour6);
+
+display.drawLine(cx - S(85), cy + S(40),
+cx - S(55), cy + S(10),
+colour6);
+display.drawLine(cx - S(55), cy + S(10),
+cx - S(30), cy + S(10),
+colour6);
+
+display.fillCircle(cx - S(85), cy - S(40), S(7), colour6);
+display.fillCircle(cx - S(85), cy, S(7), colour6);
+display.fillCircle(cx - S(85), cy + S(40), S(7), colour6);
+
+display.fillCircle(cx - S(30), cy, S(18), colourText);
+display.fillCircle(cx - S(30), cy, S(12), colourBG);
+display.fillCircle(cx - S(30), cy, S(8), colour6);
+
+// ===== Main head shape =====
+
+// Helmet dome
+display.fillCircle(cx + S(20), cy - S(25), S(55), colourText);
+
+// Cut rear half to form profile
+display.fillRect(cx - S(40), cy - S(90), S(60), S(180), colourBG);
+
+// Jaw
+display.fillTriangle(
+cx + S(10), cy + S(30),
+cx + S(45), cy + S(65),
+cx + S(40), cy + S(15),
+colourText);
+
+// Face
+display.fillTriangle(
+cx + S(20), cy - S(25),
+cx + S(70), cy - S(10),
+cx + S(65), cy + S(40),
+colourText);
+
+// Chin
+display.fillTriangle(
+cx + S(25), cy + S(20),
+cx + S(65), cy + S(40),
+cx + S(45), cy + S(65),
+colourText);
+
+// Neck cutout
+display.fillTriangle(
+cx - S(5), cy + S(25),
+cx + S(20), cy + S(85),
+cx + S(25), cy + S(20),
+colourBG);
+
+// Eye slot
+display.fillRoundRect(
+cx + S(20),
+cy - S(8),
+S(40),
+S(10),
+S(5),
+colourBG);
+
+display.fillRoundRect(
+cx + S(28),
+cy - S(5),
+S(26),
+S(4),
+S(2),
+colour6);
 }
 
 void drawMainUI() {
@@ -280,6 +359,9 @@ void timeSyncAndUI() {
         display.setCursor(SCREEN_CENTER_X-12, SCREEN_CENTER_Y - 16);
         for (int i = 0; i < dotCount; i++) display.print(".");
 
+        display.setCursor(SCREEN_CENTER_X-12, SCREEN_CENTER_Y + 20);
+        display.print(analogRead(buttonPin));
+
         const int arc_radius = SCREEN_RADIUS - 12;
         const int arc_thickness = 10;
         const float start_angle = 200.0, end_angle = -20.0;
@@ -346,8 +428,8 @@ void timeSyncAndUI() {
   if (WiFi.status() == WL_CONNECTED) {
     configTime(0, 0, "uk.pool.ntp.org", "time.nist.gov");
     //while (sntp_get_sync_status() != SNTP_SYNC_STATUS_COMPLETED) delay(50);
+    delay(1000);
   }
-  delay(1000);
   wifiConnected = false;
   WiFi.disconnect();
 }
@@ -398,7 +480,8 @@ void setup() {
 
   initializeNotesNVS(); 
   loadWiFiNetworksFromNVS();
-
+  //drawCyborgLogo();
+  //delay(1000);
   timeSyncAndUI();
 
   delay(1000);
@@ -432,13 +515,6 @@ bool lightSleep(){
   }
 }
 
-bool deepSleep(){
-  display.fillScreen(GC9A01A_BLACK);
-  delay(1000);
-  esp_deep_sleep_start();
-  // there is not point in continuing the program, as deep sleep causes a restart.
-}
-
 void loop() {
   if (Serial.available()) {
     char cmd = Serial.peek();
@@ -465,7 +541,18 @@ void loop() {
 
   unsigned long now = millis();
 
-  if (button_is_pressed(btn4) && (now - lastNavTime) > NAV_DEBOUNCE) {
+  if (button_is_pressed(btn1)) {
+    // returns true if going back to sleep, otherwise false
+    while (lightSleep()){}
+  }
+  /*else if (button_is_pressed(btn3)) {
+    display.fillScreen(GC9A01A_BLACK);
+    delay(1000);
+    esp_deep_sleep_enable_gpio_wakeup(2, ESP_GPIO_WAKEUP_GPIO_HIGH);
+    esp_deep_sleep_start();
+  }*/
+
+  else if (button_is_pressed(btn4) && (now - lastNavTime) > NAV_DEBOUNCE) {
     selectedFunction++;
     if (selectedFunction > totalFunctions) selectedFunction = 1;
     lastNavTime = now;
@@ -491,8 +578,6 @@ void loop() {
       case 11: wifiFuncs(); break;
       case 12: shell(); break;
       case 13: settings(); break;
-      case 14: while (lightSleep()){} break;
-      case 15: deepSleep(); break;
     }
     staticUIdrawn = false; // force redraw when returning to UI
   }
