@@ -3,9 +3,10 @@
 
 extern Adafruit_GC9A01A display;
 extern bool button_is_pressed(int btnVal, bool onlyOnce);
+extern void randomiseMac();
 extern int btn1, btn2, btn3, btn4, btn5, btn6;
 extern uint16_t colourBG, colourText, colour1, colour2, colour3, colour4, colour5, colour6;
-extern bool wifiConnected;
+extern bool wifiConnected, didWifiConnect;
 extern Preferences preferences;
 
 #define MAX_WIFI_NETWORKS 5
@@ -45,6 +46,7 @@ void loadWiFiNetworksFromNVS() {
 
 void connectWiFi() {
   if (wifiNetworkCount == 0) return;
+  randomiseMac();
   WiFi.begin(wifiNetworks[currentWiFiIndex].ssid, wifiNetworks[currentWiFiIndex].password);
   int attempts = 0;
   while (WiFi.status() != WL_CONNECTED && attempts < 12) {
@@ -57,16 +59,17 @@ void connectWiFi() {
   }
   wifiConnected = (WiFi.status() == WL_CONNECTED);
   if (wifiConnected) {
-    configTime(0, 0, "pool.ntp.org", "time.nist.gov");
+    didWifiConnect = true;
+    configTime(0, 0, "uk.pool.ntp.org", "time.nist.gov");
     display.fillCircle(SCREEN_WIDTH / 2, SCREEN_HEIGHT / 2, SCREEN_WIDTH / 2, colourBG);
     display.setTextColor(colour3);
-    display.setCursor(66, 100);
+    display.setCursor(66, 110);
     display.print("Connected!");
     delay(1500);
   } else {
     display.fillCircle(SCREEN_WIDTH / 2, SCREEN_HEIGHT / 2, SCREEN_WIDTH / 2, colourBG);
     display.setTextColor(colour2);
-    display.setCursor(50, 110);
+    display.setCursor(40, 110);
     display.print("Connect failed");
     delay(1200);
   }
@@ -175,16 +178,14 @@ void wifiNetworkMenu() {
         display.setCursor(38, y0 + i * 28);
         display.print(wifiNetworks[i].ssid);
       }
+      display.setTextSize(1);
+      display.setTextColor(colour4);
       if (wifiNetworkCount == 0) {
-        display.setTextSize(1);
-        display.setTextColor(colour4);
         display.setCursor(72, 140);
-        display.print("btn4:Add");
+        display.print("btn4: Add");
       } else {
-        display.setTextColor(colour4);
-        display.setTextSize(1);
         display.setCursor(16, 190);
-        display.print("1/2:Up/Down 3:Connect 4:Add 5:Del 6:Back");
+        display.print("1/2:Up/Dwn 3:Conn 4:Add 5:Del");
       }
       oldSel = selectedIdx;
       redrawMenu = 0;
@@ -216,7 +217,7 @@ void scanWiFiNetworks() {
   display.print("Scanning...");
   int numNetworks = WiFi.scanNetworks();
   int selectedIdx = 0, showList = (numNetworks > 0);
-  int indices[numNetworks];  // sorted by RSSI
+  int indices[numNetworks]; 
   for (int i = 0; i < numNetworks; i++) indices[i] = i;
   for (int i = 0; i < numNetworks - 1; i++)
     for (int j = 0; j < numNetworks - 1 - i; j++)
@@ -226,15 +227,14 @@ void scanWiFiNetworks() {
         indices[j + 1] = t;
       }
   while (showList) {
-    display.fillCircle(SCREEN_WIDTH / 2, SCREEN_HEIGHT / 2, SCREEN_WIDTH / 2, colourBG);
     display.setTextSize(2);
-    display.setTextColor(colour3);
+    display.setTextColor(colour3, colourBG);
     display.setCursor(107, 22);
     display.print("SCAN");
     display.setTextSize(1);
     for (int i = 0; i < min(numNetworks, 5); i++) {
       int idx = indices[i];
-      display.setTextColor(i == selectedIdx ? colour6 : colour3);
+      display.setTextColor(i == selectedIdx ? colour6 : colour3, colourBG);
       display.setCursor(42, 56 + i * 24);
       String ssid = WiFi.SSID(idx);
       if (ssid.length() > 14) ssid = ssid.substring(0, 14);
@@ -242,9 +242,9 @@ void scanWiFiNetworks() {
       display.setCursor(170, 56 + i * 24);
       display.print(WiFi.RSSI(idx));
     }
-    display.setTextColor(colour4);
+    display.setTextColor(colour4, colourBG);
     display.setCursor(27, 180);
-    display.print("1/2:Up/Down 3:Add 6:Back");
+    display.print("1/2:Up/Dn 3:Add");
     if (button_is_pressed(btn1, true)) {
       selectedIdx = (selectedIdx - 1 + min(numNetworks, 5)) % min(numNetworks, 5);
     } else if (button_is_pressed(btn2, true)) {
@@ -286,27 +286,28 @@ void disconnectWiFi() {
   display.setTextSize(1);
   display.setCursor(68, 140);
   display.print("3:Yes  6:No");
-  while (1) {
+  while (true) {
     if (button_is_pressed(btn3, true)) {
       WiFi.disconnect();
       wifiConnected = false;
       display.fillCircle(SCREEN_WIDTH / 2, SCREEN_HEIGHT / 2, SCREEN_WIDTH / 2, colourBG);
       display.setTextColor(colour3);
-      display.setCursor(60, 116);
+      display.setCursor(60, 60);
+      display.setTextSize(3);
       display.print("Done!");
-      delay(1200);
+      delay(1000);
       redrawMenu = 1;
       return;
     }
     if (button_is_pressed(btn6, true)) return;
-    delay(40);
+    delay(50);
   }
 }
 
 void wifiMenu(void) {
   int sel = 0, oldSel = -1;
-  const char* menu[] = { "Connect", "Scan", "Net Mgr", "Disconnect", "Back" };
-  while (1) {
+  const char* menu[] = { "Connect", "Scan", "Net Mgr", "Disconnect", "Scramble MAC"};
+  while (true) {
     if (sel != oldSel || redrawMenu) {
       display.fillScreen(colourBG);
       display.fillCircle(SCREEN_WIDTH / 2, SCREEN_HEIGHT / 2, SCREEN_WIDTH / 2, colourBG);
@@ -317,12 +318,12 @@ void wifiMenu(void) {
       for (int i = 0; i < 5; ++i) {
         display.setTextSize(i == sel ? 2 : 1);
         display.setTextColor(i == sel ? colour6 : colour3);
-        display.setCursor(62, 54 + i * 32);
+        display.setCursor(50, 54 + i * 30);
         display.print(menu[i]);
       }
       display.setTextSize(1);
-      display.setTextColor(colour4);
-      display.setCursor(26, 182);
+      display.setTextColor(colour4, colourBG);
+      display.setCursor(50, 200);
       display.print("1/2:Up/Dn 3:Sel");
       oldSel = sel;
       redrawMenu = 0;
@@ -336,7 +337,7 @@ void wifiMenu(void) {
       else if (sel == 1) scanWiFiNetworks();
       else if (sel == 2) wifiNetworkMenu();
       else if (sel == 3) disconnectWiFi();
-      else if (sel == 4) return;
+      else if (sel == 4) randomiseMac();
       redrawMenu = 1;
       oldSel = -1;
     } else if (button_is_pressed(btn6, true)) return;
@@ -641,7 +642,7 @@ void getWeather(void) {
   }
   int hourOffset = 0, prevHour = -1;
   bool redraw = true;
-  while (1) {
+  while (true) {
     if (hourOffset != prevHour || redraw) {
       display.fillCircle(SCREEN_WIDTH/2, SCREEN_HEIGHT/2, SCREEN_WIDTH/2, colourBG);
       display.setTextSize(2); display.setTextColor(colour6);
@@ -702,7 +703,7 @@ void getWeather(void) {
     display.setCursor(26, 124); display.print("Humidity "); display.print(humidity); display.print("%");
     display.setCursor(26, 144); display.print("Wind "); display.print((int)windSpeed); display.print("km/h");
     display.setTextColor(colour6); display.setCursor(56,185); display.print("6:Back");
-    while (1) { if (button_is_pressed(btn6,true)) break; delay(40);}
+    while (true) { if (button_is_pressed(btn6,true)) break; delay(40);}
   } else {
     display.fillCircle(SCREEN_WIDTH/2, SCREEN_HEIGHT/2, SCREEN_WIDTH/2, colourBG);
     display.setTextColor(colour2); display.setCursor(70,114); display.print("No data.");
@@ -711,8 +712,6 @@ void getWeather(void) {
   http.end();
 }
 
-/////////////////////////////////////////////////////////////////
-// ----- Dictionary function, clean, full circle, flicker min ---
 struct DictResult {
   char word[32], phonetic[32], partOfSpeech[16], definition[256], example[128];
   int definitionCount, currentDefinition;
@@ -796,7 +795,7 @@ void dictionary(void) {
     display.setTextSize(2); display.setTextColor(colourText);
     display.setCursor(64, 110); display.print("Searching...");
     if (fetchWordDefinition(searchWord)) {
-      while (1) {
+      while (true) {
         dictDisplayWord();
         if(button_is_pressed(btn6,true)) break;
         delay(80);
