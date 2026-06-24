@@ -60,7 +60,7 @@ void connectWiFi() {
   wifiConnected = (WiFi.status() == WL_CONNECTED);
   if (wifiConnected) {
     didWifiConnect = true;
-    configTime(0, 0, "uk.pool.ntp.org", "time.nist.gov");
+    configTime(0, 0, "pool.ntp.org", "time.nist.gov");
     display.fillCircle(SCREEN_WIDTH / 2, SCREEN_HEIGHT / 2, SCREEN_WIDTH / 2, colourBG);
     display.setTextColor(colour3);
     display.setCursor(66, 110);

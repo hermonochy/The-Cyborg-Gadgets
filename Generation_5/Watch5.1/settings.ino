@@ -331,6 +331,108 @@ void btnSettings(){
   }
 }
 
+void colorEditor() {
+  const char* colorNames[] = {"BG","Text","Colour 1","Colour 2","Colour 3","Colour 4","Colour 5","Colour 6"};
+  uint16_t* colorPtrs[] = {&colourBG, &colourText, &colour1, &colour2, &colour3, &colour4, &colour5, &colour6};
+  int colorCount = 8;
+  int selColor = 0, oldSelColor = -1;
+  
+  while(true) {
+    if (selColor != oldSelColor) {
+      display.fillCircle(120,120,120,colourBG);
+      display.setTextSize(2); display.setTextColor(colourText);
+      int16_t x1, y1; uint16_t w, h;
+      display.getTextBounds("COLOR EDIT", 0,0, &x1, &y1, &w, &h);
+      display.setCursor(120-w/2, 20);
+      display.print("COLOR EDIT");
+      
+      for(int i=0;i<colorCount;i++) {
+        display.setTextSize(i==selColor?2:1);
+        display.setTextColor(i==selColor?colour6:colour1);
+        display.setCursor(38, 62+i*20);
+        display.print(colorNames[i]);
+      }
+      oldSelColor = selColor;
+    }
+    
+    if (button_is_pressed(btn2,true)) { selColor = (selColor+1)%colorCount; }
+    else if (button_is_pressed(btn1,true)) { selColor = (selColor+colorCount-1)%colorCount; }
+    else if (button_is_pressed(btn3,true)) { colorPicker(selColor, colorNames[selColor], colorPtrs[selColor]); oldSelColor=-1; }
+    else if (button_is_pressed(btn6,true)) return;
+    delay(60);
+  }
+}
+
+void colorPicker(int idx, const char* name, uint16_t* colorPtr) {
+  int r = 0, g = 0, b = 0, mode = 0, lastR = -1, lastG = -1, lastB = -1, lastMode = -1;
+  
+  display.fillCircle(120,120,120,colourBG);
+  display.setTextSize(2); display.setTextColor(colourText);
+  int16_t x1, y1; uint16_t w, h;
+  display.getTextBounds("RGB EDIT", 0,0, &x1, &y1, &w, &h);
+  display.setCursor(120-w/2, 20);
+  display.print("RGB EDIT");
+  
+  while(true) {
+    // Only redraw if values or mode changed
+    if (r != lastR || g != lastG || b != lastB || mode != lastMode) {
+      display.fillRect(30, 56, 180, 100, colourBG);
+      
+      display.setTextSize(1); display.setTextColor(colourText);
+      display.setCursor(40, 64);
+      display.print("R: "); display.setTextColor(colour2); display.print(r);
+      
+      display.setTextColor(colourText);
+      display.setCursor(40, 84);
+      display.print("G: "); display.setTextColor(colour3); display.print(g);
+      
+      display.setTextColor(colourText);
+      display.setCursor(40, 104);
+      display.print("B: "); display.setTextColor(colour5); display.print(b);
+      
+      display.fillRect(40, 130, 160, 14, display.color565(r, g, b));
+      display.drawRect(40, 130, 160, 14, colourText);
+      
+      display.setTextSize(1); display.setTextColor(colour4);
+      display.setCursor(38, 64);
+      display.print(mode==0 ? ">" : " ");
+      display.setCursor(38, 84);
+      display.print(mode==1 ? ">" : " ");
+      display.setCursor(38, 104);
+      display.print(mode==2 ? ">" : " ");
+      
+      lastR = r; lastG = g; lastB = b; lastMode = mode;
+    }
+    
+    if (button_is_pressed(btn2, false)) { 
+      if(mode==0) r = min(255, r+10);
+      else if(mode==1) g = min(255, g+10);
+      else if(mode==2) b = min(255, b+10);
+    }
+    else if (button_is_pressed(btn6, false)) { 
+      if(mode==0) r = max(0, r-10);
+      else if(mode==1) g = max(0, g-10);
+      else if(mode==2) b = max(0, b-10);
+    }
+    else if (button_is_pressed(btn4, true)) { mode = (mode+1)%3; }
+    else if (button_is_pressed(btn3, false)) {
+      if(mode==0) r = min(255, r+1);
+      else if(mode==1) g = min(255, g+1);
+      else if(mode==2) b = min(255, b+1);
+    }
+    else if (button_is_pressed(btn1, false)) {
+      if(mode==0) r = max(0, r-1);
+      else if(mode==1) g = max(0, g-1);
+      else if(mode==2) b = max(0, b-1);
+    }
+    else if (button_is_pressed(btn5, true)) {
+      *colorPtr = display.color565(r, g, b);
+      return;
+    }
+    delay(30);
+  }
+}
+
 void LCDSettings(){
   // int *colours[] = {&colourBG,&colourText,&colour1,&colour2,&colour3,&colour4,&colour5,&colour6};
   int sel = 0, prevSel = -1;
@@ -363,9 +465,9 @@ void LCDSettings(){
         display.invertDisplay(inverted); 
         inverted = !inverted;
       }
-      else break;
+      else colorEditor();
     }
     else if (button_is_pressed(btn6, true)) return;
-    delay(60);
+    delay(100);
   }
 }

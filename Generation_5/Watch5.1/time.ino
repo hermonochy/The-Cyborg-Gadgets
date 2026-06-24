@@ -263,14 +263,58 @@ void displayTime(void) {
       lastYear = timeinfo->tm_year;
       last12h = use12Hour;
     }
-    display.setTextSize(1);
-    display.setTextColor(colour4);
-    display.setCursor(40, 190);
-    display.print("Btn3:Menu Btn6:Back");
-    if (button_is_pressed(btn3, true)) return;
+    if (button_is_pressed(btn1, true)) setRTCMenu();
     else if (button_is_pressed(btn6, true)) return;
     delay(333);
   }
+}
+
+
+void quickTimeDisplay() {
+  initializeTimeSettings();
+  int timeOffset = getTimeOffset();
+  bool use12Hour = get12HourMode();
+  int dstOffset = getDSTOffset();
+  
+  time_t now = time(nullptr);
+  now += (timeOffset + dstOffset) * 3600;
+  struct tm* timeinfo = localtime(&now);
+  int hour = timeinfo->tm_hour;
+  const char* ampm = "";
+  if (use12Hour) {
+    ampm = (hour >= 12) ? "PM" : "AM";
+    hour = hour % 12;
+    if (hour == 0) hour = 12;
+  }
+  
+  display.fillScreen(colourBG);
+  display.fillCircle(SCREEN_WIDTH / 2, SCREEN_HEIGHT / 2, SCREEN_WIDTH / 2, colourBG);
+  
+  display.setTextSize(4);
+  display.setTextColor(colourText);
+  char timestr[16];
+  sprintf(timestr, "%02d:%02d", hour, timeinfo->tm_min);
+  int16_t x1, y1;
+  uint16_t w, h;
+  display.getTextBounds(timestr, 0, 0, &x1, &y1, &w, &h);
+  display.setCursor(SCREEN_WIDTH / 2 - w / 2, 70);
+  display.print(timestr);
+  
+  if (use12Hour) {
+    display.setTextSize(2);
+    display.setTextColor(colour2);
+    display.setCursor(SCREEN_WIDTH / 2 + 60, 90);
+    display.print(ampm);
+  }
+  
+  display.setTextSize(1);
+  display.setTextColor(colour3);
+  const char* months[] = { "Jan", "Feb", "Mar", "Apr", "May", "Jun", "Jul", "Aug", "Sep", "Oct", "Nov", "Dec" };
+  display.getTextBounds("Date", 0, 0, &x1, &y1, &w, &h);
+  display.setCursor(SCREEN_WIDTH / 2 - 40, 140);
+  display.printf("%s %d, %d", months[timeinfo->tm_mon], timeinfo->tm_mday, timeinfo->tm_year + 1900);
+
+  delay(5000);
 }
 
 // -------- ALARM --------

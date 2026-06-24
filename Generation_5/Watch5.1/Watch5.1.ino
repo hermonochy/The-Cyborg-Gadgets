@@ -78,7 +78,7 @@ uint16_t colourBG   = display.color565(0, 0, 0);        // Black
 uint16_t colourText = display.color565(255, 255, 255);  // White
 uint16_t colour1    = display.color565(123, 125, 123);  // Dark Grey
 uint16_t colour2    = display.color565(255, 0, 0);      // Red
-uint16_t colour3    = display.color565(0, 255, 0);      // Green
+uint16_t colour3    = display.color565(10, 225, 80);    // Green
 uint16_t colour4    = display.color565(255, 255, 0);    // Yellow
 uint16_t colour5    = display.color565(0, 0, 123);      // Navy
 uint16_t colour6    = display.color565(0, 255, 255);    // Cyan
@@ -256,7 +256,7 @@ void timeSyncAndUI() {
   display.print(percentStr);
 
   if (WiFi.status() == WL_CONNECTED) {
-    configTime(0, 0, "uk.pool.ntp.org", "time.nist.gov");
+    configTime(0, 0, "pool.ntp.org", "time.nist.gov");
     //while (sntp_get_sync_status() != SNTP_SYNC_STATUS_COMPLETED) delay(50);
     delay(1000);
   }
@@ -291,7 +291,7 @@ void setup() {
   pinMode(Func1, OUTPUT);
   pinMode(Func2, OUTPUT);
   pinMode(Func3, OUTPUT);
-  esp_sleep_enable_timer_wakeup(500000); // 500ms
+  esp_sleep_enable_timer_wakeup(100000); // 100ms
   loadBtnVals();
   randomSeed(analogRead(1));
   display.begin();
@@ -424,17 +424,9 @@ bool lightSleep(){
     esp_light_sleep_start();
   }
   display.begin();
-  updateTimeDisplay();
-  display.setTextSize(2);
-  display.setTextColor(colourText,colourBG);
-  display.setCursor(SCREEN_CENTER_X-40, SCREEN_CENTER_Y - 16);
-  display.print("Hello!");
-  if (button_is_pressed(btn3, true)){
-    displayTime();
-    return true;
-  }
+  quickTimeDisplay();
+  if (!a_button_is_pressed()) return true;
   else {
-    delay(1000);
     staticUIdrawn = false; // force redraw when returning to UI
     return false;
   }
