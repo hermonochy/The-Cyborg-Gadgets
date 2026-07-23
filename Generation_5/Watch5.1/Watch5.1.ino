@@ -1,7 +1,7 @@
-// Watch 5.1: 5th gen watch - ESP32C3 with GC9A01 TFT display
+// Watch 5.1: 5th gen watch - ESP32C3 with GC9A01A TFT display
+// Migrated to TFT_eSPI
 
-#include <Adafruit_GFX.h>
-#include <Adafruit_GC9A01A.h>
+#include <TFT_eSPI.h>
 #include <Preferences.h>
 #include <WiFi.h>
 #include <Wire.h>
@@ -18,11 +18,7 @@
 #define SCREEN_CENTER_X (SCREEN_WIDTH/2)
 #define SCREEN_CENTER_Y (SCREEN_HEIGHT/2)
 
-#define TFT_CS    10
-#define TFT_DC    8
-#define TFT_RST   9
-
-Adafruit_GC9A01A display(TFT_CS, TFT_DC, TFT_RST);
+TFT_eSPI display = TFT_eSPI();
 Preferences preferences;
 
 #define totalFunctions 14
@@ -39,26 +35,19 @@ WiFiNetwork wifiNetworks[MAX_WIFI_NETWORKS];
 int wifiNetworkCount = 0;
 int currentWiFiIndex = 0;
 
-const char *Functions[] = {"Time", "Outputs","Maths", "Random", "Score", "Snake", "Metronome", "Notes", "Calendar", "WiFi Setup", "WiFi Funcs","Shell", "Settings", "Sleep"};
+const char *Functions[] = {"Time", "Outputs","Maths", "Random", "Score", "Games", "Metronome", "Notes", "Calendar", "WiFi Setup", "WiFi Funcs","Shell", "Settings", "Sleep"};
 const char *settingFuncs[] = {"Button Offset", "Func1 Settings", "Func2 Settings", "Func3 Settings", "Display Settings"};
 
 const byte buttonPin = 2;
 
-// Default button resistance values
-const int defBtn1 = 1800;  // 5.1K
-const int defBtn2 = 1240;  // 3K
-const int defBtn3 = 315;   // 510
-const int defBtn4 = 540;   // 1K
-const int defBtn5 = 2660;  // 10K
-const int defBtn6 = 2160;  // 6.8K
+const int defBtn1 = 1800;
+const int defBtn2 = 1240;
+const int defBtn3 = 315;
+const int defBtn4 = 540;
+const int defBtn5 = 2660;
+const int defBtn6 = 2160;
 
-int btn1;
-int btn2;
-int btn3;
-int btn4;
-int btn5;
-int btn6;
-
+int btn1, btn2, btn3, btn4, btn5, btn6;
 int buttonOffset = 0;
 int buttonValRange = 30;
 
@@ -67,28 +56,25 @@ unsigned long inactivityPeriod = 120000;
 
 byte Func1 = 0;
 byte Func2 = 21;
-byte Func3 = 0; // currently func3 is not implemented yet
+byte Func3 = 0;
 
 int blinkTime1 = 500000;
 int blinkTime2 = 1;
 int blinkTime3 = 10000;
 
-// colours not named in case user changes colours in settings
-uint16_t colourBG   = display.color565(0, 0, 0);        // Black
-uint16_t colourText = display.color565(255, 255, 255);  // White
-uint16_t colour1    = display.color565(123, 125, 123);  // Dark Grey
-uint16_t colour2    = display.color565(255, 0, 0);      // Red
-uint16_t colour3    = display.color565(10, 225, 80);    // Green
-uint16_t colour4    = display.color565(255, 255, 0);    // Yellow
-uint16_t colour5    = display.color565(0, 0, 123);      // Navy
-uint16_t colour6    = display.color565(0, 255, 255);    // Cyan
+uint16_t colourBG   = display.color565(0, 0, 0);
+uint16_t colourText = display.color565(255, 255, 255);
+uint16_t colour1    = display.color565(123, 125, 123);
+uint16_t colour2    = display.color565(255, 0, 0);
+uint16_t colour3    = display.color565(10, 225, 80);
+uint16_t colour4    = display.color565(255, 255, 0);
+uint16_t colour5    = display.color565(0, 0, 123);
+uint16_t colour6    = display.color565(0, 255, 255);
 
 bool inverted = false;
-
 int selectedFunction = 1;
-
 bool wifiConnected = false;
-bool didWifiConnect = false; // if wifi ever connected, even if not connected now
+bool didWifiConnect = false;
 
 unsigned long lastNavTime = 0;
 const unsigned long NAV_DEBOUNCE = 120;
@@ -152,16 +138,13 @@ void timeSyncAndUI() {
   randomiseMac();
   display.fillScreen(colourBG);
   display.fillCircle(SCREEN_CENTER_X, SCREEN_CENTER_Y, SCREEN_RADIUS, colourBG);
-  display.setTextSize(1);
   display.setTextColor(colourText);
-  String msg = "INITIALIZING";
-  int16_t x1, y1; uint16_t w, h;
-  display.getTextBounds(msg, 0, 0, &x1, &y1, &w, &h);
-  display.setCursor(SCREEN_CENTER_X - w / 2, SCREEN_CENTER_Y - 34);
-  display.print(msg);
+  display.setTextDatum(CC_DATUM);
+  display.drawString("INITIALIZING", SCREEN_CENTER_X, SCREEN_CENTER_Y - 34);
+  
   for (int wifiIndex = 0; wifiIndex < wifiNetworkCount; wifiIndex++) {
     WiFi.begin(wifiNetworks[wifiIndex].ssid, wifiNetworks[wifiIndex].password);
-	  WiFi.setTxPower(WIFI_POWER_8_5dBm);
+    WiFi.setTxPower(WIFI_POWER_8_5dBm);
 
     int totalSteps = 100;
     int currentStep = 0;
@@ -181,15 +164,14 @@ void timeSyncAndUI() {
 
       if (currentStep != lastPercentDrawn) {
         display.fillRect(SCREEN_CENTER_X-30, SCREEN_CENTER_Y-16, 60, 10, colourBG);
-
+        display.setTextColor(colourText);
+        display.setTextDatum(CC_DATUM);
+        
+        String dots = "";
         int dotCount = (attempts / 2) % 4;
-        display.setTextSize(1);
-        display.setTextColor(colourText, colourBG);
-        display.setCursor(SCREEN_CENTER_X-12, SCREEN_CENTER_Y - 16);
-        for (int i = 0; i < dotCount; i++) display.print(".");
-
-        display.setCursor(SCREEN_CENTER_X-12, SCREEN_CENTER_Y + 20);
-        display.print(analogRead(buttonPin));
+        for (int i = 0; i < dotCount; i++) dots += ".";
+        display.drawString(dots, SCREEN_CENTER_X, SCREEN_CENTER_Y - 16);
+        display.drawNumber(analogRead(buttonPin), SCREEN_CENTER_X, SCREEN_CENTER_Y + 20);
 
         const int arc_radius = SCREEN_RADIUS - 12;
         const int arc_thickness = 10;
@@ -216,13 +198,9 @@ void timeSyncAndUI() {
           display.drawLine(x1a, y1a, x2a, y2a, colour6);
         }
 
-        char percentStr[8];
-        sprintf(percentStr, "%3d%%", currentStep);
-        display.setTextSize(2);
         display.setTextColor(colourText);
-        display.getTextBounds(percentStr, 0, 0, &x1, &y1, &w, &h);
-        display.setCursor(SCREEN_CENTER_X - w / 2, SCREEN_HEIGHT - 50);
-        display.print(percentStr);
+        display.setTextDatum(CC_DATUM);
+        display.drawString(String(currentStep) + "%", SCREEN_CENTER_X, SCREEN_HEIGHT - 50);
 
         lastPercentDrawn = currentStep;
       }
@@ -247,17 +225,13 @@ void timeSyncAndUI() {
     int y2a = SCREEN_CENTER_Y + sin(rad) * (arc_radius + arc_thickness / 2);
     display.drawLine(x1a, y1a, x2a, y2a, colour6);
   }
-  char percentStr[8];
-  sprintf(percentStr, "%3d%%", 100);
-  display.setTextSize(2);
+
   display.setTextColor(colourText);
-  display.getTextBounds(percentStr, 0, 0, &x1, &y1, &w, &h);
-  display.setCursor(SCREEN_CENTER_X - w / 2, SCREEN_HEIGHT - 50);
-  display.print(percentStr);
+  display.setTextDatum(CC_DATUM);
+  display.drawString("100%", SCREEN_CENTER_X, SCREEN_HEIGHT - 50);
 
   if (WiFi.status() == WL_CONNECTED) {
     configTime(0, 0, "pool.ntp.org", "time.nist.gov");
-    //while (sntp_get_sync_status() != SNTP_SYNC_STATUS_COMPLETED) delay(50);
     delay(1000);
   }
   wifiConnected = false;
@@ -291,16 +265,18 @@ void setup() {
   pinMode(Func1, OUTPUT);
   pinMode(Func2, OUTPUT);
   pinMode(Func3, OUTPUT);
-  esp_sleep_enable_timer_wakeup(100000); // 100ms
+  esp_sleep_enable_timer_wakeup(100000);
   loadBtnVals();
   randomSeed(analogRead(1));
-  display.begin();
+  
+  display.init();
+  display.setRotation(0);
+  display.fillScreen(colourBG);
+  
   Serial.begin(115200);
 
   initializeNotesNVS(); 
   loadWiFiNetworksFromNVS();
-  //drawCyborgLogo();
-  //delay(1000);
   timeSyncAndUI();
 
   delay(1000);
@@ -324,15 +300,11 @@ void updateTimeDisplay() {
   if (hour != lastDisplayedHour || minute != lastDisplayedMin) {
     display.fillRect(SCREEN_CENTER_X - 40, SCREEN_HEIGHT - 70, 80, 12, colourBG);
     
-    display.setTextSize(1);
     display.setTextColor(colour1);
-    int16_t x1, y1;
-    uint16_t w, h;
+    display.setTextDatum(CC_DATUM);
     char timeStr[16];
     sprintf(timeStr, "%02d:%02d", hour, minute);
-    display.getTextBounds(timeStr, 0, 0, &x1, &y1, &w, &h);
-    display.setCursor(SCREEN_CENTER_X - w/2, SCREEN_HEIGHT - 69);
-    display.print(timeStr);
+    display.drawString(timeStr, SCREEN_CENTER_X, SCREEN_HEIGHT - 69);
     
     lastDisplayedHour = hour;
     lastDisplayedMin = minute;
@@ -344,28 +316,23 @@ void drawMainUI() {
   uint16_t circleColour;
 
   if (!staticUIdrawn) {
-    // display.drawCircle(SCREEN_CENTER_X, SCREEN_CENTER_Y, SCREEN_RADIUS-2, colour1);
     if (wifiConnected) circleColour = colour3;
     else if (didWifiConnect) circleColour = colour6;
     else circleColour = colour2;
+    
     display.fillScreen(colourBG);
     display.fillCircle(SCREEN_CENTER_X, SCREEN_CENTER_Y, SCREEN_RADIUS, colourBG);
     display.drawCircle(SCREEN_CENTER_X, SCREEN_CENTER_Y, SCREEN_RADIUS-1, circleColour);
     display.drawCircle(SCREEN_CENTER_X, SCREEN_CENTER_Y, headerR+1, colour5);
-    display.setTextSize(1);
+    
     display.setTextColor(colourText);
-    int16_t x1, y1; uint16_t w, h;
-    String title = "Watch 5.1";
-    display.getTextBounds(title, 0, 0, &x1, &y1, &w, &h);
-    display.setCursor(SCREEN_CENTER_X - w/2, 60);
-    display.print(title);
-    display.setTextSize(1);
-    display.setTextColor(colourText);
-    display.getTextBounds("< SEL >", 0,0, &x1,&y1,&w,&h);
-    display.setCursor(SCREEN_CENTER_X - w/2, SCREEN_HEIGHT-15);
-    display.print("< SEL >");
+    display.setTextDatum(CC_DATUM);
+    display.drawString("Watch 5.1", SCREEN_CENTER_X, 60);
+    
+    display.drawString("< SEL >", SCREEN_CENTER_X, SCREEN_HEIGHT-15);
+    
     staticUIdrawn = true;
-    prevWifiConnected = !wifiConnected; // force first WiFi draw
+    prevWifiConnected = !wifiConnected;
     prevFuncShown = -1;
     oldFuncShown = -1;
     oldSelectedFunction = -1;
@@ -374,24 +341,22 @@ void drawMainUI() {
   }
 
   if (wifiConnected != prevWifiConnected) {
-    //display.fillRect(SCREEN_CENTER_X + headerR - 30, 18, 38, 10, colourBG);
-    display.setTextSize(1);
-    display.setCursor(SCREEN_CENTER_X + headerR - 30, 18);
     display.setTextColor(colour3, colourBG);
-    if (wifiConnected) display.print("WiFi");
+    display.setTextDatum(TL_DATUM);
+    if (wifiConnected) {
+      display.drawString("WiFi", SCREEN_CENTER_X + headerR - 30, 18);
+    } else {
+      display.fillRect(SCREEN_CENTER_X + headerR - 30, 18, 38, 10, colourBG);
+    }
     prevWifiConnected = wifiConnected;
   }
+
   if (oldFuncShown != selectedFunction) {
-    display.setTextSize(2);
     display.fillRect(30, 120, SCREEN_WIDTH-60, 22, colourBG);
     String fname = Functions[selectedFunction-1];
-    display.setTextSize(2);
-    int16_t x1, y1;
-    uint16_t w, h;
-    display.getTextBounds(fname, 0, 0, &x1, &y1, &w, &h);
-    display.setCursor(SCREEN_CENTER_X - w/2, 120);
-    display.setTextColor(colourText, colourBG);
-    display.print(fname);
+    display.setTextColor(colourText);
+    display.setTextDatum(CC_DATUM);
+    display.drawString(fname, SCREEN_CENTER_X, 120);
     oldFuncShown = selectedFunction;
   }
 
@@ -417,17 +382,16 @@ void drawMainUI() {
 }
 
 bool lightSleep(){
-  display.fillScreen(GC9A01A_BLACK);
-  //display.enableSleep(true);
+  display.fillScreen(TFT_BLACK);
   delay(500);
   while (!a_button_is_pressed()){
     esp_light_sleep_start();
   }
-  display.begin();
+  display.init();
   quickTimeDisplay();
   if (!a_button_is_pressed()) return true;
   else {
-    staticUIdrawn = false; // force redraw when returning to UI
+    staticUIdrawn = false;
     return false;
   }
 }
@@ -453,17 +417,9 @@ void loop() {
   }
 
   checkCalendarAlarms();
-
   drawMainUI();
 
   unsigned long now = millis();
-
-  /*else if (button_is_pressed(btn3)) {
-    display.fillScreen(GC9A01A_BLACK);
-    delay(1000);
-    esp_deep_sleep_enable_gpio_wakeup(2, ESP_GPIO_WAKEUP_GPIO_HIGH);
-    esp_deep_sleep_start();
-  }*/
 
   if (button_is_pressed(btn4) && (now - lastNavTime) > NAV_DEBOUNCE) {
     selectedFunction++;
@@ -483,7 +439,7 @@ void loop() {
       case 3:  maths(); break;
       case 4:  randomNum(); break;
       case 5:  counter(); break;
-      case 6:  snake(); break;
+      case 6:  games(); break;
       case 7:  metronome(); break;
       case 8:  notesFunction(); break;
       case 9:  calendar(); break;
@@ -493,7 +449,7 @@ void loop() {
       case 13: settings(); break;
       case 14: while (lightSleep()){} break;
     }
-    while(a_button_is_pressed()){} // most functions require 6 to return, but a few may use a different button
-    staticUIdrawn = false; // force redraw when returning to UI
+    while(a_button_is_pressed()){}
+    staticUIdrawn = false;
   }
 }

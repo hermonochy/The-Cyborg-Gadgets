@@ -1,6 +1,6 @@
 #include "tinyexpr.h"
 
-extern Adafruit_GC9A01A display;
+extern TFT_eSPI display;
 extern bool button_is_pressed(int btnVal, bool onlyOnce);
 extern int btn1, btn2, btn3, btn4, btn5, btn6;
 extern uint16_t colourBG,colourText,colour1,colour2,colour3,colour4,colour5,colour6;
@@ -25,10 +25,7 @@ void maths(void) {
       display.fillCircle(120, 120, 120, colourBG);
       display.setTextSize(2);
       display.setTextColor(colourText);
-      int16_t x1, y1;
-      uint16_t w, h;
-      display.getTextBounds("MATHS", 0, 0, &x1, &y1, &w, &h);
-      display.setCursor(120 - w / 2, 18);
+      display.setCursor(50, 18);
       display.print("MATHS");
       int y0 = 54, dy = 28;
       for (int i = 0; i < totalMathsFunctions; ++i) {
@@ -86,7 +83,7 @@ void calculator() {
       display.fillCircle(120, 120, 120, colourBG);
       display.setTextSize(2);
       display.setTextColor(colour6);
-      display.setCursor(34, 10);
+      display.setCursor(22, 10);
       display.print("CALCULATOR");
       display.setTextSize(1);
       display.setTextColor(colourText);
@@ -185,16 +182,13 @@ void unitConverter() {
   int typeCount = 12, sel = 0;
   float value = 0, result = 0, lastVal = 99999;
   bool entering = true, first = true;
-  int16_t x1, y1;
-  uint16_t w, h;
   while (true) {
     if (first || value != lastVal || entering) {
       display.fillScreen(colourBG);
       display.fillCircle(120, 120, 120, colourBG);
       display.setTextSize(2);
       display.setTextColor(colour6);
-      display.getTextBounds("UNITS", 0, 0, &x1, &y1, &w, &h);
-      display.setCursor(120 - w / 2, 18);
+      display.setCursor(54, 18);
       display.print("UNITS");
       display.setTextSize(1);
       for (int i = 0; i < typeCount; ++i) {
@@ -338,7 +332,6 @@ void baseConverter() {
         delay(80);
       }
     } else if (button_is_pressed(btn4, true)) {
-      // Add digit
       const char* charset = baseCharsets[sourceBase];
       int clen = strlen(charset);
       int idx = 0;
@@ -371,18 +364,11 @@ void baseConverter() {
       redrawAll = 1;
     } else if (button_is_pressed(btn6, true)) return;
     else if (!inputting && button_is_pressed(btn4)) {
-      // Already converted
       inputting = true;
       redrawAll = 1;
     } else if (button_is_pressed(btn4, true) || button_is_pressed(btn6, true)) break;
-    // Conversion:
-    else if (button_is_pressed(btn6, true) || button_is_pressed(btn4, true) || button_is_pressed(btn3, true)) {
-      // ignore
-    } else if (button_is_pressed(btn4) || button_is_pressed(btn3) || button_is_pressed(btn1) || button_is_pressed(btn2)) {
-      // ignore
-    }
+    
     if (inputLen > 0 && button_is_pressed(btn4, true)) {
-      // do conversion
       unsigned long val = 0;
       for (int i = 0; i < inputLen; ++i) {
         char c = toupper(inputNum[i]);
@@ -495,8 +481,6 @@ void graphPlotter() {
     delay(40);
   }
 }
-
-// ---------  Prime Factorisation ---------
 
 void primeFactorisation() {
   char inputBuffer[32] = "";

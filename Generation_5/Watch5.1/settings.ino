@@ -1,4 +1,4 @@
-extern Adafruit_GC9A01A display;
+extern TFT_eSPI display;
 extern void loadBtnVals();
 extern bool button_is_pressed(int btnVal, bool onlyOnce);
 extern bool a_button_is_pressed();
@@ -29,16 +29,13 @@ void settings() {
   int prevSel = -1;
   bool first = true;
   while (true) {
-    // Redraw screen only if selection changes or on first entry
     if (first || sel != prevSel) {
       display.fillScreen(colourBG);
       display.fillCircle(120, 120, 120, colourBG);
 
       display.setTextSize(2);
       display.setTextColor(colourText);
-      int16_t x1, y1; uint16_t w, h;
-      display.getTextBounds("SETTINGS", 0, 0, &x1, &y1, &w, &h);
-      display.setCursor(120 - w / 2, 22);
+      display.setCursor(60, 22);
       display.print("SETTINGS");
 
       int Y = 70, spacing = 30;
@@ -81,20 +78,18 @@ void settings() {
 
 void tuneButtonVals() {
   while(a_button_is_pressed()){}
-  int16_t x1, y1; uint16_t w, h;
   const int sampleCount = 75;
   int samples[sampleCount];
   for (int i = 0; i < 6; i++) {
-    bool first = true; bool lastPromptDrawn = true;
+    bool first = true;
     while (!a_button_is_pressed()) {
       if (first) {
         display.fillScreen(colourBG);
         display.setTextSize(2);
-        String prompt = String("Push ") + labels[i];
-        display.getTextBounds(prompt.c_str(), 0, 0, &x1, &y1, &w, &h);
-        display.setCursor(120 - w / 2, 90);
+        display.setCursor(50, 90);
         display.setTextColor(colour4);
-        display.print(prompt);
+        display.print("Push ");
+        display.print(labels[i]);
         first = false;
       }
       delay(13);
@@ -115,12 +110,11 @@ void tuneButtonVals() {
     *btnRefs[i] = samples[sampleCount/2];
 
     display.fillRect(0, 90, 240, 40, colourBG);
-    String setMsg = String(labels[i]) + " Set";
     display.setTextSize(2);
-    display.getTextBounds(setMsg.c_str(), 0, 0, &x1, &y1, &w, &h);
-    display.setCursor(120 - w / 2, 90);
+    display.setCursor(50, 90);
     display.setTextColor(colour3);
-    display.print(setMsg);
+    display.print(labels[i]);
+    display.print(" Set");
 
     while(a_button_is_pressed()) delay(18);
   }
@@ -129,8 +123,7 @@ void tuneButtonVals() {
 void prefs() {
   int settingIndex = 0, prevIndex = -1;
   int prevOffset = -9999, prevRange = -9999, prevBlink1 = -2, prevFunc1=-2, prevBlink2=-2, prevFunc2=-2, prevFunc3=-2, prevRot=-2;
-  bool displayOff = false;
-  int16_t x1, y1; uint16_t w, h;
+  
   while(!button_is_pressed(btn6, true)){
     if(settingIndex != prevIndex){
       display.fillScreen(colourBG);
@@ -138,16 +131,13 @@ void prefs() {
 
       display.setTextSize(2);
       display.setTextColor(colourText);
-      display.getTextBounds("PREFERENCES", 0, 0, &x1, &y1, &w, &h);
-      display.setCursor(120 - w / 2, 20);
+      display.setCursor(40, 20);
       display.print("PREFERENCES");
 
       display.setTextSize(2);
       display.setTextColor(colour6);
-      String thisSetting = settingFuncs[settingIndex];
-      display.getTextBounds(thisSetting, 0,0, &x1, &y1, &w, &h);
-      display.setCursor(120-w/2, 65);
-      display.print(thisSetting);
+      display.setCursor(30, 65);
+      display.print(settingFuncs[settingIndex]);
       prevIndex = settingIndex;
       prevOffset = prevRange = prevBlink1 = prevFunc1 = prevBlink2 = prevFunc2 = prevFunc3 = prevRot = -9999;
     }
@@ -230,10 +220,7 @@ void prefs() {
           prevRot = rotation;
         }
         if(button_is_pressed(btn1, true)) rotation++;
-        if(button_is_pressed(btn2, true)) {
-          if(displayOff) displayOff = false;
-          else displayOff = true;
-        }
+        if(button_is_pressed(btn2, true)) inverted = !inverted;
         display.setRotation(rotation % 4);
         delay(80);
         break;
@@ -244,7 +231,6 @@ void prefs() {
 }
 
 void debug() {
-  int16_t x1, y1; uint16_t w, h;
   int posY;
   int prevadc = -1, prevbtns[6] = {-1, -1, -1, -1, -1, -1};
   bool first = true;
@@ -259,8 +245,7 @@ void debug() {
 
       display.setTextSize(2);
       display.setTextColor(colourText);
-      display.getTextBounds("DEBUG", 0,0, &x1,&y1,&w,&h);
-      display.setCursor(120-w/2, 12);
+      display.setCursor(60, 12);
       display.print("DEBUG");
 
       display.setTextSize(1);
@@ -302,9 +287,7 @@ void btnSettings(){
       display.fillCircle(120,120,120,colourBG);
       display.setTextSize(2);
       display.setTextColor(colourText);
-      int16_t x1, y1; uint16_t w, h;
-      display.getTextBounds("BTN SETTINGS", 0,0, &x1, &y1, &w, &h);
-      display.setCursor(120-w/2, 24);
+      display.setCursor(30, 24);
       display.print("BTN SETTINGS");
 
       display.setTextSize(sel == 0 ? 2 : 1);
@@ -341,9 +324,7 @@ void colorEditor() {
     if (selColor != oldSelColor) {
       display.fillCircle(120,120,120,colourBG);
       display.setTextSize(2); display.setTextColor(colourText);
-      int16_t x1, y1; uint16_t w, h;
-      display.getTextBounds("COLOR EDIT", 0,0, &x1, &y1, &w, &h);
-      display.setCursor(120-w/2, 20);
+      display.setCursor(50, 20);
       display.print("COLOR EDIT");
       
       for(int i=0;i<colorCount;i++) {
@@ -368,13 +349,10 @@ void colorPicker(int idx, const char* name, uint16_t* colorPtr) {
   
   display.fillCircle(120,120,120,colourBG);
   display.setTextSize(2); display.setTextColor(colourText);
-  int16_t x1, y1; uint16_t w, h;
-  display.getTextBounds("RGB EDIT", 0,0, &x1, &y1, &w, &h);
-  display.setCursor(120-w/2, 20);
+  display.setCursor(50, 20);
   display.print("RGB EDIT");
   
   while(true) {
-    // Only redraw if values or mode changed
     if (r != lastR || g != lastG || b != lastB || mode != lastMode) {
       display.fillRect(30, 56, 180, 100, colourBG);
       
@@ -434,7 +412,6 @@ void colorPicker(int idx, const char* name, uint16_t* colorPtr) {
 }
 
 void LCDSettings(){
-  // int *colours[] = {&colourBG,&colourText,&colour1,&colour2,&colour3,&colour4,&colour5,&colour6};
   int sel = 0, prevSel = -1;
   while(true){
     if (sel != prevSel) {
@@ -442,9 +419,7 @@ void LCDSettings(){
       display.fillCircle(120,120,120,colourBG);
       display.setTextSize(2);
       display.setTextColor(colourText);
-      int16_t x1, y1; uint16_t w, h;
-      display.getTextBounds("LCD SETTINGS", 0,0, &x1, &y1, &w, &h);
-      display.setCursor(120-w/2, 24);
+      display.setCursor(30, 24);
       display.print("LCD SETTINGS");
 
       display.setTextSize(sel == 0 ? 2 : 1);

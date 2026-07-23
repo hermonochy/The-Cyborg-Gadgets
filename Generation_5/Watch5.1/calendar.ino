@@ -1,6 +1,6 @@
 // Calendar & Alarm System
 
-extern Adafruit_GC9A01A display;
+extern TFT_eSPI display;
 extern bool button_is_pressed(int btnVal, bool onlyOnce);
 extern int btn1, btn2, btn3, btn4, btn5, btn6;
 extern uint16_t colourBG,colourText,colour1,colour2,colour3,colour4,colour5,colour6;

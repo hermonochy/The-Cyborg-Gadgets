@@ -18,7 +18,7 @@
 Adafruit_SSD1306 display(SCREEN_WIDTH, SCREEN_HEIGHT, &Wire, OLED_RESET);
 Preferences preferences;
 
-#define totalFunctions 12
+#define totalFunctions 13
 #define numSettings 5
 
 #define MAX_WIFI_NETWORKS 5
@@ -26,7 +26,7 @@ Preferences preferences;
 #define MAX_WIFI_PASS 64
 
 
-const char *Functions[] = {"Outputs", "Maths", "Random", "Score", "Games", "Metronome", "Notes", "Calendar", "WiFi Menu", "WiFi Tools","Shell", "Settings"};
+const char *Functions[] = {"Outputs", "Maths", "Random", "Score", "Games", "Metronome", "Notes", "Calendar", "WiFi Menu", "WiFi Tools","Shell", "Settings", "Sleep"};
 const char *settingFuncs[] = {"Button Offset", "Func1 Settings", "Func2 Settings", "Func3 Settings", "Display Settings"};
 
 const byte buttonPin = 2;
@@ -99,6 +99,19 @@ bool button_is_pressed(int btnVal, bool onlyOnce = false) {
 
 bool a_button_is_pressed(){
   return (analogRead(buttonPin) != 4095);
+}
+
+bool lightSleep(){
+  display.ssd1306_command(SSD1306_DISPLAYOFF); 
+  delay(500);
+  while (!a_button_is_pressed()){
+    esp_light_sleep_start();
+  }
+  if (!a_button_is_pressed()) return true;
+  else {
+    display.ssd1306_command(SSD1306_DISPLAYON);
+    return false;
+  }
 }
 
 void drawMainUI() {
@@ -257,6 +270,8 @@ void setup() {
   pinMode(Func2, OUTPUT);
   pinMode(Func3, OUTPUT);
 
+  esp_sleep_enable_timer_wakeup(100000); // 100ms
+
   loadBtnVals();
   
   randomSeed(analogRead(1));
@@ -322,7 +337,7 @@ void loop() {
     if (selectedFunction < 1) selectedFunction = totalFunctions;
     lastNavTime = now;
   } 
-  else if (button_is_pressed(btn3)) {
+  else if (button_is_pressed(btn3, true)) {
     delay(100);
     switch (selectedFunction) {
       case 1:
@@ -360,6 +375,10 @@ void loop() {
         break;
       case 12 :
         settings();
+        break;
+      case 13:
+        display.clearDisplay();
+        while (lightSleep()){}
         break;
     }
   }

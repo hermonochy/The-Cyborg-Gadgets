@@ -6,8 +6,15 @@ Fifth generation watches have a similar layout to the third generation but switc
 
 ## Devices
 
-- [Watch 5.0](./Watch5.0/Watch5.0.ino) is the first 5th Generation watch. While its layout resembles that of Watch 3.6, it boasts significantly larger flash and RAM, plus built‑in Wi‑Fi support. Additionally, it is the first watch to use multiplexed buttons, due to the constraints of limited pin availability.
-- [Watch 5.1](./Watch5.1/Watch5.1.ino) is the first fully standalone smartwatch, evolving from a mere extension into a complete device. It features a GC9A01 round TFT display, bringing full colour (at last) to the project and transforming its aesthetics significantly. This has been my most challenging electronics project to date, taking several months to finally get the display working correctly and required hand-soldering tiny SMD components to keep the form factor compact enough. Ultimately, the combination of extreme miniaturization, high circuit complexity, and the GC9A01's significant power draw resulted in reliability issues, including rapid battery depletion, random display failures, and fragile connects.
+### Watches
+
+- [Watch 5.0](./Watch5.0/Watch5.0.md)
+- [Watch 5.1](./Watch5.1/Watch5.1.md)
+- [Watch 5.2](./Watch5.2/Watch5.2.md) 
+
+### Servers
+
+- [Server 5.0](./Server5.0/Server5.0.md)
 
 ## Installation
 

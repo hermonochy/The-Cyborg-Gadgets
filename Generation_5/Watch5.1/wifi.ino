@@ -1,7 +1,7 @@
 #include <HTTPClient.h>
 #include <ArduinoJson.h>
 
-extern Adafruit_GC9A01A display;
+extern TFT_eSPI display;
 extern bool button_is_pressed(int btnVal, bool onlyOnce);
 extern void randomiseMac();
 extern int btn1, btn2, btn3, btn4, btn5, btn6;
