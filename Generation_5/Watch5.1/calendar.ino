@@ -1,8 +1,9 @@
 // Calendar & Alarm System
 
-extern Adafruit_GC9A01A display;
+extern TFT_eSPI display;
 extern bool button_is_pressed(int btnVal, bool onlyOnce);
 extern int btn1, btn2, btn3, btn4, btn5, btn6;
+extern uint16_t colourBG,colourText,colour1,colour2,colour3,colour4,colour5,colour6;
 extern bool wifiConnected;
 extern Preferences preferences;
 extern bool inputStringOnWatch(const char* label, char* buffer, int maxLen);
@@ -99,11 +100,11 @@ void calendar(void) {
   loadCalendarFromNVS();
   
   while (true) {
-    display.fillScreen(GC9A01A_BLACK);
+    display.fillScreen(colourBG);
     display.setTextSize(1);
     display.setCursor(0, 0);
     display.print("Calendar");
-    display.drawLine(0, 10, SCREEN_WIDTH, 10, GC9A01A_WHITE);
+    display.drawLine(0, 10, SCREEN_WIDTH, 10, colourText);
     
     display.setCursor(0, 20);
     display.print("Events: ");
@@ -115,6 +116,7 @@ void calendar(void) {
     display.println("2:View Events");
     display.setCursor(0, 55);
     display.println("6:Back");
+    
     
     
     if (button_is_pressed(btn3)) {
@@ -135,10 +137,11 @@ void calendar(void) {
 
 void createNewEvent() {
   if (eventCount >= MAX_CALENDAR_EVENTS) {
-    display.fillScreen(GC9A01A_BLACK);
+    display.fillScreen(colourBG);
     display.setTextSize(1);
     display.setCursor(0, 20);
     display.print("Max events reached!");
+    
     delay(2000);
     return;
   }
@@ -160,7 +163,7 @@ void createNewEvent() {
     return;
   }
   
-  display.fillScreen(GC9A01A_BLACK);
+  display.fillScreen(colourBG);
   display.setTextSize(1);
   display.setCursor(0, 0);
   display.print("Confirm Event?");
@@ -182,19 +185,21 @@ void createNewEvent() {
       eventCount++;
       saveCalendarToNVS();
       
-      display.fillScreen(GC9A01A_BLACK);
+      display.fillScreen(colourBG);
       display.setTextSize(1);
       display.setCursor(0, 20);
       display.print("Event saved!");
-        delay(1500);
+      
+      delay(1500);
       return;
     }
     if (button_is_pressed(btn6)) {
-      display.fillScreen(GC9A01A_BLACK);
+      display.fillScreen(colourBG);
       display.setTextSize(1);
       display.setCursor(0, 20);
       display.print("Cancelled");
-        delay(1000);
+      
+      delay(1000);
       return;
     }
     delay(50);
@@ -205,7 +210,7 @@ void selectDateTime(CalendarEvent* event) {
   int field = 0; // 0=year, 1=month, 2=day, 3=hour, 4=minute
   
   while (true) {
-    display.fillScreen(GC9A01A_BLACK);
+    display.fillScreen(colourBG);
     display.setTextSize(1);
     display.setCursor(0, 0);
     display.print("Set Date & Time");
@@ -233,6 +238,7 @@ void selectDateTime(CalendarEvent* event) {
     
     display.setCursor(0, 56);
     display.println("1:- 2:+ 3:Next 6:Done");
+    
     
     
     if (button_is_pressed(btn1)) {
@@ -307,10 +313,11 @@ void decrementField(CalendarEvent* event, int field) {
 
 void viewEvents() {
   if (eventCount == 0) {
-    display.fillScreen(GC9A01A_BLACK);
+    display.fillScreen(colourBG);
     display.setTextSize(1);
     display.setCursor(0, 20);
     display.print("No events");
+    
     delay(1500);
     return;
   }
@@ -318,7 +325,7 @@ void viewEvents() {
   int selectedIdx = 0;
   
   while (true) {
-    display.fillScreen(GC9A01A_BLACK);
+    display.fillScreen(colourBG);
     display.setTextSize(1);
     display.setCursor(0, 0);
     display.print("Events (");
@@ -339,6 +346,7 @@ void viewEvents() {
       display.setCursor(0, 56);
       display.println("4:Del 5:Edit 6:Back");
     }
+    
     
     
     if (button_is_pressed(btn1)) {
@@ -369,7 +377,7 @@ void viewEvents() {
 }
 
 void deleteEvent(int idx) {
-  display.fillScreen(GC9A01A_BLACK);
+  display.fillScreen(colourBG);
   display.setTextSize(1);
   display.setCursor(0, 0);
   display.print("Delete?");
@@ -387,11 +395,12 @@ void deleteEvent(int idx) {
       eventCount--;
       saveCalendarToNVS();
       
-      display.fillScreen(GC9A01A_BLACK);
+      display.fillScreen(colourBG);
       display.setTextSize(1);
       display.setCursor(0, 20);
       display.print("Deleted!");
-        delay(1000);
+      
+      delay(1000);
       return;
     }
     if (button_is_pressed(btn6)) {
@@ -411,10 +420,11 @@ void editEvent(int idx) {
     strncpy(events[idx].message, newMessage, MAX_EVENT_MESSAGE - 1);
     saveCalendarToNVS();
     
-    display.fillScreen(GC9A01A_BLACK);
+    display.fillScreen(colourBG);
     display.setTextSize(1);
     display.setCursor(0, 20);
     display.print("Event updated!");
+    
     delay(1500);
   }
 }
@@ -448,7 +458,7 @@ void checkCalendarAlarms() {
 }
 
 void triggerAlarm(CalendarEvent* event) {
-  display.fillScreen(GC9A01A_BLACK);
+  display.fillScreen(colourBG);
   display.setTextSize(2);
   display.setCursor(0, 0);
   display.print("ALARM!");

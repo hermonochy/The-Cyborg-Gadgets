@@ -84,7 +84,7 @@ void arcadeGames() {
     display.clearDisplay();
     display.drawLine(0, 0, SCREEN_WIDTH, 0, SSD1306_WHITE);
     display.drawLine(0, 10, SCREEN_WIDTH, 10, SSD1306_WHITE);
-    
+
     display.setTextSize(1);
     display.setCursor(2, 2);
     display.print("Arcade Games");
@@ -132,7 +132,7 @@ void arcadeGames() {
           break;
       }
     }
-    else if (button_is_pressed(btn6, true)) return;
+    if (button_is_pressed(btn6, true)) return;
   }
 }
 

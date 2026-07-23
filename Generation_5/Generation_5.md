@@ -6,7 +6,15 @@ Fifth generation watches have a similar layout to the third generation but switc
 
 ## Devices
 
-- [Watch 5.0](./Watch5.0/Watch5.0.ino) is the first 5th Generation watch. While its layout resembles that of Watch 3.6, it boasts significantly larger flash and RAM, plus built‑in Wi‑Fi support. Additionally, it is the first watch to use multiplexed buttons, due to the constraints of limited pin availability.
+### Watches
+
+- [Watch 5.0](./Watch5.0/Watch5.0.md)
+- [Watch 5.1](./Watch5.1/Watch5.1.md)
+- [Watch 5.2](./Watch5.2/Watch5.2.md) 
+
+### Servers
+
+- [Server 5.0](./Server5.0/Server5.0.md)
 
 ## Installation
 
