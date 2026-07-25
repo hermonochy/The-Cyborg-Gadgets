@@ -1,4 +1,16 @@
+// Watch 5.2: first watch with casing. uses touch.
+// NOTE: will NOT work with a C3. Requires an S3.
+
 #include <TFT_eSPI.h>
+#include <Preferences.h>
+#include <WiFi.h>
+#include <Wire.h>
+#include <time.h>
+#include <esp_sleep.h>
+#include <driver/gpio.h>
+#include <esp_wifi.h>
+#include <ctype.h>
+#include <math.h>
 
 #define SCREEN_WIDTH 240
 #define SCREEN_HEIGHT 240
@@ -6,27 +18,51 @@
 TFT_eSPI display = TFT_eSPI();
 TFT_eSprite canvas = TFT_eSprite(&display);
 
-// pins of buttons.
-const int btn1 = 4;
-const int btn2 = 5;
-const int btn3 = 6;
-const int btn4 = 13;
-const int btn5 = 8;
-const int btn6 = 7;
+Preferences preferences;
+
+#define totalFunctions 2
+
+#define MAX_WIFI_NETWORKS 5
+#define MAX_WIFI_SSID 32
+#define MAX_WIFI_PASS 64
+
+struct WiFiNetwork {
+  char ssid[MAX_WIFI_SSID];
+  char password[MAX_WIFI_PASS];
+};
+WiFiNetwork wifiNetworks[MAX_WIFI_NETWORKS];
+int wifiNetworkCount = 0;
+int currentWiFiIndex = 0;
+
+char *Functions[] = {"Time", "Outputs"};
+int selectedFunction = 1;
+
+const int buttons[] = {4, 5, 6, 13, 8, 7};
 
 // when touched, reading rises to low 6 digits. when not touched, remains in low 5 digits.
 const int threshold = 100000;
+
+byte Func1 = 1;
+byte Func2 = 2;
 
 bool button_is_pressed(int btn, bool onlyOnce = false) {
   if(touchRead(btn) >= threshold){
     if (onlyOnce) {
       while(touchRead(btn) >= threshold) delay(50);
     }
+    Serial.print(btn);
     return true;
   }
   return false;
 }
 
+bool a_button_is_pressed(){
+  for (int i=0;i<6;i++){
+    if (button_is_pressed(buttons[i])) return true;
+  }
+  return false;
+}
+ 
 void drawMainUI() {
   const int cx = SCREEN_WIDTH / 2;
   const int cy = SCREEN_HEIGHT / 2;
@@ -40,7 +76,7 @@ void drawMainUI() {
   const uint16_t LIGHT = display.color565(240, 240, 245);
 
   const char *title = "Watch 5.0";
-  const char *func = "func";
+  char *func = Functions[selectedFunction-1];
 
   canvas.fillSprite(BG);
   canvas.fillCircle(cx, cy, SCREEN_WIDTH / 2, VIGNETTE);
@@ -88,15 +124,32 @@ void drawMainUI() {
 }
 
 void setup() {
+
+  Serial.begin(115200);
+
   display.init();
   display.setRotation(2);
 
   canvas.createSprite(SCREEN_WIDTH, SCREEN_HEIGHT);
   canvas.setTextDatum(TL_DATUM);
-
-  drawMainUI();
 }
 
 void loop() {
-  delay(1000);
+  drawMainUI();
+  if (button_is_pressed(buttons[5])) {
+    selectedFunction++;
+    if (selectedFunction > totalFunctions) selectedFunction = 1;
+  } 
+  else if (button_is_pressed(buttons[3])) {
+    selectedFunction--;
+    if (selectedFunction < 1) selectedFunction = totalFunctions;
+  } 
+  else if (button_is_pressed(buttons[4], true)) {
+    while (a_button_is_pressed()){}
+    switch (selectedFunction) {
+      case 1: break;
+      case 2: break;
+    }
+    while(a_button_is_pressed()){}
+  }
 }
