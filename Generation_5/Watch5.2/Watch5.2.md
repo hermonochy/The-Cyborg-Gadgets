@@ -1,3 +1,5 @@
+*SPDX-License-Identifier: CC-BY-NC-SA-4.0*
+
 # Watch 5.2
 
 Watch 5.2 uses an ESP32-**S3** SuperMini to support capacitive touch buttons instead of mechanical switches. As a result, it is significantly sturdier than any previous watch, since there are no moving parts susceptible to mechanical failure. It is also the first watch in the project to feature a 3D-printed enclosure, giving it the appearance of a conventional timepiece rather than what many have dubbed a bomb.

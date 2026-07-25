@@ -2,7 +2,7 @@
 
 # Generation 5
 
-Fifth generation watches have a similar layout to the third generation but switch from AVR microcontrollers to ESP32 based boards, primarily the ESP32-C3 Super Mini. Some later 5th generation boards requiring more GPIO pins may use an ESP32-S3 Tiny instead. This change takes advantage of the built-in Wi-Fi and Bluetooth, better processing power and an even smaller board, however drastically increases costs and power usage.
+Fifth generation watches have a similar layout to the third generation but switch from AVR microcontrollers to ESP32 based boards, primarily the ESP32-C3 SuperMini. Some later 5th generation boards use an ESP32-S3 SuperMini instead. This change takes advantage of the built-in Wi-Fi and Bluetooth, better processing power and an even smaller board, however increases costs and power usage.
 
 ## Devices
 
@@ -10,7 +10,7 @@ Fifth generation watches have a similar layout to the third generation but switc
 
 - [Watch 5.0](./Watch5.0/Watch5.0.md)
 - [Watch 5.1](./Watch5.1/Watch5.1.md)
-- [Watch 5.2](./Watch5.2/Watch5.2.md) 
+- [Watch 5.2](./Watch5.2/Watch5.2.md)
 
 ### Servers
 
@@ -20,7 +20,7 @@ Fifth generation watches have a similar layout to the third generation but switc
 
 1. Collect the required hardware.
 2. Clone or download this repository.
-3. Install the [Arduino IDE](https://www.arduino.cc/en/software) and set up ESP32 board support using the Board Manager.
+3. Install [Arduino IDE](https://www.arduino.cc/en/software) and set up ESP32 board support using the Board Manager.
 4. Open the `.ino` file for the watch you want to build from the Generation_5 folder.
 5. Install the required libraries for your watch model.
 6. Connect the hardware according to the pin mapping in the file.

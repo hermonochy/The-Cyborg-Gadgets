@@ -1,5 +1,4 @@
 // Watch 5.1: 5th gen watch - ESP32C3 with GC9A01A TFT display
-// Migrated to TFT_eSPI
 
 #include <TFT_eSPI.h>
 #include <Preferences.h>
