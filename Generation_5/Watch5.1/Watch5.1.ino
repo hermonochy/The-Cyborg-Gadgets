@@ -308,7 +308,7 @@ void updateTimeDisplay() {
     lastDisplayedHour = hour;
     lastDisplayedMin = minute;
   }
-}
+}z
 
 void drawMainUI() {
   int headerR = SCREEN_RADIUS-24;
