@@ -35,7 +35,7 @@ int currentWiFiIndex = 0;
 const char *Functions[] = {"Time", "GPIO","Maths", "Random", "Score", "Games", "Metronome", "Notes", "Calendar", "WiFi Setup", "WiFi Funcs","Shell", "Settings", "Sleep"};
 const int totalFunctions = sizeof(Functions) / sizeof(Functions[0]);
 
-int selectedFunction = 1;
+int selectedFunction = 0;
 
 const int buttons[] = {7, 8, 13, 6, 5, 4};
 
@@ -44,12 +44,7 @@ const int threshold = 50000;
 byte Func1 = 2;
 byte Func2 = 1;
 int blinkTime1 = 1000;
-int blinkTime2 = 1;
-
-void turnOnDisplay(){
-  digitalWrite(3, 1);
-  digitalWrite(2, 1);
-}
+int blinkTime2 = 500;
 
 bool button_is_pressed(int btn, bool onlyOnce = false) {
   if (touchRead(btn) >= threshold) {
@@ -64,6 +59,19 @@ bool button_is_pressed(int btn, bool onlyOnce = false) {
 bool a_button_is_pressed() {
   for (int i = 0; i < 6; i++) {
     if (button_is_pressed(buttons[i])) return true;
+  }
+  return false;
+}
+
+static bool touchHeld(int pin, unsigned long holdMs) {
+  if (touchRead(pin) < threshold) return false;
+  unsigned long start = millis();
+  while (touchRead(pin) >= threshold) {
+    if (millis() - start >= holdMs) {
+      while (touchRead(pin) >= threshold) delay(10);
+      return true;
+    }
+    delay(10);
   }
   return false;
 }
@@ -185,9 +193,6 @@ void setup() {
 
   pinMode(Func1, OUTPUT);
   pinMode(Func2, OUTPUT);
-  pinMode(3, OUTPUT);
-  pinMode(2, OUTPUT);
-  turnOnDisplay();
   randomiseMac();
 
   display.init();
@@ -204,13 +209,17 @@ void setup() {
   canvas.drawString("Watch 5.2", SCREEN_WIDTH / 2, SCREEN_HEIGHT / 2 - 6);
   canvas.pushSprite(0, 0);
   delay(1000);
+  
+  timeMenu();
 }
 
 void loop() {
-  switch (drawMenu(Functions, totalFunctions)) {
+  selectedFunction = drawMenu(Functions, totalFunctions, selectedFunction);
+  switch (selectedFunction) {
     case 0: timeMenu(); break;
     case 1: watchFuncs(); break;
+    case 2: calculator(); break;
+    case 4: counterMenu(); break;
   }
-
   delay(120);
 }

@@ -24,7 +24,6 @@ void timeMenu() {
         canvas.fillCircle(cx, cy, SCREEN_WIDTH / 2, display.color565(14, 14, 16));
         canvas.fillCircle(cx, cy, SCREEN_WIDTH / 2 - 6, display.color565(12, 12, 14));
 
-        // Increased central plate radius so seconds can fit without overlapping
         canvas.fillCircle(cx, cy, 90, display.color565(22, 24, 28));
         canvas.drawCircle(cx, cy, 90, display.color565(56, 60, 66));
 
@@ -54,22 +53,10 @@ void timeMenu() {
 
         char dateBuf[32];
         if (tm) strftime(dateBuf, sizeof(dateBuf), "%a %02d %b %Y", tm);
-        else strcpy(dateBuf, "No RTC");
         canvas.setTextSize(1);
         canvas.setTextColor(display.color565(170, 170, 180), display.color565(22, 24, 28));
         canvas.setTextDatum(MC_DATUM);
         canvas.drawString(dateBuf, cx, cy + 48);
-
-        int hintW = 160;
-        int hintH = 28;
-        int hintX = cx - hintW / 2;
-        int hintY = SCREEN_HEIGHT - 34;
-        canvas.fillRoundRect(hintX, hintY, hintW, hintH, 14, display.color565(28, 30, 34));
-        canvas.drawRoundRect(hintX, hintY, hintW, hintH, 14, display.color565(56, 60, 66));
-        canvas.setTextSize(1);
-        canvas.setTextColor(display.color565(200,200,205), display.color565(28,30,34));
-        canvas.setTextDatum(MC_DATUM);
-        canvas.drawString("Back ◀   •   Set Time   •   Menu ▶", cx, hintY + hintH/2);
 
         canvas.pushSprite(0, 0);
         lastDraw = nowMs;
@@ -98,7 +85,6 @@ void timeMenu() {
       while (!done) {
         unsigned long m = millis();
         if (m - lastSetDraw > 100) {
-          // Match editor to the larger central plate
           canvas.fillCircle(cx, cy, 90, display.color565(20,22,24));
           canvas.drawCircle(cx, cy, 90, display.color565(56, 60, 66));
           canvas.setTextDatum(MC_DATUM);

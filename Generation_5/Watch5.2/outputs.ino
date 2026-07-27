@@ -11,15 +11,15 @@ void activateFunc(byte func, unsigned long blinkTime = 500000UL) {
   if (blinkTime > MAX_US) blinkTime = MAX_US;
 
   // small helper to format blink time concisely
-  auto formatBlink = [&](char *buf, size_t len, unsigned long us){
+  auto formatBlink = [&](char *buf, size_t len, unsigned long us) {
     if (us < 1000) {
-      snprintf(buf, len, "%lu\xC2\xB5s", us); // µs
+      snprintf(buf, len, "%lu\xC2\xB5s", us);  // µs
     } else if (us < 1000000UL) {
       snprintf(buf, len, "%lums", us / 1000UL);
     } else {
       // show 1 decimal second
-      unsigned long tenths = (us + 50000UL) / 100000UL; // tenths of second
-      snprintf(buf, len, "%lu.%lus", tenths/10, tenths%10);
+      unsigned long tenths = (us + 50000UL) / 100000UL;  // tenths of second
+      snprintf(buf, len, "%lu.%lus", tenths / 10, tenths % 10);
     }
   };
 
@@ -60,20 +60,20 @@ void activateFunc(byte func, unsigned long blinkTime = 500000UL) {
       if (blink) keepOn = false;
       lastToggle = micros();
     }
-    if (button_is_pressed(buttons[3], true)) { // slower
+    if (button_is_pressed(buttons[3], true)) {  // slower
       // if >1us, divide by 2, else stay at 1
       if (blinkTime > MIN_US) {
         blinkTime = max(MIN_US, blinkTime / 2UL);
       }
     }
-    if (button_is_pressed(buttons[4], true)) { // faster
+    if (button_is_pressed(buttons[4], true)) {  // faster
       if (blinkTime < MAX_US) {
         // multiply by 2 but cap
         unsigned long next = blinkTime * 2UL;
         blinkTime = next > MAX_US ? MAX_US : next;
       }
     }
-    if (button_is_pressed(buttons[5], true)) { // exit
+    if (button_is_pressed(buttons[5], true)) {  // exit
       // leave the output in its current state (respect keepOn/blink)
       return;
     }
@@ -84,20 +84,20 @@ void activateFunc(byte func, unsigned long blinkTime = 500000UL) {
 
       const int cx = SCREEN_WIDTH / 2;
       const int cy = SCREEN_HEIGHT / 2;
-      const uint16_t BG = display.color565(12,12,14);
-      const uint16_t PLATE = display.color565(24,26,28);
-      const uint16_t ACCENT = display.color565(0,160,220);
-      const uint16_t ONCOL = display.color565(80,220,140);
-      const uint16_t OFFCOL = display.color565(90,92,96);
-      const uint16_t TXT = display.color565(235,235,240);
+      const uint16_t BG = display.color565(12, 12, 14);
+      const uint16_t PLATE = display.color565(24, 26, 28);
+      const uint16_t ACCENT = display.color565(0, 160, 220);
+      const uint16_t ONCOL = display.color565(80, 220, 140);
+      const uint16_t OFFCOL = display.color565(90, 92, 96);
+      const uint16_t TXT = display.color565(235, 235, 240);
 
       canvas.fillSprite(BG);
-      canvas.fillCircle(cx, cy, SCREEN_WIDTH/2, display.color565(14,14,16));
-      canvas.fillCircle(cx, cy, SCREEN_WIDTH/2 - 6, BG);
+      canvas.fillCircle(cx, cy, SCREEN_WIDTH / 2, display.color565(14, 14, 16));
+      canvas.fillCircle(cx, cy, SCREEN_WIDTH / 2 - 6, BG);
 
       // central plate
       canvas.fillCircle(cx, cy - 6, 86, PLATE);
-      canvas.drawCircle(cx, cy - 6, 86, display.color565(46,48,52));
+      canvas.drawCircle(cx, cy - 6, 86, display.color565(46, 48, 52));
 
       // big ON/OFF
       canvas.setTextDatum(MC_DATUM);
@@ -121,23 +121,19 @@ void activateFunc(byte func, unsigned long blinkTime = 500000UL) {
         canvas.drawString(tb, cx, cy + 36);
       }
 
-      // footer: very compact hints (no help text)
       canvas.setTextSize(1);
       canvas.setTextDatum(MC_DATUM);
-      canvas.setTextColor(display.color565(160,160,170), BG);
+      canvas.setTextColor(display.color565(160, 160, 170), BG);
       canvas.drawString("< Bck  Kp  Blk  <<  >> >", cx, SCREEN_HEIGHT - 12);
 
       canvas.pushSprite(0, 0);
     }
-
-    // light delay; keep loop responsive for microsecond blink handling
-    delay(0);
   }
 }
 
 void watchFuncs(void) {
   const byte pins[] = { Func1, Func2 };
-  const char *labels[] = { "LED", "Laser" }; // short labels to fit round display
+  const char *labels[] = { "LED", "Laser" };  // short labels to fit round display
   const int count = sizeof(pins) / sizeof(pins[0]);
 
   int idx = 0;
@@ -149,16 +145,16 @@ void watchFuncs(void) {
     if (now - lastDraw > 60) {
       lastDraw = now;
 
-      const int cx = SCREEN_WIDTH/2;
-      const uint16_t BG = display.color565(12,12,14);
-      const uint16_t CARD = display.color565(22,24,28);
-      const uint16_t ACCENT = display.color565(0,160,220);
-      const uint16_t TXT = display.color565(235,235,240);
-      const uint16_t MUTED = display.color565(140,144,150);
+      const int cx = SCREEN_WIDTH / 2;
+      const uint16_t BG = display.color565(12, 12, 14);
+      const uint16_t CARD = display.color565(22, 24, 28);
+      const uint16_t ACCENT = display.color565(0, 160, 220);
+      const uint16_t TXT = display.color565(235, 235, 240);
+      const uint16_t MUTED = display.color565(140, 144, 150);
 
       canvas.fillSprite(BG);
-      canvas.fillCircle(cx, SCREEN_HEIGHT/2, SCREEN_WIDTH/2, display.color565(14,14,16));
-      canvas.fillCircle(cx, SCREEN_HEIGHT/2, SCREEN_WIDTH/2 - 6, BG);
+      canvas.fillCircle(cx, SCREEN_HEIGHT / 2, SCREEN_WIDTH / 2, display.color565(14, 14, 16));
+      canvas.fillCircle(cx, SCREEN_HEIGHT / 2, SCREEN_WIDTH / 2 - 6, BG);
 
       // title
       canvas.setTextDatum(TC_DATUM);
@@ -170,38 +166,38 @@ void watchFuncs(void) {
       canvas.setTextDatum(MC_DATUM);
       canvas.setTextSize(3);
       canvas.setTextColor(ACCENT, CARD);
-      canvas.drawString(labels[idx], cx, SCREEN_HEIGHT/2 - 6);
+      canvas.drawString(labels[idx], cx, SCREEN_HEIGHT / 2 - 6);
 
       // status indicator below
       bool on = digitalRead(pins[idx]);
       canvas.setTextSize(1);
-      canvas.setTextColor(on ? display.color565(80,220,140) : MUTED, CARD);
-      canvas.drawString(on ? "ON" : "OFF", cx, SCREEN_HEIGHT/2 + 28);
+      canvas.setTextColor(on ? display.color565(80, 220, 140) : MUTED, CARD);
+      canvas.drawString(on ? "ON" : "OFF", cx, SCREEN_HEIGHT / 2 + 28);
 
       // small index left/right
       canvas.setTextSize(1);
       canvas.setTextColor(TXT, BG);
       // prev label
-      canvas.drawString(labels[(idx-1+count)%count], cx - 64, SCREEN_HEIGHT/2 - 6);
+      canvas.drawString(labels[(idx - 1 + count) % count], cx - 64, SCREEN_HEIGHT / 2 - 6);
       // next label
-      canvas.drawString(labels[(idx+1)%count], cx + 64, SCREEN_HEIGHT/2 - 6);
+      canvas.drawString(labels[(idx + 1) % count], cx + 64, SCREEN_HEIGHT / 2 - 6);
 
       // footer minimal
       canvas.setTextSize(1);
       canvas.setTextDatum(MC_DATUM);
-      canvas.setTextColor(display.color565(160,160,170), BG);
+      canvas.setTextColor(display.color565(160, 160, 170), BG);
       canvas.drawString("< Prev   Sel   Next >", cx, SCREEN_HEIGHT - 12);
 
       canvas.pushSprite(0, 0);
     }
 
-    if (button_is_pressed(buttons[4])) { 
+    if (button_is_pressed(buttons[4])) {
       idx = (idx + 1) % count;
       delay(160);
-    } else if (button_is_pressed(buttons[3])) { // prev
+    } else if (button_is_pressed(buttons[3])) {  // prev
       idx = (idx - 1 + count) % count;
       delay(160);
-    } else if (button_is_pressed(buttons[5], true)) { // select
+    } else if (button_is_pressed(buttons[5], true)) {  // select
       // choose blinkTime param corresponding to label if available
       unsigned long bt = 500000UL;
       if (pins[idx] == Func1) bt = (unsigned long)blinkTime1;
@@ -210,7 +206,7 @@ void watchFuncs(void) {
       // upon return, ensure any possibly changed blinkTime is kept back to global if relevant
       if (pins[idx] == Func1) blinkTime1 = (int)min((unsigned long)INT32_MAX, bt);
       else if (pins[idx] == Func2) blinkTime2 = (int)min((unsigned long)INT32_MAX, bt);
-    } else if (button_is_pressed(buttons[0], true)) { // back
+    } else if (button_is_pressed(buttons[2], true)) {  // back
       return;
     }
 
