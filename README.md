@@ -5,7 +5,7 @@
 The Cyborg Gadgets are a project to develop non-invasive, painless body enhancements. 
 It is highly beneficial to have all essential tools with you, make the impression to be very smart, and deter adversaries of low intelligence. 
 
-These gadgets can take on any form, however tend to be built as an extension for everyday wearable objects.
+These gadgets can take on any form, however tend to be built on or as everyday wearable objects, such as watches.
 
 ## Labeling
 
@@ -23,7 +23,7 @@ The gadgets are all labeled, as seen in the example below:
     - [The Third Generation](./Generation_3/Generation_3.md) relies on the Arduino platform to drastically enhance capabilities to include smart, multifunctional spy features. Surprisingly, energy consumption is reduced.
     - [Generation 4](./Generation_4/Generation_4.md) devices are electronically identical to the third but use customised PCBs and refined mechanical designs to improve aesthetics and stability.
     - [Fifth generation](./Generation_5/Generation_5.md) cyborg gadgets switch from [AVR based microcontrollers](https://en.wikipedia.org/wiki/Atmel) to [ESP32](https://www.espressif.com/en/products/socs/esp32-c3) based chips, significantly improving proccessing capabilities while retaining small form factor.
-    - Sixth Generation devices are to the Fifth Generation, what the Fourth Generation was to the Third: electrically identical to their predecessor, but implemented on a custom PCB.
+    - Sixth Generation devices use ESP's like the 5th, but are sturdier, more feature rich and more compact than the 5th generation on account of using specialised boards with builtin features.
     - [The Seventh Generation](./Generation_7/Generation_7.md) hasn’t been fully defined yet, but the LicheeRV Nano is a promising candidate for its microcontroller. Since the ESP32 devices used in the fifth and sixth generations already exceed the performance requirements at the present time, there is no immediate pressure to launch a Seventh Generation.
 
 - **Type of gadget**: While originally focused on watch extensions, the project now includes devices for:

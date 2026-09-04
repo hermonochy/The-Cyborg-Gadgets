@@ -42,7 +42,7 @@ int selectedFunction = 0;
 
 const int buttons[] = {7, 8, 13, 6, 5, 4};
 
-const int threshold = 50000;
+const int threshold = 30000;
 
 byte Func1 = 2;
 byte Func2 = 1;
@@ -199,25 +199,34 @@ void setup() {
   canvas.createSprite(SCREEN_WIDTH, SCREEN_HEIGHT);
   canvas.setTextDatum(TL_DATUM);
 
-  canvas.fillSprite(display.color565(10, 10, 12));
-  canvas.fillCircle(SCREEN_WIDTH / 2, SCREEN_HEIGHT / 2, SCREEN_WIDTH / 2, display.color565(14, 14, 16));
-  canvas.setTextSize(2);
-  canvas.setTextColor(display.color565(240, 240, 245), display.color565(14, 14, 16));
-  canvas.setTextDatum(MC_DATUM);
-  canvas.drawString("Watch 5.2", SCREEN_WIDTH / 2, SCREEN_HEIGHT / 2 - 6);
-  canvas.pushSprite(0, 0);
-  delay(1000);
+  esp_sleep_wakeup_cause_t wakeup_reason = esp_sleep_get_wakeup_cause();
   
-  timeMenu();
+  // later more wakeups will also be used
+  switch (wakeup_reason) {
+    case ESP_SLEEP_WAKEUP_TOUCHPAD:
+      timeMenu();
+      break;
+    default:
+      canvas.fillSprite(display.color565(10, 10, 12));
+      canvas.fillCircle(SCREEN_WIDTH / 2, SCREEN_HEIGHT / 2, SCREEN_WIDTH / 2, display.color565(14, 14, 16));
+      canvas.setTextSize(2);
+      canvas.setTextColor(display.color565(240, 240, 245), display.color565(14, 14, 16));
+      canvas.setTextDatum(MC_DATUM);
+      canvas.drawString("Watch 5.2", SCREEN_WIDTH / 2, SCREEN_HEIGHT / 2 - 6);
+      canvas.pushSprite(0, 0);
+      delay(1000);
+  }
 }
 
 void loop() {
   selectedFunction = drawMenu(Functions, totalFunctions, selectedFunction);
   switch (selectedFunction) {
-    case 0: timeMenu();    break;
-    case 1: watchFuncs();  break;
-    case 2: calculator();  break;
-    case 4: counterMenu(); break;
+    case 0:  timeMenu();      break; 
+    case 1:  watchFuncs();    break;
+    case 2:  calculator();    break;
+    case 4:  counterMenu();   break;
+    case 12: touchDebug();    break;
+    case 13: esp_deep_sleep_start();
   }
-  delay(120);
+  delay(150);
 }
