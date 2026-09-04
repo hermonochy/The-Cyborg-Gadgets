@@ -2,6 +2,7 @@
 // NOTE: will NOT work with a C3. Requires an S3.
 
 #include <TFT_eSPI.h>
+#include <MacRandomizer.h>
 #include <Preferences.h>
 #include <WiFi.h>
 #include <Wire.h>
@@ -17,6 +18,8 @@
 
 TFT_eSPI display = TFT_eSPI();
 TFT_eSprite canvas = TFT_eSprite(&display);
+
+MacRandomizer macRandom;
 
 Preferences preferences;
 
@@ -179,21 +182,16 @@ int drawMenu(const char* items[], int itemCount, int startIndex = 0) {
   }
 }
 
-void randomiseMac(){
-  uint8_t mac[6];
-  for (int i = 0; i < 6; i++) {
-    mac[i] = random(0, 256);
-  }
-  mac[0] = (mac[0] | 0x02) & 0xFE;
-  esp_wifi_set_mac(WIFI_IF_STA, mac);
-}
-
 void setup() {
   Serial.begin(115200);
 
   pinMode(Func1, OUTPUT);
   pinMode(Func2, OUTPUT);
-  randomiseMac();
+
+  macRandom.begin();
+
+  setenv("TZ", "GMT0BST,M3.5.0/1,M10.5.0/2", 1);
+  tzset();
 
   display.init();
   display.setRotation(2);
@@ -216,9 +214,9 @@ void setup() {
 void loop() {
   selectedFunction = drawMenu(Functions, totalFunctions, selectedFunction);
   switch (selectedFunction) {
-    case 0: timeMenu(); break;
-    case 1: watchFuncs(); break;
-    case 2: calculator(); break;
+    case 0: timeMenu();    break;
+    case 1: watchFuncs();  break;
+    case 2: calculator();  break;
     case 4: counterMenu(); break;
   }
   delay(120);

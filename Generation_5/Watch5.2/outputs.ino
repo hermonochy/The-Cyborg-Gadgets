@@ -4,26 +4,22 @@ void activateFunc(byte func, unsigned long blinkTime = 500000UL) {
   bool outputOn = digitalRead(func);
   unsigned long lastToggle = micros();
 
-  // ensure blinkTime within allowed range (1 us .. 10 s)
   const unsigned long MIN_US = 1UL;
   const unsigned long MAX_US = 10000000UL;
   if (blinkTime < MIN_US) blinkTime = MIN_US;
   if (blinkTime > MAX_US) blinkTime = MAX_US;
 
-  // small helper to format blink time concisely
   auto formatBlink = [&](char *buf, size_t len, unsigned long us) {
     if (us < 1000) {
-      snprintf(buf, len, "%lu\xC2\xB5s", us);  // µs
+      snprintf(buf, len, "%lu\xC2\xB5s", us);  
     } else if (us < 1000000UL) {
       snprintf(buf, len, "%lums", us / 1000UL);
     } else {
-      // show 1 decimal second
-      unsigned long tenths = (us + 50000UL) / 100000UL;  // tenths of second
+      unsigned long tenths = (us + 50000UL) / 100000UL;  
       snprintf(buf, len, "%lu.%lus", tenths / 10, tenths % 10);
     }
   };
 
-  // wait for release of any touch to avoid immediate toggles
   while (a_button_is_pressed()) delay(10);
 
   unsigned long lastDraw = 0;
@@ -31,7 +27,6 @@ void activateFunc(byte func, unsigned long blinkTime = 500000UL) {
     unsigned long nowMs = millis();
     unsigned long nowUs = micros();
 
-    // handle blink timing using microsecond granularity
     if (keepOn) {
       outputOn = true;
       digitalWrite(func, HIGH);
@@ -42,7 +37,6 @@ void activateFunc(byte func, unsigned long blinkTime = 500000UL) {
         lastToggle = nowUs;
       }
     } else {
-      // manual: hold first button to turn on momentarily
       if (button_is_pressed(buttons[0])) {
         digitalWrite(func, HIGH);
         outputOn = true;
@@ -60,25 +54,21 @@ void activateFunc(byte func, unsigned long blinkTime = 500000UL) {
       if (blink) keepOn = false;
       lastToggle = micros();
     }
-    if (button_is_pressed(buttons[3], true)) {  // slower
-      // if >1us, divide by 2, else stay at 1
+    if (button_is_pressed(buttons[3], true)) {  
       if (blinkTime > MIN_US) {
         blinkTime = max(MIN_US, blinkTime / 2UL);
       }
     }
-    if (button_is_pressed(buttons[4], true)) {  // faster
+    if (button_is_pressed(buttons[4], true)) {  
       if (blinkTime < MAX_US) {
-        // multiply by 2 but cap
         unsigned long next = blinkTime * 2UL;
         blinkTime = next > MAX_US ? MAX_US : next;
       }
     }
-    if (button_is_pressed(buttons[5], true)) {  // exit
-      // leave the output in its current state (respect keepOn/blink)
+    if (button_is_pressed(buttons[5], true)) {  
       return;
     }
 
-    // draw minimal, compact UI (throttle)
     if ((nowMs - lastDraw) > 60) {
       lastDraw = nowMs;
 
@@ -95,24 +85,20 @@ void activateFunc(byte func, unsigned long blinkTime = 500000UL) {
       canvas.fillCircle(cx, cy, SCREEN_WIDTH / 2, display.color565(14, 14, 16));
       canvas.fillCircle(cx, cy, SCREEN_WIDTH / 2 - 6, BG);
 
-      // central plate
       canvas.fillCircle(cx, cy - 6, 86, PLATE);
       canvas.drawCircle(cx, cy - 6, 86, display.color565(46, 48, 52));
 
-      // big ON/OFF
       canvas.setTextDatum(MC_DATUM);
       canvas.setTextSize(4);
       canvas.setTextColor(TXT, PLATE);
       canvas.drawString(outputOn ? "ON" : "OFF", cx, cy - 18);
 
-      // mode small
       canvas.setTextSize(1);
       canvas.setTextColor(outputOn ? ONCOL : OFFCOL, PLATE);
       if (keepOn) canvas.drawString("ALWAYS", cx, cy + 18);
       else if (blink) canvas.drawString("BLINK", cx, cy + 18);
       else canvas.drawString("MANUAL", cx, cy + 18);
 
-      // blink time display (compact)
       if (blink) {
         char tb[24];
         formatBlink(tb, sizeof(tb), blinkTime);
@@ -133,7 +119,7 @@ void activateFunc(byte func, unsigned long blinkTime = 500000UL) {
 
 void watchFuncs(void) {
   const byte pins[] = { Func1, Func2 };
-  const char *labels[] = { "LED", "Laser" };  // short labels to fit round display
+  const char *labels[] = { "LED", "Laser" };  
   const int count = sizeof(pins) / sizeof(pins[0]);
 
   int idx = 0;
@@ -156,33 +142,26 @@ void watchFuncs(void) {
       canvas.fillCircle(cx, SCREEN_HEIGHT / 2, SCREEN_WIDTH / 2, display.color565(14, 14, 16));
       canvas.fillCircle(cx, SCREEN_HEIGHT / 2, SCREEN_WIDTH / 2 - 6, BG);
 
-      // title
       canvas.setTextDatum(TC_DATUM);
       canvas.setTextSize(2);
       canvas.setTextColor(TXT, CARD);
       canvas.drawString("Outputs", cx, 18);
 
-      // show current selection large in the center
       canvas.setTextDatum(MC_DATUM);
       canvas.setTextSize(3);
       canvas.setTextColor(ACCENT, CARD);
       canvas.drawString(labels[idx], cx, SCREEN_HEIGHT / 2 - 6);
 
-      // status indicator below
       bool on = digitalRead(pins[idx]);
       canvas.setTextSize(1);
       canvas.setTextColor(on ? display.color565(80, 220, 140) : MUTED, CARD);
       canvas.drawString(on ? "ON" : "OFF", cx, SCREEN_HEIGHT / 2 + 28);
 
-      // small index left/right
       canvas.setTextSize(1);
       canvas.setTextColor(TXT, BG);
-      // prev label
       canvas.drawString(labels[(idx - 1 + count) % count], cx - 64, SCREEN_HEIGHT / 2 - 6);
-      // next label
       canvas.drawString(labels[(idx + 1) % count], cx + 64, SCREEN_HEIGHT / 2 - 6);
 
-      // footer minimal
       canvas.setTextSize(1);
       canvas.setTextDatum(MC_DATUM);
       canvas.setTextColor(display.color565(160, 160, 170), BG);
@@ -194,19 +173,17 @@ void watchFuncs(void) {
     if (button_is_pressed(buttons[4])) {
       idx = (idx + 1) % count;
       delay(160);
-    } else if (button_is_pressed(buttons[3])) {  // prev
+    } else if (button_is_pressed(buttons[3])) {  
       idx = (idx - 1 + count) % count;
       delay(160);
-    } else if (button_is_pressed(buttons[5], true)) {  // select
-      // choose blinkTime param corresponding to label if available
+    } else if (button_is_pressed(buttons[5], true)) {  
       unsigned long bt = 500000UL;
       if (pins[idx] == Func1) bt = (unsigned long)blinkTime1;
       else if (pins[idx] == Func2) bt = (unsigned long)blinkTime2;
       activateFunc(pins[idx], bt);
-      // upon return, ensure any possibly changed blinkTime is kept back to global if relevant
       if (pins[idx] == Func1) blinkTime1 = (int)min((unsigned long)INT32_MAX, bt);
       else if (pins[idx] == Func2) blinkTime2 = (int)min((unsigned long)INT32_MAX, bt);
-    } else if (button_is_pressed(buttons[2], true)) {  // back
+    } else if (button_is_pressed(buttons[2], true)) {  
       return;
     }
 

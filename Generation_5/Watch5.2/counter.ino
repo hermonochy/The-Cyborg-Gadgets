@@ -105,7 +105,7 @@ void counterCounting(int initialPlayers, int initialScores[4], int preferredSlot
   int players = constrain(initialPlayers, 1, 4);
   int scores[4] = {0,0,0,0};
   for (int i=0;i<4;i++) scores[i] = initialScores ? initialScores[i] : 0;
-  int slotToSave = preferredSlot; // if -1 auto assign on save
+  int slotToSave = preferredSlot; 
 
   const int incButtons[4] = { buttons[0], buttons[3], buttons[1], buttons[4] };
   while (true) {
@@ -128,7 +128,6 @@ void counterCounting(int initialPlayers, int initialScores[4], int preferredSlot
       savedSlots[slot].players = players;
       for (int i=0;i<4;i++) savedSlots[slot].scores[i] = scores[i];
       saveScoreSlotToNVS(slot);
-      // brief saved confirmation
       const int cx = SCREEN_WIDTH/2;
       const int cy = SCREEN_HEIGHT/2;
       canvas.fillSprite(display.color565(10,10,12));
@@ -143,10 +142,9 @@ void counterCounting(int initialPlayers, int initialScores[4], int preferredSlot
       canvas.drawString(buf, cx, cy + 18);
       canvas.pushSprite(0,0);
       delay(700);
-      slotToSave = slot; // subsequent saves overwrite same slot
+      slotToSave = slot; 
     }
 
-    // return to counter menu
     if (button_is_pressed(buttons[5], true)) {
       delay(200);
       return;
@@ -214,20 +212,19 @@ void counterMenu() {
   int sel = 0;
   while (true) {
     drawCounterMenu(sel, 0);
-    if (button_is_pressed(buttons[5])) { // next
+    if (button_is_pressed(buttons[5])) { 
       sel = (sel + 1) % MAX_SLOTS;
       delay(160);
-    } else if (button_is_pressed(buttons[3])) { // prev
+    } else if (button_is_pressed(buttons[3])) { 
       sel = (sel - 1 + MAX_SLOTS) % MAX_SLOTS;
       delay(160);
-    } else if (button_is_pressed(buttons[4], true)) { // select -> load into counting if used, else prompt create new
+    } else if (button_is_pressed(buttons[4], true)) { 
       if (savedSlots[sel].used) {
         int tmpScores[4];
         for (int i=0;i<4;i++) tmpScores[i] = savedSlots[sel].scores[i];
         counterCounting(savedSlots[sel].players, tmpScores, sel);
         loadAllScoreSlots();
       } else {
-        // create new: pick number of players (1-4) simply by cycling with prev/next and confirm with select
         int p = 1;
         unsigned long ld = 0;
         while (true) {

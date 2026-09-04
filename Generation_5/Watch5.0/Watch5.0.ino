@@ -2,6 +2,7 @@
 
 #include <Adafruit_GFX.h>
 #include <Adafruit_SSD1306.h>
+#include <MacRandomizer.h>
 #include <Preferences.h>
 #include <WiFi.h>
 #include <Wire.h>
@@ -18,6 +19,8 @@
 
 Adafruit_SSD1306 display(SCREEN_WIDTH, SCREEN_HEIGHT, &Wire, OLED_RESET);
 Preferences preferences;
+
+MacRandomizer macRandom;
 
 #define totalFunctions 13
 #define numSettings 5
@@ -178,15 +181,6 @@ void loadBtnVals(){
   preferences.end();
 }
 
-void randomiseMac(){
-  uint8_t mac[6];
-  for (int i = 0; i < 6; i++) {
-    mac[i] = random(0, 256);
-  }
-  mac[0] = (mac[0] | 0x02) & 0xFE;
-  esp_wifi_set_mac(WIFI_IF_STA, mac);
-}
-
 void timeSyncAndUI() {
   if (wifiNetworkCount == 0) {
     delay(2000);
@@ -280,6 +274,11 @@ void setup() {
   pinMode(Func2, OUTPUT);
   pinMode(Func3, OUTPUT);
 
+  macRandom.begin();
+
+  setenv("TZ", "GMT0BST,M3.5.0/1,M10.5.0/2", 1);
+  tzset();
+
   esp_sleep_enable_timer_wakeup(100000); // 100ms
 
   loadBtnVals();
@@ -294,9 +293,7 @@ void setup() {
   }
 
   Serial.begin(115200);
-  
-  randomiseMac();
-  
+    
   initializeNotesNVS(); 
   loadWiFiNetworksFromNVS();
 
