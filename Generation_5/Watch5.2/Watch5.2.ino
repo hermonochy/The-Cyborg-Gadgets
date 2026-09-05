@@ -225,6 +225,7 @@ void loop() {
     case 1:  watchFuncs();    break;
     case 2:  calculator();    break;
     case 4:  counterMenu();   break;
+    case 5:  spaceInvaders(); break;
     case 12: touchDebug();    break;
     case 13: esp_deep_sleep_start();
   }

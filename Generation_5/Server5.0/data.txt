@@ -1,6 +1,0 @@
-192.168.178.47
-
-
-const char* ssid = "FRITZ!Box 7530 RO";
-const char* password = "32385398851835541547";
-
