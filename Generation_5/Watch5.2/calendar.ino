@@ -111,7 +111,7 @@ void calendar(void) {
     
     display.display();
     
-    if (button_is_pressed(btn3)) {
+    if (button_is_pressed(btn4)) {
       createNewEvent();
       delay(200);
     }
@@ -119,7 +119,7 @@ void calendar(void) {
       viewEvents();
       delay(200);
     }
-    else if (button_is_pressed(btn6)) {
+    else if (button_is_pressed(btn8)) {
       return;
     }
     
@@ -170,7 +170,7 @@ void createNewEvent() {
   display.display();
   
   while (true) {
-    if (button_is_pressed(btn3)) {
+    if (button_is_pressed(btn4)) {
       newEvent.used = true;
       newEvent.alarmed = false;
       events[eventCount] = newEvent;
@@ -185,7 +185,7 @@ void createNewEvent() {
       delay(1500);
       return;
     }
-    if (button_is_pressed(btn6)) {
+    if (button_is_pressed(btn8)) {
       display.fillScreen(ST77XX_BLACK);
       display.setTextSize(1);
       display.setCursor(0, 20);
@@ -229,7 +229,7 @@ void selectDateTime(CalendarEvent* event) {
     display.printf("%02d", event->minute);
     
     display.setCursor(0, 56);
-    display.println("1:- 2:+ 3:Next 6:Done");
+    display.println("1:- 2:+ 3:Next 8:Done");
     
     display.display();
     
@@ -245,7 +245,7 @@ void selectDateTime(CalendarEvent* event) {
       field = (field + 1) % 5;
       delay(150);
     }
-    else if (button_is_pressed(btn6)) {
+    else if (button_is_pressed(btn8, true)) {
       return;
     }
     
@@ -336,7 +336,7 @@ void viewEvents() {
       display.println(events[selectedIdx].message);
       
       display.setCursor(0, 56);
-      display.println("4:Del 5:Edit 6:Back");
+      display.println("5:Del 6:Edit 8:Back");
     }
     
     display.display();
@@ -349,18 +349,18 @@ void viewEvents() {
       selectedIdx = (selectedIdx + 1) % eventCount;
       delay(150);
     }
-    else if (button_is_pressed(btn4)) {
+    else if (button_is_pressed(btn5)) {
       deleteEvent(selectedIdx);
       if (selectedIdx >= eventCount && eventCount > 0) {
         selectedIdx = eventCount - 1;
       }
       delay(200);
     }
-    else if (button_is_pressed(btn5)) {
+    else if (button_is_pressed(btn6)) {
       editEvent(selectedIdx);
       delay(200);
     }
-    else if (button_is_pressed(btn6)) {
+    else if (button_is_pressed(btn8, true)) {
       return;
     }
     
@@ -380,7 +380,7 @@ void deleteEvent(int idx) {
   display.display();
   
   while (true) {
-    if (button_is_pressed(btn3)) {
+    if (button_is_pressed(btn4)) {
       for (int i = idx; i < eventCount - 1; i++) {
         events[i] = events[i + 1];
       }
@@ -395,7 +395,7 @@ void deleteEvent(int idx) {
       delay(1000);
       return;
     }
-    if (button_is_pressed(btn6)) {
+    if (button_is_pressed(btn8)) {
       return;
     }
     delay(50);
@@ -460,15 +460,18 @@ void triggerAlarm(CalendarEvent* event) {
   display.println(event->message);
   
   display.setCursor(0, 56);
-  display.println("6:Dismiss");
+  display.println("8:Dismiss");
   display.display();
 
-  while (!button_is_pressed(btn6)) {
+  digitalWrite(Func3, HIGH);
+
+  while (!button_is_pressed(btn8)) {
     display.invertDisplay(true);
     delay(250);
     display.invertDisplay(false);
     delay(250);
   }
+  digitalWrite(Func3, LOW);
 }
 
 // Serial menu functions

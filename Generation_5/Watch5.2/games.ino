@@ -51,7 +51,7 @@ void games() {
     display.display();
     delay(50);
     
-    if (button_is_pressed(btn4)) {
+    if (button_is_pressed(btn5)) {
       selected = (selected + 1) % 2;
       delay(100);
     }
@@ -59,7 +59,7 @@ void games() {
       selected = (selected - 1 + 2) % 2;
       delay(100);
     }
-    else if (button_is_pressed(btn3)) {
+    else if (button_is_pressed(btn4)) {
       switch (selected) {
         case 0:
           arcadeGames();
@@ -69,7 +69,7 @@ void games() {
           break;
       }
     }
-    else if (button_is_pressed(btn6, true)) return;
+    else if (button_is_pressed(btn8, true)) return;
   }
 }
 
@@ -102,7 +102,7 @@ void arcadeGames() {
     display.display();
     delay(50);
     
-    if (button_is_pressed(btn4)) {
+    if (button_is_pressed(btn5)) {
       selected = (selected + 1) % 5;
       delay(100);
     }
@@ -110,7 +110,7 @@ void arcadeGames() {
       selected = (selected - 1 + 5) % 5;
       delay(100);
     }
-    else if (button_is_pressed(btn3)) {
+    else if (button_is_pressed(btn4)) {
       switch (selected) {
         case 0:
           shooter();
@@ -129,7 +129,7 @@ void arcadeGames() {
           break;
       }
     }
-    if (button_is_pressed(btn6, true)) return;
+    if (button_is_pressed(btn8, true)) return;
   }
 }
 
@@ -162,7 +162,7 @@ void mathsGames() {
     display.display();
     delay(50);
     
-    if (button_is_pressed(btn4)) {
+    if (button_is_pressed(btn5)) {
       selected = (selected + 1) % 1;
       delay(100);
     }
@@ -170,14 +170,14 @@ void mathsGames() {
       selected = (selected - 1 + 1) % 1;
       delay(100);
     }
-    else if (button_is_pressed(btn3)) {
+    else if (button_is_pressed(btn4)) {
       switch (selected) {
         case 0:
           countdown();
           break;
       }
     }
-    else if (button_is_pressed(btn6, true)) return;
+    else if (button_is_pressed(btn8, true)) return;
   }
 }
 
@@ -205,12 +205,18 @@ void shooter() {
     unsigned long now = millis();
 
     if (button_is_pressed(btn1, false) && playerX > 0) {
-      playerX -= 3;
+      playerX -= 2;
     }
-    if (button_is_pressed(btn2, false) && playerX < 120) {
-      playerX += 3;
+    if (button_is_pressed(btn4, false) && playerX < 120) {
+      playerX += 2;
     }
-    if (button_is_pressed(btn3, false) && now - lastShot > 200) {
+    if (button_is_pressed(btn2, false) && playerX > 0) {
+      playerX -= 5;
+    }
+    if (button_is_pressed(btn3, false) && playerX < 120) {
+      playerX += 5;
+    }
+    if (button_is_pressed(btn5, false) && now - lastShot > 200) {
       for (int i = 0; i < 8; i++) {
         if (!bullets[i].active) {
           bullets[i].x = playerX + 2;
@@ -221,7 +227,7 @@ void shooter() {
         }
       }
     }
-    if (button_is_pressed(btn6)) return;
+    if (button_is_pressed(btn8)) return;
 
     for (int i = 0; i < 8; i++) {
       if (bullets[i].active) {
@@ -354,8 +360,8 @@ void snake(void) {
     if (button_is_pressed(btn1, false) && dirX == 0) { nextDirX = -4; nextDirY = 0; }
     if (button_is_pressed(btn3, false) && dirX == 0) { nextDirX = 4; nextDirY = 0; }
     if (button_is_pressed(btn2, false) && dirY == 0) { nextDirX = 0; nextDirY = -4; }
-    if (button_is_pressed(btn5, false) && dirY == 0) { nextDirX = 0; nextDirY = 4; }
-    if (button_is_pressed(btn6)) return;
+    if (button_is_pressed(btn6, false) && dirY == 0) { nextDirX = 0; nextDirY = 4; }
+    if (button_is_pressed(btn8)) return;
     
     if (now - lastMove > 150) {
       dirX = nextDirX;
@@ -444,11 +450,11 @@ void flappyBird(void) {
   unsigned long lastFlap = 0;
   
   while (!gameOver) {
-    if (button_is_pressed(btn3, false) || button_is_pressed(btn5, false) || button_is_pressed(btn1, false)) {
+    if (button_is_pressed(btn4, false) || button_is_pressed(btn2, false) || button_is_pressed(btn1, false)) {
       birdVelocity = flapPower;
       lastFlap = millis();
     }
-    if (button_is_pressed(btn6)) return;
+    if (button_is_pressed(btn8)) return;
     
     birdVelocity += gravity;
     birdY += birdVelocity;
@@ -551,7 +557,7 @@ void geometryDash(void) {
   while (!gameOver) {
     unsigned long now = millis();
     
-    if (button_is_pressed(btn1, false) || button_is_pressed(btn4, false) || button_is_pressed(btn3, false)) {
+    if (button_is_pressed(btn1, false) || button_is_pressed(btn5, false) || button_is_pressed(btn4, false)) {
       if (!spacePressed && !isJumping) {
         isJumping = true;
         jumpVelocity = jumpPower;
@@ -561,7 +567,7 @@ void geometryDash(void) {
       spacePressed = false;
     }
     
-    if (button_is_pressed(btn6)) return;
+    if (button_is_pressed(btn8)) return;
     
     if (isJumping) {
       jumpVelocity += gravity;
@@ -759,8 +765,8 @@ void flying3D() {
     if (button_is_pressed(btn1, false) && shipX > minX)    shipX -= 2;
     if (button_is_pressed(btn3, false) && shipX < maxX)    shipX += 2;
     if (button_is_pressed(btn2, false) && shipY > minY)    shipY -= 2;
-    if (button_is_pressed(btn5, false) && shipY < maxY)    shipY += 2;
-    if (button_is_pressed(btn6)) return;
+    if (button_is_pressed(btn6, false) && shipY < maxY)    shipY += 2;
+    if (button_is_pressed(btn8)) return;
 
     for (int i = 0; i < num_coins; ++i) {
       if (!coins[i].active) continue;
@@ -855,12 +861,12 @@ void countdown() {
             if (button_is_pressed(btn1, false) && selectedCount > 2) {
                 selectedCount--;
                 delay(180);
-            } else if (button_is_pressed(btn3, false) && selectedCount < 6) {
+            } else if (button_is_pressed(btn4, false) && selectedCount < 6) {
                 selectedCount++;
                 delay(180);
             } else if (button_is_pressed(btn5, true)) {
                 readyForNewRound = false;
-            } else if (button_is_pressed(btn6)) {
+            } else if (button_is_pressed(btn8)) {
                 return; 
             }
             delay(30);
@@ -911,7 +917,7 @@ void countdown() {
                 break;
             }
             // else if (button_is_pressed(btn1)) countdownSolver();
-            if (button_is_pressed(btn6)) return;
+            if (button_is_pressed(btn8)) return;
 
             delay(80);
         }
@@ -1034,12 +1040,12 @@ int enterIntInput(const char *prompt, int initial, int minv, int maxv) {
         if (button_is_pressed(btn1, false) && val > minv) {
             val--;
             delay(120);
-        } else if (button_is_pressed(btn3, false) && val < maxv) {
+        } else if (button_is_pressed(btn4, false) && val < maxv) {
             val++;
             delay(120);
         } else if (button_is_pressed(btn5, true)) {
             return val;
-        } else if (button_is_pressed(btn6)) {
+        } else if (button_is_pressed(btn8)) {
             return -1;
         }
         delay(30);
@@ -1087,7 +1093,7 @@ void countdownSolver() {
         display.display();
 
         if (button_is_pressed(btn5, true)) break;
-        if (button_is_pressed(btn6)) return;
+        if (button_is_pressed(btn8)) return;
         delay(60);
     }
 
@@ -1148,7 +1154,7 @@ void countdownSolver() {
                 page--;
                 delay(130);
             }
-            if (button_is_pressed(btn3, false) && page < totalPages-1) {
+            if (button_is_pressed(btn4, false) && page < totalPages-1) {
                 page++;
                 delay(130);
             }
@@ -1163,7 +1169,7 @@ void countdownSolver() {
             }
             delay(130);
         }
-        if (button_is_pressed(btn6))
+        if (button_is_pressed(btn8))
             return;
         delay(60);
     }

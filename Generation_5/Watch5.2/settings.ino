@@ -7,21 +7,22 @@
 #include <esp_spi_flash.h>
 #include <rom/rtc.h>
 
-int *btnRefs[] = {&btn1, &btn2, &btn3, &btn4, &btn5, &btn6};
-const int *defBtnRefs[] = {&defBtn1, &defBtn2, &defBtn3, &defBtn4, &defBtn5, &defBtn6};
+int *btnRefs[] = {&btn1, &btn2, &btn3, &btn4, &btn5, &btn6, &btn7, &btn8};
+const int *defBtnRefs[] = {&defBtn1, &defBtn2, &defBtn3, &defBtn4, &defBtn5, &defBtn6, &defBtn7, &defBtn8};
 
-const char *labels[] = {"Btn 1", "Btn 2", "Btn 3", "Btn 4", "Btn 5", "Btn 6"};
+const char *labels[] = {"Btn 1", "Btn 2", "Btn 3", "Btn 4", "Btn 5", "Btn 6", "Btn 7", "Btn 8"};
 
 void settings() {
   while (true) {
     display.fillScreen(ST77XX_BLACK);
     display.setTextSize(1);
-    display.setCursor(0, 20);
+    display.setCursor(0, 10);
     display.println("1. Tune Btns");
     display.println("2. Preferences");
     display.println("3. Debug");
     display.println("4. System Info");
     display.println("5. Btn Settings");
+    display.println("6. TFT Settings");
     display.display();
     delay(50);
     
@@ -30,7 +31,8 @@ void settings() {
     else if (button_is_pressed(btn3)) debug();
     else if (button_is_pressed(btn4)) break;//chipStats();
     else if (button_is_pressed(btn5)) btnSettings();
-    else if (button_is_pressed(btn6)) return;
+    else if (button_is_pressed(btn6)) TFTSettings();
+    else if (button_is_pressed(btn8, true)) return;
   }
 }
 
@@ -38,10 +40,10 @@ void settings() {
 void tuneButtonVals() {
   // ensure no mis-measurements
   while (a_button_is_pressed()) {}
-  const int sampleCount = 75;
+  const int sampleCount = 175;
   int samples[sampleCount];
 
-  for (int i = 0; i < 6; i++) {
+  for (int i = 0; i < 8; i++) {
     display.fillScreen(ST77XX_BLACK);
     display.setTextSize(2);
     display.setCursor(0, 30);
@@ -75,18 +77,18 @@ void tuneButtonVals() {
   }
 }
 
-int rotation = 0;
+int rotation = 3;
 void prefs() {
   int settingIndex = 0;
   bool displayOff = false;
-  while(!button_is_pressed(btn6, true)){
+  while(!button_is_pressed(btn8, true)){
     display.fillScreen(ST77XX_BLACK);
-    display.setTextSize(1);
-    display.setCursor(0,5);
+    display.setTextSize(2);
+    display.setCursor(0,0);
     display.print(settingFuncs[settingIndex]);
 
     display.setTextSize(1);
-    display.setCursor(0,24);
+    display.setCursor(0,20);
 
     switch(settingIndex) {
       case 0:
@@ -107,7 +109,7 @@ void prefs() {
         else if(button_is_pressed(btn4, false)) {
           buttonValRange--;
         }
-        else if(button_is_pressed(btn3)) buttonOffset = 0;
+        else if(button_is_pressed(btn4)) buttonOffset = 0;
         break;
       case 1:
         display.print("Blk 1: ");
@@ -124,7 +126,7 @@ void prefs() {
           blinkTime1 /= 2;
           if(blinkTime1 < 1) blinkTime1 = 1;
         }
-        if(button_is_pressed(btn3)) {
+        if(button_is_pressed(btn4)) {
           Func1--;
           if(Func1 < 0) Func1 = 10;
         }
@@ -148,7 +150,7 @@ void prefs() {
           blinkTime2 /= 2;
           if(blinkTime2 < 1) blinkTime2 = 1;
         }
-        if(button_is_pressed(btn3)) {
+        if(button_is_pressed(btn4)) {
         Func2--;
         if(Func2 < 0) Func1 = 10;
       }
@@ -168,28 +170,10 @@ void prefs() {
         if(Func3 > 10) Func3 = 0;
       }
         break;
-      case 4:
-        display.print(rotation%4);
-        if(button_is_pressed(btn1)) {
-          rotation ++;
-        }
-        if(button_is_pressed(btn2, true)) {
-          if(displayOff) {
-            digitalWrite(BL_PIN, HIGH);
-            displayOff = false;
-          }
-          else {
-            digitalWrite(BL_PIN, LOW);
-            displayOff = true;
-          }
-        }
-        display.setRotation(rotation%4);
-        delay(50);
-        break;
     }
     display.display();
     delay(100);
-    if(button_is_pressed(btn3, true)) {
+    if(button_is_pressed(btn4, true)) {
       settingIndex = (settingIndex + 1) % numSettings;
     }
   }
@@ -199,13 +183,12 @@ void debug() {
   int posY;
   while (true) {
     display.fillScreen(ST77XX_BLACK);
-    display.setTextSize(2);
+    display.setTextSize(1);
     display.setCursor(0, 0);
     display.print("ADC: ");
     display.print(analogRead(buttonPin));
-    display.setTextSize(1);
-    for (int i = 0; i < 6;i++) {
-      posY = 18 + i*8;
+    for (int i = 0; i < 8;i++) {
+      posY = 12 + i*8;
       display.setCursor(0, posY);
       display.print(labels[i]);
       display.print(": ");
@@ -218,7 +201,7 @@ void debug() {
     }
     display.display();
     // TODO: an alternative needs to be found here:
-    if (button_is_pressed(btn6)) {
+    if (button_is_pressed(btn8, true)) {
       return;
     }
     delay(100);
@@ -260,8 +243,8 @@ void chipStats() {
     display.display();
     if (button_is_pressed(btn1)) { if (scroll > 0) scroll--; delay(120); }
     else if (button_is_pressed(btn2)) { if (scroll < n - 5) scroll++; delay(120); }
-    else if (button_is_pressed(btn3)) runtimeStats();
-    else if (button_is_pressed(btn6, true)) break;
+    else if (button_is_pressed(btn4)) runtimeStats();
+    else if (button_is_pressed(btn8, true)) break;
     delay(40);
   }
 }
@@ -295,7 +278,7 @@ void runtimeStats() {
 
     unsigned long ref = millis();
     while (millis() - ref < 950) {
-      if (button_is_pressed(btn6, true)) return;
+      if (button_is_pressed(btn8, true)) return;
       delay(20);
     }
   }
@@ -304,16 +287,68 @@ void runtimeStats() {
 void btnSettings(){
   display.fillScreen(ST77XX_BLACK);
   display.setCursor(5, 20);
-  display.println("1. Save Btn Vals");
-  display.println("2. Revert Btn Vals");
+  display.print("1. Save Btn Vals");
+  display.setCursor(5, 30);
+  display.print("2. Revert Btn Vals");
   display.display();
-  while(true){
-    if (button_is_pressed(btn1)) saveBtnVals();
+  while(true) {
+    if (button_is_pressed(btn1)) { 
+      saveBtnVals();
+      return;
+    }
     else if (button_is_pressed(btn2)) {
       for (int i = 0; i < 6; i++){
         *btnRefs[i] = *defBtnRefs[i];
       }
+      return;
     }
-    else if (button_is_pressed(btn6)) return;
+    else if (button_is_pressed(btn8, true)) return;
+  }
+}
+
+void TFTSettings() {
+  while(!button_is_pressed(btn8, true)){
+
+    display.fillScreen(ST77XX_BLACK);
+    display.setCursor(5, 10);
+    display.print("Rotation: ");
+    display.print(rotation%4);
+    display.setCursor(5, 20);
+    display.print("BL Pin: ");
+    display.print(BL_power);
+    if (button_is_pressed(btn2, true)) {
+      rotation ++;
+    }
+    else if (button_is_pressed(btn1)) BL_power+=5;
+    else if (button_is_pressed(btn5)) BL_power-=5;
+    else if (button_is_pressed(btn3, true)) {
+      if (inverted) {
+        display.invertDisplay(false);
+        inverted = false;
+      }
+      else {
+        display.invertDisplay(true);
+        inverted = true;
+      }
+    }
+
+    else if (button_is_pressed(btn4)){
+      for (int i = 0; i <= 255; i+=1) {
+        display.fillScreen(Wheel(i));
+        display.display();
+        delay(10);
+      }
+    }
+
+    display.setCursor(0, 62);
+    display.print("1/5: +/-  2: rot          3: invert 4: wheel");
+
+    BL_power = constrain(BL_power, 0, 4095);
+
+    display.setRotation(rotation%4);
+    analogWrite(BL_PIN, BL_power);
+
+    delay(50);
+    display.display();
   }
 }

@@ -25,7 +25,7 @@ Adafruit_GFX_Buffer<Adafruit_ST7735> display = Adafruit_GFX_Buffer<Adafruit_ST77
 Preferences preferences;
 
 #define totalFunctions 13
-#define numSettings 5
+#define numSettings 4
 
 #define MAX_WIFI_NETWORKS 5
 #define MAX_WIFI_SSID 32
@@ -33,19 +33,23 @@ Preferences preferences;
 
 
 const char *Functions[] = {"Outputs", "Maths", "Random", "Score", "Games", "Metronome", "Notes", "Calendar", "WiFi Menu", "WiFi Tools","Shell", "Settings", "Sleep"};
-const char *settingFuncs[] = {"Button Offset", "Func1 Settings", "Func2 Settings", "Func3 Settings", "Display Settings"};
+const char *settingFuncs[] = {"Button Offset", "Fnc1 Settings", "Fnc2 Settings", "Fnc3 Settings"};
 
 const byte BL_PIN = 3;
+// although full power is 4095, there is no noticable difference above 500
+int BL_power = 500;
 
 const byte buttonPin = 2;
 
-// Default button resistance values (Ordered by frequency used)
-const int defBtn1 = 810;  // 4.7K
-const int defBtn2 = 412;   // 2.2K
-const int defBtn3 = 204;   // 470
-const int defBtn4 = 2302;   // 1K
-const int defBtn5 = 1465;    // 220
-const int defBtn6 = 95;  // 10K
+const int defBtn1 = 800; 
+const int defBtn2 = 410;
+const int defBtn3 = 202; 
+const int defBtn4 = 3140; 
+const int defBtn5 = 2280; 
+const int defBtn6 = 1445; 
+const int defBtn7 = 95; 
+const int defBtn8 = 3818; 
+
 
 int btn1;
 int btn2;
@@ -53,6 +57,10 @@ int btn3;
 int btn4;
 int btn5;
 int btn6;
+int btn7;
+int btn8;
+
+uint16_t colourBG   = display.color565(0, 0, 0);
 
 // As power reduces, btn values increase.
 // Offset is a temporary fix for this.
@@ -85,6 +93,8 @@ int currentWiFiIndex = 0;
 unsigned long lastNavTime = 0;
 const unsigned long NAV_DEBOUNCE = 120;
 
+bool inverted = false;
+
 bool button_is_pressed(int btnVal, bool onlyOnce = false) {
   int pinVal = analogRead(buttonPin) - buttonOffset;
   int errorVal = pinVal - btnVal;
@@ -111,13 +121,13 @@ bool a_button_is_pressed(){
 
 bool lightSleep(){
   digitalWrite(BL_PIN, LOW);
-  delay(500);
   while (!a_button_is_pressed()){
     esp_light_sleep_start();
   }
   if (!a_button_is_pressed()) return true;
   else {
     digitalWrite(BL_PIN, HIGH);
+    display.initR(INITR_MINI160x80);
     return false;
   }
 }
@@ -171,6 +181,9 @@ void saveBtnVals() {
   preferences.putInt("btn4", btn4);
   preferences.putInt("btn5", btn5);
   preferences.putInt("btn6", btn6);
+  preferences.putInt("btn7", btn7);
+  preferences.putInt("btn8", btn8);
+
   preferences.end();
 }
 
@@ -182,6 +195,9 @@ void loadBtnVals(){
   btn4 = preferences.getInt("btn4", defBtn4);
   btn5 = preferences.getInt("btn5", defBtn5);
   btn6 = preferences.getInt("btn6", defBtn6);
+  btn7 = preferences.getInt("btn7", defBtn7);
+  btn8 = preferences.getInt("btn8", defBtn8);
+
   preferences.end();
 }
 
@@ -192,6 +208,19 @@ void randomiseMac(){
   }
   mac[0] = (mac[0] | 0x02) & 0xFE;
   esp_wifi_set_mac(WIFI_IF_STA, mac);
+}
+
+int Wheel(int WheelPos) {
+  WheelPos = 255 - WheelPos;
+  if (WheelPos < 85) {
+    return display.color565(255 - WheelPos * 3, 0, WheelPos * 3);
+  }
+  if (WheelPos < 170) {
+    WheelPos -= 85;
+    return display.color565(0, WheelPos * 3, 255 - WheelPos * 3);
+  }
+  WheelPos -= 170;
+  return display.color565(WheelPos * 3, 255 - WheelPos * 3, 0);
 }
 
 void timeSyncAndUI() {
@@ -216,7 +245,8 @@ void timeSyncAndUI() {
     int attempts = 0;
     while (WiFi.status() != WL_CONNECTED && attempts < 20) {
       // Skip button allows early exit
-      if (button_is_pressed(btn6)) {
+      if (button_is_pressed(btn8, true)) {
+        delay(1000);
         WiFi.disconnect();
         return;
       }
@@ -276,9 +306,15 @@ void timeSyncAndUI() {
   display.print("100%");
   
   display.display();
+  delay(500);
+  
+  for (int i = 0; i <= 255; i+=10) {
+    display.fillScreen(Wheel(i));
+    display.display();
+  }
+
   wifiConnected = false;
   WiFi.disconnect();
-  delay(500);
 }
 
 void setup() {
@@ -312,9 +348,7 @@ void setup() {
 
   // Sync time and display startup message
   timeSyncAndUI();
-  
-  delay(1000);
-  
+    
   // If any button is pressed, enter button tuning
   if (a_button_is_pressed()) {
     display.fillScreen(ST77XX_BLACK);
@@ -349,18 +383,28 @@ void loop() {
 
   unsigned long now = millis();
   
-  if (button_is_pressed(btn2) && (now - lastNavTime) > NAV_DEBOUNCE) {
+  if (button_is_pressed(btn3) && (now - lastNavTime) > NAV_DEBOUNCE) {
     selectedFunction++;
     if (selectedFunction > totalFunctions) selectedFunction = 1;
     lastNavTime = now;
   } 
-  else if (button_is_pressed(btn1) && (now - lastNavTime) > NAV_DEBOUNCE) {
+  else if (button_is_pressed(btn2) && (now - lastNavTime) > NAV_DEBOUNCE) {
     selectedFunction--;
     if (selectedFunction < 1) selectedFunction = totalFunctions;
     lastNavTime = now;
   } 
-  else if (button_is_pressed(btn3, true)) {
-    delay(100);
+  else if (button_is_pressed(btn4) && (now - lastNavTime) > NAV_DEBOUNCE) {
+    selectedFunction+=2;
+    if (selectedFunction > totalFunctions) selectedFunction = 1;
+    lastNavTime = now;
+  } 
+  else if (button_is_pressed(btn1) && (now - lastNavTime) > NAV_DEBOUNCE) {
+    selectedFunction-=2;
+    if (selectedFunction < 1) selectedFunction = totalFunctions;
+    lastNavTime = now;
+  } 
+  else if (button_is_pressed(btn8, true)) {
+    while(a_button_is_pressed()) {}
     switch (selectedFunction) {
       case 1:
         watchFuncs();
@@ -399,9 +443,10 @@ void loop() {
         settings();
         break;
       case 13:
-        display.fillScreen(ST77XX_BLACK);
+        delay(500);
         while (lightSleep()){}
         break;
     }
+    while(a_button_is_pressed()) {}
   }
 }

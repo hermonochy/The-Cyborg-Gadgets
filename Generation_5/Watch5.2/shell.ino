@@ -512,7 +512,7 @@ void shell(void) {
         }
         delay(200);
       }
-      else if (button_is_pressed(btn3)) {
+      else if (button_is_pressed(btn4)) {
         if (strlen(inputBuffer) > 0) {
           executeCommand(inputBuffer);
           addToHistory(inputBuffer);
@@ -530,7 +530,7 @@ void shell(void) {
       else if (button_is_pressed(btn1)) {
         serialMode = true;
       }
-      else if (button_is_pressed(btn6)) {
+      else if (button_is_pressed(btn8)) {
         return;
       }
       
@@ -581,7 +581,7 @@ bool inputString(const char* label, char* buffer, int maxLen) {
       charIndex = (charIndex + 1) % charsetSize;
       delay(100);
     }
-    else if (button_is_pressed(btn3)) {
+    else if (button_is_pressed(btn4)) {
       if (strlen(buffer) < maxLen - 1) {
         buffer[strlen(buffer)] = charset[charIndex];
         buffer[strlen(buffer) + 1] = '\0';
@@ -598,7 +598,7 @@ bool inputString(const char* label, char* buffer, int maxLen) {
       buffer[0] = '\0';
       delay(150);
     }
-    else if (button_is_pressed(btn6)) {
+    else if (button_is_pressed(btn8)) {
       if (strlen(buffer) > 0) {
         return true;
       } else {
@@ -999,7 +999,7 @@ void cmdBlink(const char* args) {
       delay(delayMs / 2);
       digitalWrite(pin, LOW);
       delay(delayMs / 2);
-      if (button_is_pressed(btn6)) break;
+      if (button_is_pressed(btn8)) break;
     }
     showSuccess("Blink", count);
   } else {
@@ -1016,7 +1016,7 @@ void cmdPattern(const char* args) {
     for (int i = 0; i < strlen(sequence); i++) {
       digitalWrite(pin, (sequence[i] == '1') ? HIGH : LOW);
       delay(delayMs);
-      if (button_is_pressed(btn6)) break;
+      if (button_is_pressed(btn8)) break;
     }
     digitalWrite(pin, LOW);
     showSuccess("Pattern", strlen(sequence));
@@ -1104,7 +1104,7 @@ void cmdPrint(const char* args) {
   display.display();
   
   while (true) {
-    if (button_is_pressed(btn6)) break;
+    if (button_is_pressed(btn8)) break;
     delay(50);
   }
 }
@@ -1239,7 +1239,7 @@ void cmdFor(const char* args) {
     
     for (int i = start; i <= end; i += step) {
       setVariableValue(varName, i);
-      if (button_is_pressed(btn6)) break;
+      if (button_is_pressed(btn8)) break;
     }
   } else {
     showError("for var start end");
@@ -1305,7 +1305,7 @@ void cmdWhile(const char* args) {
       return;
     }
     
-    if (button_is_pressed(btn6)) {
+    if (button_is_pressed(btn8)) {
       display.fillScreen(ST77XX_BLACK);
       display.setTextSize(1);
       display.setCursor(0, 20);
@@ -1491,7 +1491,7 @@ void showVariables() {
   display.display();
   
   while (true) {
-    if (button_is_pressed(btn6)) break;
+    if (button_is_pressed(btn8)) break;
     delay(50);
   }
 }
@@ -1528,11 +1528,11 @@ void showHelp1() {
       showHelp2();
       return;
     }
-    else if (button_is_pressed(btn3)) {
+    else if (button_is_pressed(btn4)) {
       showHelp3();
       return;
     }
-    else if (button_is_pressed(btn6)) break;
+    else if (button_is_pressed(btn8)) break;
     delay(100);
   }
 }
@@ -1556,11 +1556,11 @@ void showHelp2() {
       showHelp1();
       return;
     }
-    else if (button_is_pressed(btn3)) {
+    else if (button_is_pressed(btn4)) {
       showHelp3();
       return;
     }
-    if (button_is_pressed(btn6)) break;
+    if (button_is_pressed(btn8)) break;
     delay(100);
   }
 }
@@ -1586,7 +1586,7 @@ void showHelp3() {
       showHelp1();
       return;
     }
-    if (button_is_pressed(btn6)) break;
+    if (button_is_pressed(btn8)) break;
     delay(100);
   }
 }

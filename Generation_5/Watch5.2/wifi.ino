@@ -78,7 +78,7 @@ void timeSync() {
       totAttempts++;
       attempts++;
       // If there are no wifi's nearby you can just skip this function.
-      if (button_is_pressed(btn6, true)) return;
+      if (button_is_pressed(btn8, true)) return;
     }
   }
 }
@@ -169,7 +169,7 @@ void addWiFiNetworkOnWatch() {
   display.display();
   
   while (true) {
-    if (button_is_pressed(btn3)) {
+    if (button_is_pressed(btn4)) {
       strncpy(wifiNetworks[wifiNetworkCount].ssid, newSSID, MAX_WIFI_SSID - 1);
       wifiNetworks[wifiNetworkCount].ssid[MAX_WIFI_SSID - 1] = '\0';
       strncpy(wifiNetworks[wifiNetworkCount].password, newPassword, MAX_WIFI_PASS - 1);
@@ -190,7 +190,7 @@ void addWiFiNetworkOnWatch() {
       delay(2000);
       return;
     }
-    if (button_is_pressed(btn6, true)) {
+    if (button_is_pressed(btn8, true)) {
       display.fillScreen(ST77XX_BLACK);
       display.setTextSize(1);
       display.setCursor(0, 20);
@@ -240,7 +240,7 @@ bool inputStringOnWatch(const char* label, char* buffer, int maxLen) {
       charIndex = (charIndex + 1) % charsetSize;
       delay(100);
     }
-    else if (button_is_pressed(btn3)) {
+    else if (button_is_pressed(btn4)) {
       if (strlen(buffer) < maxLen - 1) {
         buffer[strlen(buffer)] = charset[charIndex];
         buffer[strlen(buffer) + 1] = '\0';
@@ -257,7 +257,7 @@ bool inputStringOnWatch(const char* label, char* buffer, int maxLen) {
       buffer[0] = '\0';
       delay(150);
     }
-    else if (button_is_pressed(btn6, true)) {
+    else if (button_is_pressed(btn8, true)) {
       if (strlen(buffer) > 0) {
         return true;
       } else {
@@ -315,7 +315,7 @@ void wifiNetworkMenu() {
         selectedIdx = (selectedIdx + 1) % wifiNetworkCount;
         delay(150);
       }
-      else if (button_is_pressed(btn3)) {
+      else if (button_is_pressed(btn4)) {
         currentWiFiIndex = selectedIdx;
         connectWiFi();
         delay(200);
@@ -339,7 +339,7 @@ void wifiNetworkMenu() {
       delay(200);
     }
     
-    if (button_is_pressed(btn6, true)) {
+    if (button_is_pressed(btn8, true)) {
       return;
     }
     delay(50);
@@ -360,7 +360,7 @@ void deleteWiFiNetwork(int idx) {
   display.display();
   
   while (true) {
-    if (button_is_pressed(btn3)) {
+    if (button_is_pressed(btn4)) {
       for (int i = idx; i < wifiNetworkCount - 1; i++) {
         wifiNetworks[i] = wifiNetworks[i + 1];
       }
@@ -375,7 +375,7 @@ void deleteWiFiNetwork(int idx) {
       delay(1000);
       return;
     }
-    if (button_is_pressed(btn6, true)) {
+    if (button_is_pressed(btn8, true)) {
       return;
     }
     delay(50);
@@ -459,7 +459,7 @@ void scanWiFiNetworks() {
       selectedIdx = (selectedIdx + 1) % min(5, numNetworks);
       delay(150);
     }
-    else if (button_is_pressed(btn3)) {
+    else if (button_is_pressed(btn4)) {
       int idx = indices[selectedIdx];
       String selectedSSID = WiFi.SSID(idx);
       
@@ -476,7 +476,7 @@ void scanWiFiNetworks() {
       display.display();
       
       while (true) {
-        if (button_is_pressed(btn3)) {
+        if (button_is_pressed(btn4)) {
           if (wifiNetworkCount < MAX_WIFI_NETWORKS) {
             strncpy(wifiNetworks[wifiNetworkCount].ssid, selectedSSID.c_str(), MAX_WIFI_SSID - 1);
             wifiNetworks[wifiNetworkCount].ssid[MAX_WIFI_SSID - 1] = '\0';
@@ -499,13 +499,13 @@ void scanWiFiNetworks() {
           }
           return;
         }
-        if (button_is_pressed(btn6, true)) {
+        if (button_is_pressed(btn8, true)) {
           return;
         }
         delay(50);
       }
     }
-    else if (button_is_pressed(btn6, true)) {
+    else if (button_is_pressed(btn8, true)) {
       return;
     }
     
@@ -536,7 +536,7 @@ void disconnectWiFi() {
   display.display();
   
   while (true) {
-    if (button_is_pressed(btn3)) {
+    if (button_is_pressed(btn4)) {
       WiFi.disconnect(true);
       wifiConnected = false;
       
@@ -548,7 +548,7 @@ void disconnectWiFi() {
       delay(1500);
       return;
     }
-    if (button_is_pressed(btn6, true)) {
+    if (button_is_pressed(btn8, true)) {
       return;
     }
     delay(50);
@@ -584,19 +584,19 @@ void wifiMenu(void) {
     
     display.display();
     
-    if (button_is_pressed(btn4)) {
+    if (button_is_pressed(btn5)) {
       scanWiFiNetworks();
       delay(200);
     }
-    else if (button_is_pressed(btn3, true)) {
+    else if (button_is_pressed(btn4, true)) {
       wifiNetworkMenu();
       delay(200);
     }
-    else if (button_is_pressed(btn5, true)) {
+    else if (button_is_pressed(btn7, true)) {
       disconnectWiFi();
       delay(200);
     }
-    else if (button_is_pressed(btn6, true)) {
+    else if (button_is_pressed(btn8, true)) {
       return;
     }
     delay(50);
@@ -864,7 +864,7 @@ void serialWiFiMenu(void) {
 }
 
 void wifiFuncs(){
-  while (!button_is_pressed(btn6, true)) {
+  while (!button_is_pressed(btn8, true)) {
     display.fillScreen(ST77XX_BLACK);
     display.setTextSize(1);
     display.setCursor(0, 20);
@@ -878,7 +878,7 @@ void wifiFuncs(){
     
     if (button_is_pressed(btn1)) getWeather();
     else if (button_is_pressed(btn2)) displayTime();
-    else if (button_is_pressed(btn3)) dictionary();
+    else if (button_is_pressed(btn4)) dictionary();
   }
 }
 
@@ -892,11 +892,11 @@ void getWeather(void) {
     display.print("Connect?");
     display.display();
     while(true){
-      if(button_is_pressed(btn3)) {
+      if(button_is_pressed(btn4)) {
         wifiNetworkMenu();
         break;
       }
-      else if (button_is_pressed(btn6, true)) return;
+      else if (button_is_pressed(btn8, true)) return;
     }
   }
 
@@ -923,8 +923,8 @@ void getWeather(void) {
       hourOffset = min(23, hourOffset + 1);
       delay(120);
     }
-    else if (button_is_pressed(btn3)) break;
-    else if (button_is_pressed(btn6, true)) return;
+    else if (button_is_pressed(btn4)) break;
+    else if (button_is_pressed(btn8, true)) return;
     delay(30);
   }
 
@@ -1009,7 +1009,7 @@ void getWeather(void) {
 
     display.display();
     while (true) {
-      if (button_is_pressed(btn6, true)) break;
+      if (button_is_pressed(btn8, true)) break;
     }
   } else {
     display.fillScreen(ST77XX_BLACK);
@@ -1129,7 +1129,7 @@ void timeSettingsMenu() {
       selectedOption = (selectedOption + 1) % 3;
       delay(150);
     }
-    else if (button_is_pressed(btn3)) {
+    else if (button_is_pressed(btn4)) {
       if (selectedOption == 0) {
         while (true) {
           display.fillScreen(ST77XX_BLACK);
@@ -1153,7 +1153,7 @@ void timeSettingsMenu() {
             if (timeOffset > 12) timeOffset = 12;
             delay(150);
           }
-          else if (button_is_pressed(btn6, true)) {
+          else if (button_is_pressed(btn8, true)) {
             setTimeOffset(timeOffset);
             break;
           }
@@ -1188,7 +1188,7 @@ void timeSettingsMenu() {
             if (dstOffset > 2) dstOffset = 2;
             delay(150);
           }
-          else if (button_is_pressed(btn6, true)) {
+          else if (button_is_pressed(btn8, true)) {
             setDSTOffset(dstOffset);
             break;
           }
@@ -1196,7 +1196,7 @@ void timeSettingsMenu() {
         }
       }
     }
-    else if (button_is_pressed(btn6, true)) {
+    else if (button_is_pressed(btn8, true)) {
       return;
     }
     
@@ -1270,7 +1270,7 @@ void displayTime(void) {
       dstOffset = getDSTOffset();
       delay(100);
     }
-    else if (button_is_pressed(btn6, true)) {
+    else if (button_is_pressed(btn8, true)) {
       return;
     }
     
@@ -1391,7 +1391,7 @@ void dictCharacterInput(char* buffer, int maxLen) {
       charIndex = (charIndex + 1) % charsetSize;
       delay(100);
     }
-    else if (button_is_pressed(btn3)) {
+    else if (button_is_pressed(btn4)) {
       if (strlen(buffer) < maxLen - 1) {
         buffer[strlen(buffer)] = charset[charIndex];
         buffer[strlen(buffer) + 1] = '\0';
@@ -1408,7 +1408,7 @@ void dictCharacterInput(char* buffer, int maxLen) {
       buffer[0] = '\0';
       delay(150);
     }
-    else if (button_is_pressed(btn6, true)) {
+    else if (button_is_pressed(btn8, true)) {
       if (strlen(buffer) > 0) {
         display.fillScreen(ST77XX_BLACK);
         display.setTextSize(1);
@@ -1481,7 +1481,7 @@ void dictDisplayResult() {
       }
       delay(200);
     }
-    else if (button_is_pressed(btn6, true)) {
+    else if (button_is_pressed(btn8, true)) {
       dictDataValid = false;
       return;
     }
@@ -1520,7 +1520,7 @@ void dictionary(void) {
       }
       delay(200);
     }
-    else if (button_is_pressed(btn6, true)) {
+    else if (button_is_pressed(btn8, true)) {
       return;
     }
     

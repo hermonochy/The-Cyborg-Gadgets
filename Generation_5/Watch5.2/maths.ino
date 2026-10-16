@@ -37,38 +37,45 @@ void maths(void) {
     
     display.display();
 
-    delay(100);
+    delay(50);
     
-    if (button_is_pressed(btn2)) {
-      selectedMathsFunction++;
-      if (selectedMathsFunction > totalMathsFunctions) selectedMathsFunction = 1;
-    } 
-    else if (button_is_pressed(btn1)) {
+    if (button_is_pressed(btn5)) {
       selectedMathsFunction--;
       if (selectedMathsFunction < 1) selectedMathsFunction = totalMathsFunctions;
+      delay(150);
+    }
+    else if (button_is_pressed(btn6)) {
+      selectedMathsFunction++;
+      if (selectedMathsFunction > totalMathsFunctions) selectedMathsFunction = 1;
+      delay(150);
     } 
-    else if (button_is_pressed(btn6)) return;
+    else if (button_is_pressed(btn1)) {
+      selectedMathsFunction -= 2;
+      if (selectedMathsFunction < 1) selectedMathsFunction = totalMathsFunctions - (selectedMathsFunction < -1 ? 1 : 0);
+      if (selectedMathsFunction < 1) selectedMathsFunction = 1;
+      delay(150);
+    } 
+    else if (button_is_pressed(btn2)) {
+      selectedMathsFunction += 2;
+      if (selectedMathsFunction > totalMathsFunctions) selectedMathsFunction = totalMathsFunctions;
+      delay(150);
+    }
     else if (button_is_pressed(btn3)) {
+      selectedMathsFunction = 1;
+      delay(150);
+    }
+    else if (button_is_pressed(btn4)) {
       switch (selectedMathsFunction) {
-        case 1:
-          calculator();
-          break;
-        case 2:
-          unitConverter();
-          break;
-        case 3:
-          baseConverter();
-          break;
-        case 4:
-          graphPlotter();
-          break;
-        case 5:
-          matrixCalculator();
-          break;
-        case 6:
-          primeFactorisation();
-          break;
+        case 1: calculator(); break;
+        case 2: unitConverter(); break;
+        case 3: baseConverter(); break;
+        case 4: graphPlotter(); break;
+        case 5: matrixCalculator(); break;
+        case 6: primeFactorisation(); break;
       }
+    }
+    else if (button_is_pressed(btn8)) {
+      return;
     }
   }
 }
@@ -123,17 +130,30 @@ void calculator() {
     }
     display.display();
 
-    if (button_is_pressed(btn2, false)) {
-      selected = (selected+1) % activeSize;
-      delay(120);
+    if (button_is_pressed(btn1)) {
+      selected = (selected + 6) % activeSize;
+      delay(80);
     }
-    else if (button_is_pressed(btn1)) {
+    else if (button_is_pressed(btn2)) {
+      selected = (selected + 1) % activeSize;
+      delay(80);
+    }
+    else if (button_is_pressed(btn5)) {
       selected--;
-      if (selected<0) selected = activeSize;
-      selected = selected % activeSize;
-      delay(120);
+      if (selected < 0) selected = activeSize - 1;
+      delay(80);
+    }
+    else if (button_is_pressed(btn6)) {
+      selected++;
+      if (selected >= activeSize) selected = 0;
+      delay(80);
     }
     else if (button_is_pressed(btn3)) {
+      onScreen1 = !onScreen1;
+      selected = 0;
+      delay(120);
+    }
+    else if (button_is_pressed(btn4)) {
       if (exprLen < 63) {
         if (onScreen1 && strcmp(activeScreen[selected], "pi") == 0) {
           strcat(expr, "pi");
@@ -145,7 +165,7 @@ void calculator() {
       }
       delay(120);
     }
-    else if (button_is_pressed(btn4)) {
+    else if (button_is_pressed(btn7)) {
       int len = strlen(expr);
       if (len > 0) {
         if (len >= 2 && expr[len-2] == 'p' && expr[len-1] == 'i') {
@@ -157,12 +177,7 @@ void calculator() {
       }
       delay(120);
     }
-    else if (button_is_pressed(btn5)) {
-      onScreen1 = !onScreen1;
-      selected = 0;
-      delay(120);
-    }
-    else if (button_is_pressed(btn6)) {
+    else if (button_is_pressed(btn8)) {
       if (showResult) return;
       int err;
       te_variable vars[] = {};
@@ -178,7 +193,7 @@ void calculator() {
       }
       delay(300);
     }
-    delay(40);
+    delay(20);
   }
 }
 
@@ -217,27 +232,48 @@ void unitConverter(void){
         if (!enteringValue)
             display.print(result, 4);
         display.display();
+        
         if (button_is_pressed(btn1)){
             selMinus = selectedType - 1;
             absSel = abs(selMinus);
             selectedType = absSel % numTypes;
             enteringValue = true;
-            delay(250);
+            delay(150);
         } 
         else if (button_is_pressed(btn2)){
             selectedType = (selectedType + 1) % numTypes;
             enteringValue = true;
-            delay(250);
-        } 
-        else if (button_is_pressed(btn4, false)){
-            if (enteringValue) inputValue--;
             delay(150);
-        } 
-        else if (button_is_pressed(btn5, false)){
-            if (enteringValue) inputValue++;
+        }
+        else if (button_is_pressed(btn5)){
+            selectedType -= 2;
+            if (selectedType < 0) selectedType = numTypes + selectedType;
+            enteringValue = true;
             delay(150);
         } 
         else if (button_is_pressed(btn6)){
+            selectedType += 2;
+            if (selectedType >= numTypes) selectedType = selectedType % numTypes;
+            enteringValue = true;
+            delay(150);
+        } 
+        else if (button_is_pressed(btn4, false)){
+            if (enteringValue) inputValue -= 0.1;
+            delay(100);
+        } 
+        else if (button_is_pressed(btn7, false)){
+            if (enteringValue) inputValue += 0.1;
+            delay(100);
+        } 
+        else if (button_is_pressed(btn3, false)){
+            if (enteringValue) inputValue--;
+            delay(100);
+        } 
+        else if (button_is_pressed(btn6, true)){
+            if (enteringValue) inputValue++;
+            delay(100);
+        }
+        else if (button_is_pressed(btn8)){
             if (enteringValue){
                 switch (selectedType){
                     case LEN:   result = inputValue / 2.54; break;
@@ -258,7 +294,7 @@ void unitConverter(void){
             } 
             else return;
         }
-        delay(50);
+        delay(30);
     }
 }
 
@@ -312,17 +348,30 @@ void graphPlotter(void) {
     }
     display.display();
 
-    if (button_is_pressed(btn2, false)) {
-      selected = (selected+1) % activeSize;
-      delay(120);
+    if (button_is_pressed(btn1)) {
+      selected = (selected + 6) % activeSize;
+      delay(80);
     }
-    else if (button_is_pressed(btn1, false)) {
+    else if (button_is_pressed(btn2)) {
+      selected = (selected + 1) % activeSize;
+      delay(80);
+    }
+    else if (button_is_pressed(btn5)) {
       selMinus = selected - 1;
       absSel = abs(selMinus);
       selected = absSel % activeSize;
-      delay(120);
+      delay(80);
+    }
+    else if (button_is_pressed(btn6)) {
+      selected = (selected + 1) % activeSize;
+      delay(80);
     }
     else if (button_is_pressed(btn3)) {
+      onScreen1 = !onScreen1;
+      selected = 0;
+      delay(120);
+    }
+    else if (button_is_pressed(btn4)) {
       if (exprLen < 63) {
         const char** activeScreen = onScreen1 ? charScreen1 : charScreen2;
         const char* selectedChar = activeScreen[selected];
@@ -346,7 +395,7 @@ void graphPlotter(void) {
       }
       delay(120);
     }
-    else if (button_is_pressed(btn4)) {
+    else if (button_is_pressed(btn7)) {
       int len = strlen(equation);
       if (len > 0) {
         equation[len-1] = '\0';
@@ -354,18 +403,13 @@ void graphPlotter(void) {
       }
       delay(120);
     }
-    else if (button_is_pressed(btn5)) {
-      onScreen1 = !onScreen1;
-      selected = 0;
-      delay(120);
-    }
-    else if (button_is_pressed(btn6)) {
+    else if (button_is_pressed(btn8)) {
       if (exprLen > 0) {
         if (plotGraph(equation, xMin, xMax, yMin, yMax)) return;
       }
       delay(200);
     }
-    delay(40);
+    delay(20);
   }
 }
 
@@ -430,15 +474,15 @@ bool plotGraph(char* equation, double xMin, double xMax, double yMin, double yMa
   int settingIndex = 0;
   
   while (configuring) {
-    if (button_is_pressed(btn1)) {
+    if (button_is_pressed(btn5)) {
       settingIndex = 0;
       delay(150);
     }
-    else if (button_is_pressed(btn2)) {
+    else if (button_is_pressed(btn6)) {
       settingIndex = 1;
       delay(150);
     }
-    else if (button_is_pressed(btn3)) {
+    else if (button_is_pressed(btn4)) {
       if (settingIndex == 0) {
         Serial.println("\n--- Set X Range ---");
         Serial.print("X Min: ");
@@ -470,11 +514,32 @@ bool plotGraph(char* equation, double xMin, double xMax, double yMin, double yMa
       }
       delay(200);
     }
-    else if (button_is_pressed(btn6)) {
-      return true;
-    }
     else if (button_is_pressed(btn1)) {
+      xMin -= 5;
+      xMax -= 5;
+      plotGraph(equation, xMin, xMax, yMin, yMax);
       return false;
+    }
+    else if (button_is_pressed(btn2)) {
+      xMin += 5;
+      xMax += 5;
+      plotGraph(equation, xMin, xMax, yMin, yMax);
+      return false;
+    }
+    else if (button_is_pressed(btn3)) {
+      yMin -= 5;
+      yMax -= 5;
+      plotGraph(equation, xMin, xMax, yMin, yMax);
+      return false;
+    }
+    else if (button_is_pressed(btn7)) {
+      yMin += 5;
+      yMax += 5;
+      plotGraph(equation, xMin, xMax, yMin, yMax);
+      return false;
+    }
+    else if (button_is_pressed(btn8)) {
+      return true;
     }
     delay(50);
   }
@@ -546,12 +611,10 @@ void baseConverter(void) {
     display.print("Input: ");
     display.println(inputNumber);
     display.setCursor(0, 45);
-    display.println("3:Change Base 4:Convert");
-    display.setCursor(0, 56);
-    display.println("5:Input 6:Back");
+    display.println("1/2:Bases 3/4:Nav 5:Inpt 6:Done");
     display.display();
     
-    if (button_is_pressed(btn3)) {
+    if (button_is_pressed(btn1)) {
       selectBases(&sourceBase, &targetBase);
       delay(200);
     }
@@ -572,14 +635,25 @@ void baseConverter(void) {
       inputNum(inputNumber, MAX_NUMBER_LENGTH, sourceBase);
       delay(200);
     }
-    else if (button_is_pressed(btn6)) {
+    else if (button_is_pressed(btn8)) {
       return;
+    }
+    else if (button_is_pressed(btn2)) {
+      sourceBase++;
+      if (sourceBase > 16) sourceBase = 2;
+      delay(150);
+    }
+    else if (button_is_pressed(btn3)) {
+      targetBase++;
+      if (targetBase > 16) targetBase = 2;
+      delay(150);
     }
     delay(50);
   }
 }
+
 void selectBases(int *sourceBase, int *targetBase) {
-  int selectedRole = 0;  // 0 = source, 1 = target
+  int selectedRole = 0;
   int tempSourceBase = *sourceBase;
   int tempTargetBase = *targetBase;
   
@@ -593,7 +667,7 @@ void selectBases(int *sourceBase, int *targetBase) {
       display.println("Select TARGET Base:");
     }
     display.setCursor(0, SCREEN_HEIGHT - 8);
-    display.print("1:- 2:+ 3:OK 6:Back");
+    display.print("1:- 2:+ 4:OK 8:Back");
     display.setTextSize(2);
     display.setCursor(10, 30);
     display.print("Base ");
@@ -624,7 +698,7 @@ void selectBases(int *sourceBase, int *targetBase) {
       }
       delay(100);
     }
-    else if (button_is_pressed(btn3)) {
+    else if (button_is_pressed(btn4)) {
       if (selectedRole == 0) {
         selectedRole = 1; 
       } else {
@@ -634,7 +708,7 @@ void selectBases(int *sourceBase, int *targetBase) {
       }
       delay(200);
     }
-    else if (button_is_pressed(btn6)) {
+    else if (button_is_pressed(btn8)) {
       return;
     }
     delay(50);
@@ -680,9 +754,9 @@ void inputNum(char* buffer, int maxLen, int base) {
     display.setTextSize(1);
     
     display.setCursor(0, 48);
-    display.print("1/2:Digit 3:Add 4:Del 5:Clr");
+    display.print("1/2:Dgt 4:Add 7:Del 5:Clr");
     display.setCursor(0, 56);
-    display.print("6:Done");
+    display.print("8:Done");
     display.display();
     
     if (button_is_pressed(btn1)) {
@@ -693,14 +767,14 @@ void inputNum(char* buffer, int maxLen, int base) {
       charIndex = (charIndex + 1) % charsetSize;
       delay(100);
     }
-    else if (button_is_pressed(btn3)) {
+    else if (button_is_pressed(btn4)) {
       if (strlen(buffer) < maxLen - 1) {
         buffer[strlen(buffer)] = charset[charIndex];
         buffer[strlen(buffer) + 1] = '\0';
       }
       delay(150);
     }
-    else if (button_is_pressed(btn4)) {
+    else if (button_is_pressed(btn7)) {
       if (strlen(buffer) > 0) {
         buffer[strlen(buffer) - 1] = '\0';
       }
@@ -710,12 +784,8 @@ void inputNum(char* buffer, int maxLen, int base) {
       buffer[0] = '\0';
       delay(150);
     }
-    else if (button_is_pressed(btn6)) {
-      if (strlen(buffer) > 0) {
-        return;
-      } else {
-        return;
-      }
+    else if (button_is_pressed(btn8)) {
+      return;
     }
     delay(30);
   }
@@ -816,9 +886,9 @@ void convertAndDisplay(const char* number, int sourceBase, int targetBase) {
     
     display.setCursor(0, SCREEN_HEIGHT - 10);
     if (maxScroll > 0) {
-      display.print("1/2:Scroll 6:Back");
+      display.print("1/2:Scrl 3:PgUp 6:PgDn 8:Back");
     } else {
-      display.print("6:Back");
+      display.print("8:Back");
     }
     display.display();
     
@@ -830,7 +900,17 @@ void convertAndDisplay(const char* number, int sourceBase, int targetBase) {
       if (scrollPos < maxScroll) scrollPos++;
       delay(100);
     }
+    else if (button_is_pressed(btn3)) {
+      scrollPos -= 10;
+      if (scrollPos < 0) scrollPos = 0;
+      delay(100);
+    }
     else if (button_is_pressed(btn6)) {
+      scrollPos += 10;
+      if (scrollPos > maxScroll) scrollPos = maxScroll;
+      delay(100);
+    }
+    else if (button_is_pressed(btn8)) {
       return;
     }
     delay(50);
@@ -871,12 +951,12 @@ void inputMatrix(float m[MAX_MATRIX_SIZE][MAX_MATRIX_SIZE], int &rows, int &cols
       if (sel==i) display.print(">");
       display.print(sizes[i]);
     }
-    display.setCursor(0,56); display.print("1/2:Up/Dn 3:Sel 6:Back");
+    display.setCursor(0,56); display.print("1/2:UpDn 4:Sel 8:Back");
     display.display();
     if (button_is_pressed(btn1)) { sel=(sel-1+4)%4; delay(120);}
     else if (button_is_pressed(btn2)) { sel=(sel+1)%4; delay(120);}
-    else if (button_is_pressed(btn3)) { rows=sizeOpts[sel][0]; cols=sizeOpts[sel][1]; break;}
-    else if (button_is_pressed(btn6)) return;
+    else if (button_is_pressed(btn4)) { rows=sizeOpts[sel][0]; cols=sizeOpts[sel][1]; break;}
+    else if (button_is_pressed(btn8)) return;
     delay(30);
   }
 
@@ -895,13 +975,13 @@ void inputMatrix(float m[MAX_MATRIX_SIZE][MAX_MATRIX_SIZE], int &rows, int &cols
         if (i==currI&&j==currJ) display.print("]"); else display.print(" ");
       }
     }
-    display.setCursor(60,56); display.print("3:Edit 6:Done");
+    display.setCursor(60,56); display.print("4:Edt 5/6:Col 1/2:Row 8:Dne");
     display.display();
     if (button_is_pressed(btn1)) { currI=(currI-1+rows)%rows; delay(120);}
     else if (button_is_pressed(btn2)) { currI=(currI+1)%rows; delay(120);}
-    else if (button_is_pressed(btn4)) { currJ=(currJ-1+cols)%cols; delay(120);}
-    else if (button_is_pressed(btn5)) { currJ=(currJ+1)%cols; delay(120);}
-    else if (button_is_pressed(btn3)) {
+    else if (button_is_pressed(btn5)) { currJ=(currJ-1+cols)%cols; delay(120);}
+    else if (button_is_pressed(btn6)) { currJ=(currJ+1)%cols; delay(120);}
+    else if (button_is_pressed(btn4)) {
       float val = m[currI][currJ];
       int dec = 0;
       int digit = (int)(val);
@@ -909,17 +989,17 @@ void inputMatrix(float m[MAX_MATRIX_SIZE][MAX_MATRIX_SIZE], int &rows, int &cols
         display.fillScreen(ST77XX_BLACK);
         display.setCursor(0,0); display.printf("Matrix %c[%d,%d]",name,currI+1,currJ+1);
         display.setCursor(0,22); display.print("Val: "); display.print(val,1);
-        display.setCursor(0,56); display.print("1/2:-/+ 3:OK 6:Cancel");
+        display.setCursor(0,56); display.print("1/2:-/+ 3/-0.1 7/+0.1 4:OK 8:Ctl");
         display.display();
         if (button_is_pressed(btn1)) { val -= 1; delay(120);}
         else if (button_is_pressed(btn2)) { val += 1; delay(120);}
-        else if (button_is_pressed(btn4)) { val -= 0.1; delay(100);}
-        else if (button_is_pressed(btn5)) { val += 0.1; delay(100);}
-        else if (button_is_pressed(btn3)) { m[currI][currJ]=val; break;}
-        else if (button_is_pressed(btn6)) break;
+        else if (button_is_pressed(btn3)) { val -= 0.1; delay(100);}
+        else if (button_is_pressed(btn7)) { val += 0.1; delay(100);}
+        else if (button_is_pressed(btn4)) { m[currI][currJ]=val; break;}
+        else if (button_is_pressed(btn8)) break;
         delay(25);
       }
-    } else if (button_is_pressed(btn6)) break;
+    } else if (button_is_pressed(btn8)) break;
     delay(30);
   }
 }
@@ -938,10 +1018,10 @@ void showResultMatrix(const char* op, float m[MAX_MATRIX_SIZE][MAX_MATRIX_SIZE],
     display.print("Scalar: "); display.print(scalar,2);
   } else {
     display.setCursor(0,56);
-    display.print("6:Back");
+    display.print("8:Back");
   }
   display.display();
-  while(!button_is_pressed(btn6)) delay(90);
+  while(!button_is_pressed(btn8)) delay(90);
 }
 
 void showScalarMenu(float &scalar) {
@@ -949,14 +1029,14 @@ void showScalarMenu(float &scalar) {
     display.fillScreen(ST77XX_BLACK);
     display.setCursor(0,0); display.print("Scalar Value:");
     display.setCursor(0,22); display.print(scalar,2);
-    display.setCursor(0,56); display.print("1/2:-/+ 3:OK 6:Back");
+    display.setCursor(0,56); display.print("1/2:-/+ 3/-0.1 7/+0.1 4:OK 8:Ctl");
     display.display();
     if (button_is_pressed(btn1)) { scalar-=1; delay(90);}
     else if (button_is_pressed(btn2)) { scalar+=1; delay(90);}
-    else if (button_is_pressed(btn4)) { scalar-=0.1f; delay(70);}
-    else if (button_is_pressed(btn5)) { scalar+=0.1f; delay(70);}
-    else if (button_is_pressed(btn3)) return;
-    else if (button_is_pressed(btn6)) break;
+    else if (button_is_pressed(btn3)) { scalar-=0.1f; delay(70);}
+    else if (button_is_pressed(btn7)) { scalar+=0.1f; delay(70);}
+    else if (button_is_pressed(btn4)) return;
+    else if (button_is_pressed(btn8)) break;
     delay(20);
   }
 }
@@ -1063,39 +1143,50 @@ void matrixCalculator() {
       }
     }
     display.setCursor(0,56);
-    display.print("1/2:UpDn 3:Sel 6:Exit");
+    display.print("1/2:Nav 5/6:Scl 4:Sel 8:Ex");
     display.display();
-    if (button_is_pressed(btn1)) { sel=(sel-1+nops)%nops; delay(120);}
-    else if (button_is_pressed(btn2)) { sel=(sel+1)%nops; delay(120);}
-    else if (button_is_pressed(btn3)) {
+    if (button_is_pressed(btn1)) { sel=(sel-1+nops)%nops; delay(80);}
+    else if (button_is_pressed(btn2)) { sel=(sel+1)%nops; delay(80);}
+    else if (button_is_pressed(btn5)) {
+      sel -= 6;
+      if (sel < 0) sel = nops + sel;
+      if (sel >= nops) sel = 0;
+      delay(120);
+    }
+    else if (button_is_pressed(btn6)) {
+      sel += 6;
+      if (sel >= nops) sel = sel % nops;
+      delay(120);
+    }
+    else if (button_is_pressed(btn4)) {
       switch(sel) {
         case 0: inputMatrix(matrixA,rowsA,colsA,'A'); break;
         case 1: inputMatrix(matrixB,rowsB,colsB,'B'); break;
-        case 2: // A+B
+        case 2:
           if(rowsA==rowsB&&colsA==colsB){
             matrixAdd(matrixA,matrixB,matrixRes,rowsA,colsA);
             showResultMatrix("A+B",matrixRes,rowsA,colsA);
           }
           break;
-        case 3: //A-B
+        case 3:
           if(rowsA==rowsB&&colsA==colsB){
             matrixSub(matrixA,matrixB,matrixRes,rowsA,colsA);
             showResultMatrix("A-B",matrixRes,rowsA,colsA);
           }
           break;
-        case 4: //B-A
+        case 4:
           if(rowsA==rowsB&&colsA==colsB){
             matrixSub(matrixB,matrixA,matrixRes,rowsA,colsA);
             showResultMatrix("B-A",matrixRes,rowsA,colsA);
           }
           break;
-        case 5: //A*B
+        case 5:
           if (colsA==rowsB) {
             matrixMul(matrixA,rowsA,colsA,matrixB,rowsB,colsB,matrixRes,rowsRes,colsRes);
             showResultMatrix("A*B",matrixRes,rowsRes,colsRes);
           }
           break;
-        case 6: //B*A
+        case 6:
           if (colsB==rowsA) {
             matrixMul(matrixB,rowsB,colsB,matrixA,rowsA,colsA,matrixRes,rowsRes,colsRes);
             showResultMatrix("B*A",matrixRes,rowsRes,colsRes);
@@ -1106,7 +1197,7 @@ void matrixCalculator() {
           matrixScalar(matrixA,rowsA,colsA,scalarVal,matrixRes);
           showResultMatrix("A*x",matrixRes,rowsA,colsA,scalarVal);
           break;
-        case 8: 
+        case 8:
           showScalarMenu(scalarVal);
           matrixScalar(matrixB,rowsB,colsB,scalarVal,matrixRes);
           showResultMatrix("B*x",matrixRes,rowsB,colsB,scalarVal);
@@ -1115,39 +1206,39 @@ void matrixCalculator() {
           matrixTranspose(matrixA,rowsA,colsA,matrixRes);
           showResultMatrix("TA",matrixRes,colsA,rowsA);
           break;
-        case 10: 
+        case 10:
           matrixTranspose(matrixB,rowsB,colsB,matrixRes);
           showResultMatrix("TB",matrixRes,colsB,rowsB);
           break;
-        case 11: 
+        case 11:
           if(rowsA==colsA) {
             float d=matrixDet(matrixA,rowsA);
             display.fillScreen(ST77XX_BLACK);
             display.setCursor(0,0); display.print("Det(A)="); display.print(d,3);
-            display.setCursor(0,56); display.print("6:Back");
+            display.setCursor(0,56); display.print("8:Back");
             display.display();
-            while(!button_is_pressed(btn6)) delay(70);
+            while(!button_is_pressed(btn8)) delay(70);
           }
           break;
-        case 12: 
+        case 12:
           if(rowsB==colsB) {
             float d=matrixDet(matrixB,rowsB);
             display.fillScreen(ST77XX_BLACK);
             display.setCursor(0,0); display.print("Det(B)="); display.print(d,3);
-            display.setCursor(0,56); display.print("6:Back");
+            display.setCursor(0,56); display.print("8:Back");
             display.display();
-            while(!button_is_pressed(btn6)) delay(70);
+            while(!button_is_pressed(btn8)) delay(70);
           }
           break;
-        case 13: 
+        case 13:
           if(rowsA==colsA&&rowsA>=2&&rowsA<=3) {
             if(matrixInverse(matrixA,rowsA,matrixRes))
               showResultMatrix("invA",matrixRes,rowsA,colsA);
             else {
               display.fillScreen(ST77XX_BLACK); display.setCursor(0,22);
               display.print("A not invertible");
-              display.setCursor(0,56); display.print("6:Back");
-              display.display(); while(!button_is_pressed(btn6)) delay(70);
+              display.setCursor(0,56); display.print("8:Back");
+              display.display(); while(!button_is_pressed(btn8)) delay(70);
             }
           }
           break;
@@ -1158,8 +1249,8 @@ void matrixCalculator() {
             else {
               display.fillScreen(ST77XX_BLACK); display.setCursor(0,22);
               display.print("B not invertible");
-              display.setCursor(0,56); display.print("6:Back");
-              display.display(); while(!button_is_pressed(btn6)) delay(70);
+              display.setCursor(0,56); display.print("8:Back");
+              display.display(); while(!button_is_pressed(btn8)) delay(70);
             }
           }
           break;
@@ -1178,10 +1269,10 @@ void matrixCalculator() {
           setIdentity(matrixA,MAX_MATRIX_SIZE);setIdentity(matrixB,MAX_MATRIX_SIZE);
           rowsA=2;colsA=2;rowsB=2;colsB=2;
           break;
-        case 17: return; 
+        case 17: return;
       }
       delay(100);
-    } else if (button_is_pressed(btn6)) return;
+    } else if (button_is_pressed(btn8)) return;
     delay(40);
   }
 }
@@ -1252,11 +1343,21 @@ void primeFactorisation() {
     
     if (button_is_pressed(btn1)) {
       selectedDigit = (selectedDigit - 1 + digitCount) % digitCount;
-      delay(100);
+      delay(80);
     }
     else if (button_is_pressed(btn2)) {
       selectedDigit = (selectedDigit + 1) % digitCount;
-      delay(100);
+      delay(80);
+    }
+    else if (button_is_pressed(btn5)) {
+      selectedDigit -= 5;
+      if (selectedDigit < 0) selectedDigit += digitCount;
+      delay(80);
+    }
+    else if (button_is_pressed(btn6)) {
+      selectedDigit += 5;
+      if (selectedDigit >= digitCount) selectedDigit %= digitCount;
+      delay(80);
     }
     else if (button_is_pressed(btn3)) {
       if (inputLen < 30) {
@@ -1266,14 +1367,14 @@ void primeFactorisation() {
         delay(120);
       }
     }
-    else if (button_is_pressed(btn4)) {
+    else if (button_is_pressed(btn7)) {
       if (inputLen > 0) {
         inputBuffer[--inputLen] = '\0';
         showingResult = false;
         delay(120);
       }
     }
-    else if (button_is_pressed(btn5)) {
+    else if (button_is_pressed(btn4)) {
       if (inputLen > 0) {
         unsigned long number = 0;
         bool valid = true;
@@ -1384,9 +1485,9 @@ void primeFactorisation() {
         delay(300);
       }
     }
-    else if (button_is_pressed(btn6)) {
+    else if (button_is_pressed(btn8)) {
       return;
     }
-    delay(40);
+    delay(20);
   }
 }

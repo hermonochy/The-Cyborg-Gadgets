@@ -14,7 +14,15 @@ void activateFunc(byte func, int blinkTime = 500){
   bool blink = false;
   bool keepOn = false;
 
+  bool displayOn = true;
+
   while (true){
+
+    // for extended use, to save power
+    if (button_is_pressed(btn4, true)) {
+      displayOn = !displayOn;
+      digitalWrite(BL_PIN, displayOn);
+    }
     if (!blink) delay(50);
     if (keepOn){
       digitalWrite(func, HIGH);
@@ -25,7 +33,7 @@ void activateFunc(byte func, int blinkTime = 500){
       else delayMicroseconds(blinkTime);
     } 
     else {
-      if (button_is_pressed(btn1, false)) digitalWrite(func, HIGH);
+      if (button_is_pressed(btn1)) digitalWrite(func, HIGH);
       else digitalWrite(func, LOW);
     }
 
@@ -37,25 +45,28 @@ void activateFunc(byte func, int blinkTime = 500){
       blink = !blink;
       if (blink) keepOn = false;
     }
-    else if (button_is_pressed(btn6)){
+    else if (button_is_pressed(btn8, true)){
       return;
     }
-    
-    display.fillScreen(ST77XX_BLACK);
-    display.setTextSize(1);
-    display.setCursor(0, 20);
-    display.println("1. Quick Flash");
-    display.setCursor(0, 30);
-    display.println("2. Always On");
-    display.setCursor(0, 40);
-    display.println("3. Blink");
-    display.setCursor(0, 50);
-    display.println("6. Return");
-    
-    display.setTextSize(2);
-    display.setCursor(5, 0);
-    display.print(digitalRead(func) ? "On" : "Off");
-    display.display();
+    if(displayOn) {
+      display.fillScreen(ST77XX_BLACK);
+      display.setTextSize(1);
+      display.setCursor(0, 20);
+      display.println("1. Quick Flash");
+      display.setCursor(0, 30);
+      display.println("2. Always On");
+      display.setCursor(0, 40);
+      display.println("3. Blink");
+      display.setCursor(0, 50);
+      display.println("4. Toggle Display");
+      display.setCursor(0, 70);
+      display.println("6. Return");
+      
+      display.setTextSize(2);
+      display.setCursor(5, 0);
+      display.print(digitalRead(func) ? "On" : "Off");
+      display.display();
+    }
   }
 }
 
@@ -68,14 +79,14 @@ void watchFuncs(void) {
     display.setCursor(0, 30);
     display.println("2. Laser");
     display.setCursor(0, 40);
-    display.println("3. UV LED");
+    display.println("3. Vibrator");
     display.display();
     delay(50);
     
-    if (button_is_pressed(btn1)) activateFunc(Func1, blinkTime1);
-    else if (button_is_pressed(btn2)) activateFunc(Func2, blinkTime2);
-    else if (button_is_pressed(btn3)) activateFunc(Func3, blinkTime3);
-    else if (button_is_pressed(btn6)) return;
+    if (button_is_pressed(btn1, true)) activateFunc(Func1, blinkTime1);
+    else if (button_is_pressed(btn2, true)) activateFunc(Func2, blinkTime2);
+    else if (button_is_pressed(btn3, true)) activateFunc(Func3, blinkTime3);
+    else if (button_is_pressed(btn8, true)) return;
   }
 }
 
@@ -103,19 +114,19 @@ void counter(void){
       ++score2;
       delay(150);
     }
-    else if (button_is_pressed(btn3)){
+    else if (button_is_pressed(btn4)){
       score1 = 0;
       score2 = 0;  
     }
-    else if (button_is_pressed(btn4)){
+    else if (button_is_pressed(btn5)){
       --score1;
       delay(150);
     }
-    else if (button_is_pressed(btn5)){
+    else if (button_is_pressed(btn6)){
       --score2;
       delay(150);
     }
-    else if (button_is_pressed(btn6)){
+    else if (button_is_pressed(btn8)){
       return;
     }
     delay(50);
@@ -141,19 +152,19 @@ void randomNum(void) {
     display.print("Dec:");
     display.print(decimals);
     display.setCursor(0, 56);
-    display.print("3:tog 4:d.p 5:gen");
+    display.print("5:tog 4:d.p 7:gen");
     display.display();
     delay(100);
     
-    if (button_is_pressed(btn1)) {
+    if (button_is_pressed(btn2)) {
       range += 10;
       delay(250);
     } 
-    else if (button_is_pressed(btn2)) {
+    else if (button_is_pressed(btn1)) {
       range = max(1, range - 1);
       delay(250);
     } 
-    else if (button_is_pressed(btn5)) {
+    else if (button_is_pressed(btn7)) {
       if (!floatMode) {
         int r = random(0, range + 1);
         display.fillScreen(ST77XX_BLACK);
@@ -173,7 +184,7 @@ void randomNum(void) {
         delay(2000);
       }
     } 
-    else if (button_is_pressed(btn3)) {
+    else if (button_is_pressed(btn5)) {
       floatMode = !floatMode;
       delay(250);
     }
@@ -181,7 +192,7 @@ void randomNum(void) {
       decimals = min(6, decimals + 1);
       delay(200);
     }
-    else if (button_is_pressed(btn6, true)) {
+    else if (button_is_pressed(btn8, true)) {
       return;
     }
   }
@@ -304,10 +315,10 @@ void metronome_time_signature_menu() {
       metronome_time_sig = (metronome_time_sig + 1) % 3;
       delay(200);
     }
-    else if (button_is_pressed(btn3)) {
+    else if (button_is_pressed(btn4)) {
       return;
     }
-    else if (button_is_pressed(btn6)) {
+    else if (button_is_pressed(btn8)) {
       return;
     }
   }
@@ -345,10 +356,10 @@ void metronome_subdivision_menu() {
       metronome_subdivision = (metronome_subdivision + 1) % 3;
       delay(200);
     }
-    else if (button_is_pressed(btn3)) {
+    else if (button_is_pressed(btn4)) {
       return;
     }
-    else if (button_is_pressed(btn6)) {
+    else if (button_is_pressed(btn8)) {
       return;
     }
   }
@@ -429,7 +440,7 @@ void metronome(void) {
       btn2Held = false;
     }
     
-    if (button_is_pressed(btn3, true)) {
+    if (button_is_pressed(btn4, true)) {
       metronome_time_signature_menu();
       delay(200);
     }
@@ -444,7 +455,7 @@ void metronome(void) {
       delay(200);
     }
     
-    if (button_is_pressed(btn6, true)) {
+    if (button_is_pressed(btn8, true)) {
       digitalWrite(Func1, LOW);
       return;
     }
@@ -536,11 +547,11 @@ void notesFunction(void) {
         selectedNote = (selectedNote + 1) % MAX_NOTES;
         delay(150);
       }
-      else if (button_is_pressed(btn3)) {
+      else if (button_is_pressed(btn4)) {
         viewingMode = false;
         delay(200);
       }
-      else if (button_is_pressed(btn6)) {
+      else if (button_is_pressed(btn8)) {
         return;
       }
     } else {
@@ -582,7 +593,7 @@ void notesFunction(void) {
         }
         delay(150);
       }
-      else if (button_is_pressed(btn3)) {
+      else if (button_is_pressed(btn4)) {
         char charset[] = "ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789.-:,!?";
         int charIndex = 0;
         bool selectingChar = true;
@@ -608,7 +619,7 @@ void notesFunction(void) {
             charIndex = (charIndex + 1) % (int)strlen(charset);
             delay(100);
           }
-          else if (button_is_pressed(btn3)) {
+          else if (button_is_pressed(btn4)) {
             int len = strlen(notes[selectedNote].text);
             if (len < MAX_NOTE_LENGTH - 1) {
               notes[selectedNote].text[len] = charset[charIndex];
@@ -618,7 +629,7 @@ void notesFunction(void) {
             selectingChar = false;
             delay(200);
           }
-          else if (button_is_pressed(btn6)) {
+          else if (button_is_pressed(btn8)) {
             selectingChar = false;
             delay(200);
           }
@@ -635,7 +646,7 @@ void notesFunction(void) {
         viewingMode = true;
         delay(200);
       }
-      else if (button_is_pressed(btn6)) {
+      else if (button_is_pressed(btn8)) {
         viewingMode = true;
         delay(200);
       }
